@@ -4,7 +4,8 @@ import numpy as np
 import random, math
 from gurobipy import *
 
-def is_conflict_free(D):
+
+def is_conflict_free_farid(D):
     conflict_free = True
     for p in range(D.shape[1]):
         for q in range(p + 1, D.shape[1]):
@@ -78,9 +79,9 @@ def get_data(n, m, seed, fn, fp, na, ms_package_path):
         return data
     
     ground = build_ground_by_ms(n, m, seed)
-    if is_conflict_free(ground):
+    if is_conflict_free_farid(ground):
         noisy, (countFN,countFP,countNA) = make_noisy(ground, fn, fp, na)
-        if not is_conflict_free(noisy):
+        if not is_conflict_free_farid(noisy):
             return ground, noisy, (countFN,countFP,countNA)
     else:
         return get_data(n, m, seed+1, fn, fp, na, ms_package_path)
