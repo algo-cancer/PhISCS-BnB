@@ -1,0 +1,248 @@
+import pybnb
+import numpy as np
+from utils import *
+import operator
+import datetime
+from collections import defaultdict
+ms_package_path = '/home/frashidi/software/bin/ms'
+
+ground, noisy, (countFN,countFP,countNA) = get_data(n=30, m=15, seed=1, fn=0.20, fp=0, na=0, 
+                                                    ms_package_path=ms_package_path)
+a = datetime.datetime.now()
+solution, (flips_0_1, flips_1_0, flips_2_0, flips_2_1) = PhISCS_I(noisy, beta=0.20, alpha=0.00000001)
+b = datetime.datetime.now()
+c = b - a
+print('PhISCS_I in microseconds: ', c.microseconds)
+# print(noisy)
+# print(solution)
+print('Number of flips reported by PhISCS_I:', len(np.where(solution != noisy)[0]))
+
+
+#––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
+
+def is_conflict_free_gusfield_and_get_two_columns_in_coflicts(I):
+    def sort_bin(a):
+        b = np.transpose(a)
+        b_view = np.ascontiguousarray(b).view(np.dtype((np.void, b.dtype.itemsize * b.shape[1])))
+        idx = np.argsort(b_view.ravel())[::-1]
+        c = b[idx]
+        return np.transpose(c), idx
+
+    O, idx = sort_bin(I)
+    #todo: delete duplicate columns
+    #print(O, '\n')
+    Lij = np.zeros(O.shape, dtype=int)
+    for i in range(O.shape[0]):
+        maxK = 0
+        for j in range(O.shape[1]):
+            if O[i,j] == 1:
+                Lij[i,j] = maxK
+                maxK = j+1
+    #print(Lij, '\n')
+    Lj = np.amax(Lij, axis=0)
+    #print(Lj, '\n')
+
+    for i in range(O.shape[0]):
+        for j in range(O.shape[1]):
+            if O[i,j] == 1:
+                if Lij[i,j] != Lj[j]:
+                    return False, (idx[j], idx[Lj[j]-1])
+    return True, None
+
+def get_a_coflict(D, p, q):
+    #todo: oneone is not important you can get rid of
+    oneone = None
+    zeroone = None
+    onezero = None
+    for r in range(D.shape[0]):
+        if D[r,p] == 1 and D[r,q] == 1:
+            oneone = r
+        if D[r,p] == 0 and D[r,q] == 1:
+            zeroone = r
+        if D[r,p] == 1 and D[r,q] == 0:
+            onezero = r
+        if oneone != None and zeroone != None and onezero != None:
+            return (p,q,oneone,zeroone,onezero)
+    return None
+
+def get_lower_bound(noisy, partition_randomly=False):
+    def get_important_pair_of_columns_in_conflict(D):
+        important_columns = defaultdict(lambda: 0)
+        for p in range(D.shape[1]):
+            for q in range(p + 1, D.shape[1]):
+                oneone = 0
+                zeroone = 0
+                onezero = 0
+                for r in range(D.shape[0]):
+                    if D[r,p] == 1 and D[r,q] == 1:
+                        oneone += 1
+                    if D[r,p] == 0 and D[r,q] == 1:
+                        zeroone += 1
+                    if D[r,p] == 1 and D[r,q] == 0:
+                        onezero += 1
+                if oneone*zeroone*onezero > 0:
+                    important_columns[(p,q)] += oneone*zeroone*onezero
+        return important_columns
+    
+    def get_partition_sophisticated(D):
+        ipofic = get_important_pair_of_columns_in_conflict(D)
+        if len(ipofic) == 0:
+            return []
+        sorted_ipofic = sorted(ipofic.items(), key=operator.itemgetter(1), reverse=True)
+        pairs = [sorted_ipofic[0][0]]
+        elements = [sorted_ipofic[0][0][0], sorted_ipofic[0][0][1]]
+        sorted_ipofic.remove(sorted_ipofic[0])
+        for x in sorted_ipofic[:]:
+            notFound = True
+            for y in x[0]:
+                if y in elements:
+                    sorted_ipofic.remove(x)
+                    notFound = False
+                    break
+            if notFound:
+                pairs.append(x[0])
+                elements.append(x[0][0])
+                elements.append(x[0][1])
+        #print(sorted_ipofic, pairs, elements)
+        partitions = []
+        for x in pairs:
+            partitions.append(D[:,x])
+        return partitions
+    
+    def get_partition_random(D):
+        d = int(D.shape[1]/2)
+        partitions_id = np.random.choice(range(D.shape[1]), size=(d, 2), replace=False)
+        partitions = []
+        for x in partitions_id:
+            partitions.append(D[:,x])
+        return partitions
+    
+    def get_lower_bound_for_a_pair_of_columns(D):
+        foundOneOne = False
+        numberOfZeroOne = 0
+        numberOfOneZero = 0
+        for r in range(D.shape[0]):
+            if D[r,0] == 1 and D[r,1] == 1:
+                foundOneOne = True
+            if D[r,0] == 0 and D[r,1] == 1:
+                numberOfZeroOne += 1
+            if D[r,0] == 1 and D[r,1] == 0:
+                numberOfOneZero += 1
+        if foundOneOne:
+            if numberOfZeroOne*numberOfOneZero > 0:
+                return min(numberOfZeroOne, numberOfOneZero)
+        return 0
+    
+    LB = []
+    if partition_randomly:
+        partitions = get_partition_random(noisy)
+    else:
+        partitions = get_partition_sophisticated(noisy)
+    for D in partitions:
+        LB.append(get_lower_bound_for_a_pair_of_columns(D))
+    return sum(LB)
+
+
+#––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
+
+
+class PhISCS_a(pybnb.Problem):
+    def __init__(self, I):
+        self.I = I
+        self.X = np.where(self.I == 0)
+        self.flip = 0
+        self.idx = 0
+    
+    def sense(self):
+        return pybnb.minimize
+
+    def objective(self):
+        icf, _ = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(self.I)
+        if icf:
+            return self.flip
+        else:
+            return pybnb.Problem.infeasible_objective(self)
+
+    def bound(self):
+        return self.flip + get_lower_bound(self.I, partition_randomly=True)
+
+    def save_state(self, node):
+        node.state = (self.I, self.idx, self.flip)
+
+    def load_state(self, node):
+        self.I, self.idx, self.flip = node.state
+
+    def branch(self):
+        if self.idx < len(self.X[0]):
+            node = pybnb.Node()
+            I = self.I.copy()
+            x = self.X[0][self.idx]
+            y = self.X[1][self.idx]
+            I[x, y] = 1
+            node.state = (I, self.idx+1, self.flip+1)
+            yield node
+            
+            node = pybnb.Node()
+            I = self.I.copy()
+            x = self.X[0][self.idx]
+            y = self.X[1][self.idx]
+            I[x, y] = 0
+            node.state = (I, self.idx+1, self.flip)
+            yield node
+
+
+class PhISCS_b(pybnb.Problem):
+    def __init__(self, I):
+        self.I = I
+        self.X = np.zeros(I.shape, dtype=bool)
+        self.flip = 0
+    
+    def sense(self):
+        return pybnb.minimize
+
+    def objective(self):
+        icf, _ = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(self.I)
+        if icf:
+            return self.flip
+        else:
+            return pybnb.Problem.infeasible_objective(self)
+
+    def bound(self):
+        return self.flip + get_lower_bound(self.I, partition_randomly=False)
+
+    def save_state(self, node):
+        node.state = (self.I, self.flip)
+
+    def load_state(self, node):
+        self.I, self.flip = node.state
+
+    def branch(self):
+        icf, (p,q) = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(self.I)
+        p,q,oneone,zeroone,onezero = get_a_coflict(self.I, p, q)
+        
+        if not self.X[onezero,q]:
+            node = pybnb.Node()
+            I = self.I.copy()
+            I[onezero,q] = 1
+            node.state = (I, self.flip+1)
+            yield node
+        
+        if not self.X[zeroone,p]:
+            node = pybnb.Node()
+            I = self.I.copy()
+            I[zeroone,p] = 1
+            node.state = (I, self.flip+1)
+            yield node
+
+
+
+# problem = PhISCS_a(noisy)
+problem = PhISCS_b(noisy)
+
+a = datetime.datetime.now()
+results = pybnb.solve(problem)
+b = datetime.datetime.now()
+c = b - a
+print('PhISCS_BnB in microseconds: ', c.microseconds)
+print('Number of flips reported by PhISCS_BnB:', results.best_node.state[-1])
+print('Is the output matrix reported by PhISCS_BnB conflict free:', is_conflict_free_farid(results.best_node.state[0]))
