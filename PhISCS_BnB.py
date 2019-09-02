@@ -4,17 +4,22 @@ from utils import *
 import operator
 import datetime
 from collections import defaultdict
-ms_package_path = '/home/frashidi/software/bin/ms'
+from optparse import OptionParser
+parser = OptionParser()
+parser.add_option('-n', '--numberOfCells', dest='n', help='', type=int, default=30)
+parser.add_option('-m', '--numberOfMutations', dest='m', help='', type=int, default=15)
+parser.add_option('-p', '--partitionRandomly', dest='p', help='', action='store_true', default=False)
+options, args = parser.parse_args()
 
-ground, noisy, (countFN,countFP,countNA) = get_data(n=30, m=15, seed=1, fn=0.20, fp=0, na=0, 
-                                                    ms_package_path=ms_package_path)
+
+noisy = np.random.randint(2, size=(options.n, options.m))
+# ms_package_path = '/home/frashidi/software/bin/ms'
+# ground, noisy, (countFN,countFP,countNA) = get_data(n=30, m=15, seed=1, fn=0.20, fp=0, na=0, ms_package_path=ms_package_path)
 a = datetime.datetime.now()
-solution, (flips_0_1, flips_1_0, flips_2_0, flips_2_1) = PhISCS_I(noisy, beta=0.20, alpha=0.00000001)
+solution, (flips_0_1, flips_1_0, flips_2_0, flips_2_1) = PhISCS_I(noisy, beta=0.9999999, alpha=0.00000001)
 b = datetime.datetime.now()
 c = b - a
 print('PhISCS_I in microseconds: ', c.microseconds)
-# print(noisy)
-# print(solution)
 print('Number of flips reported by PhISCS_I:', len(np.where(solution != noisy)[0]))
 
 
@@ -142,9 +147,7 @@ def get_lower_bound(noisy, partition_randomly=False):
         LB.append(get_lower_bound_for_a_pair_of_columns(D))
     return sum(LB)
 
-
 #––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
-
 
 class PhISCS_a(pybnb.Problem):
     def __init__(self, I):
@@ -164,7 +167,7 @@ class PhISCS_a(pybnb.Problem):
             return pybnb.Problem.infeasible_objective(self)
 
     def bound(self):
-        return self.flip + get_lower_bound(self.I, partition_randomly=True)
+        return self.flip + get_lower_bound(self.I, partition_randomly=options.p)
 
     def save_state(self, node):
         node.state = (self.I, self.idx, self.flip)
@@ -190,7 +193,6 @@ class PhISCS_a(pybnb.Problem):
             node.state = (I, self.idx+1, self.flip)
             yield node
 
-
 class PhISCS_b(pybnb.Problem):
     def __init__(self, I):
         self.I = I
@@ -208,7 +210,7 @@ class PhISCS_b(pybnb.Problem):
             return pybnb.Problem.infeasible_objective(self)
 
     def bound(self):
-        return self.flip + get_lower_bound(self.I, partition_randomly=False)
+        return self.flip + get_lower_bound(self.I, partition_randomly=options.p)
 
     def save_state(self, node):
         node.state = (self.I, self.flip)
@@ -221,6 +223,7 @@ class PhISCS_b(pybnb.Problem):
         p,q,oneone,zeroone,onezero = get_a_coflict(self.I, p, q)
         
         if not self.X[onezero,q]:
+            self.X[onezero,q] = True
             node = pybnb.Node()
             I = self.I.copy()
             I[onezero,q] = 1
@@ -228,6 +231,7 @@ class PhISCS_b(pybnb.Problem):
             yield node
         
         if not self.X[zeroone,p]:
+            self.X[zeroone,p] = True
             node = pybnb.Node()
             I = self.I.copy()
             I[zeroone,p] = 1
@@ -243,6 +247,6 @@ a = datetime.datetime.now()
 results = pybnb.solve(problem)
 b = datetime.datetime.now()
 c = b - a
-print('PhISCS_BnB in microseconds: ', c.microseconds)
+print('PhISCS_BnB in microseconds:', c.microseconds)
 print('Number of flips reported by PhISCS_BnB:', results.best_node.state[-1])
 print('Is the output matrix reported by PhISCS_BnB conflict free:', is_conflict_free_farid(results.best_node.state[0]))
