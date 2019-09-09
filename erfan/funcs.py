@@ -9,51 +9,50 @@ from instances import *
 
 
 def is_conflict_free_gusfield_and_get_two_columns_in_coflicts(I):
-    def sort_bin(a):
-        b = np.transpose(a)
-        b_view = np.ascontiguousarray(b).view(np.dtype((np.void, b.dtype.itemsize * b.shape[1])))
-        idx = np.argsort(b_view.ravel())[::-1]
-        c = b[idx]
-        return np.transpose(c), idx
+  def sort_bin(a):
+    b = np.transpose(a)
+    b_view = np.ascontiguousarray(b).view(np.dtype((np.void, b.dtype.itemsize * b.shape[1])))
+    idx = np.argsort(b_view.ravel())[::-1]
+    c = b[idx]
+    return np.transpose(c), idx
 
-    O, idx = sort_bin(I)
-    #todo: delete duplicate columns
-    #print(O, '\n')
-    Lij = np.zeros(O.shape, dtype=int)
-    for i in range(O.shape[0]):
-        maxK = 0
-        for j in range(O.shape[1]):
-            if O[i,j] == 1:
-                Lij[i,j] = maxK
-                maxK = j+1
-    #print(Lij, '\n')
-    Lj = np.amax(Lij, axis=0)
-    #print(Lj, '\n')
+  O, idx = sort_bin(I)
+  # todo: delete duplicate columns
+  # print(O, '\n')
+  Lij = np.zeros(O.shape, dtype=int)
+  for i in range(O.shape[0]):
+    maxK = 0
+    for j in range(O.shape[1]):
+      if O[i, j] == 1:
+        Lij[i, j] = maxK
+        maxK = j + 1
+  # print(Lij, '\n')
+  Lj = np.amax(Lij, axis=0)
+  # print(Lj, '\n')
 
-    for i in range(O.shape[0]):
-        for j in range(O.shape[1]):
-            if O[i,j] == 1:
-                if Lij[i,j] != Lj[j]:
-                    return False, (idx[j], idx[Lj[j]-1])
-    return True, None
-
+  for i in range(O.shape[0]):
+    for j in range(O.shape[1]):
+      if O[i, j] == 1:
+        if Lij[i, j] != Lj[j]:
+          return False, (idx[j], idx[Lj[j] - 1])
+  return True, (None, None)
 
 
 def get_a_coflict(D, p, q):
-    #todo: oneone is not important you can get rid of
-    oneone = None
-    zeroone = None
-    onezero = None
-    for r in range(D.shape[0]):
-        if D[r,p] == 1 and D[r,q] == 1:
-            oneone = r
-        if D[r,p] == 0 and D[r,q] == 1:
-            zeroone = r
-        if D[r,p] == 1 and D[r,q] == 0:
-            onezero = r
-        if oneone != None and zeroone != None and onezero != None:
-            return (p,q,oneone,zeroone,onezero)
-    return None
+  # todo: oneone is not important you can get rid of
+  oneone = None
+  zeroone = None
+  onezero = None
+  for r in range(D.shape[0]):
+    if D[r, p] == 1 and D[r, q] == 1:
+      oneone = r
+    if D[r, p] == 0 and D[r, q] == 1:
+      zeroone = r
+    if D[r, p] == 1 and D[r, q] == 0:
+      onezero = r
+    if oneone != None and zeroone != None and onezero != None:
+      return (p, q, oneone, zeroone, onezero)
+  return None
 
 
 def get_lower_bound(noisy, partition_randomly=False):
@@ -132,36 +131,6 @@ def get_lower_bound(noisy, partition_randomly=False):
   for D in partitions:
     LB.append(get_lower_bound_for_a_pair_of_columns(D))
   return sum(LB)
-
-
-def is_conflict_free_gusfield(I):
-  def sort_bin(a):
-    b = np.transpose(a)
-    b_view = np.ascontiguousarray(b).view(np.dtype((np.void, b.dtype.itemsize * b.shape[1])))
-    c = b[np.argsort(b_view.ravel())[::-1]]
-    return np.transpose(c)
-
-  O = sort_bin(I)
-  # print("O=\n", O, '\n')
-  Lij = np.zeros(O.shape, dtype=int)
-  for i in range(O.shape[0]):
-    minK = 0
-    for j in range(O.shape[1]):
-      if O[i, j] == 1:
-        Lij[i, j] = minK
-        minK = j + 1
-  # print("Lij=\n", Lij, '\n')
-  Lj = np.amax(Lij, axis=0)
-  # print("Lj=\n", Lj, '\n')
-
-  for i in range(O.shape[0]):
-    for j in range(O.shape[1]):
-      if O[i, j] == 1:
-        if Lij[i, j] != Lj[j]:
-          # print((j, Lj[j]-1))
-          return False
-  return True
-
 
 
 

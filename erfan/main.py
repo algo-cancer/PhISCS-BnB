@@ -14,16 +14,16 @@ from BnB import *
 
 if __name__ == '__main__':
     methods = [
-        "PhISCS_a_True",
-        "PhISCS_a_False",
-        "PhISCS_b_True",
-        "PhISCS_b_False",
+        # "PhISCS_a",
+        # "PhISCS_a_False",
+        "PhISCS_b",
+        "PhISCS_c",
         "PhISCS_I",
     ]
     df = pd.DataFrame()
     # n: number of Cells
     # m: number of Mutations
-    for n, m in tqdm(itertools.product([5, 6, 7, 8, 9 ], repeat=2)):
+    for n, m in tqdm(itertools.product([5, 6, 7, 8], repeat=2)):
         for i in range(5):
             x = np.random.randint(2, size=(n, m))
             for method in methods:
