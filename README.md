@@ -13,7 +13,7 @@ solution, (flips_0_1, flips_1_0, flips_2_0, flips_2_1) = PhISCS_I(noisy, beta=0.
 
 The script creates a random matrix sized by n and m. Then it runs PhISCS_I (Gurobi) and reports the minimum number of flips solved by Gurobi in addition to the time needed. Finally, the script runs Phylogeny BnB (based on pybnb) and reports how much time is needed in addition to the number of flips.
 
-## Running
+## Usage
 
 For running you can use the following commands:
 
@@ -21,10 +21,12 @@ For running you can use the following commands:
 python phylogeny_bnb.py -n 5 -m 5 -w c -r
 ```
 
-where -n is the number of cells. -m is the number of mutations and -w indicates which heuristic is used. -r shows whether a random partitioning should be used or not.
+-n is the number of cells  
+-m is the number of mutations  
+-w indicates which heuristic algorithm is being used (a single character in {a,b,c,d})  
+-r shows whether a random partitioning should be used or not.
 
 I would recommend using -w either b or c.
-
 
 You may use the following commands:
 
