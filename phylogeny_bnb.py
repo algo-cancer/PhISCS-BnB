@@ -16,10 +16,28 @@ options, args = parser.parse_args()
 noisy = np.random.randint(2, size=(options.n, options.m))
 # print(noisy)
 # noisy = np.array([
+#     [0,1,0,0,0,0,1,1,1,0],
+#     [0,1,1,0,1,1,1,0,1,0],
+#     [1,0,0,1,0,1,1,1,0,0],
+#     [1,0,0,0,0,0,0,1,0,0],
+#     [1,1,1,1,1,1,0,1,0,1],
+#     [0,1,1,1,1,1,1,1,0,0],
+#     [1,0,0,1,0,1,0,0,0,0],
+#     [1,1,1,1,0,0,1,0,1,1],
+#     [0,0,1,0,1,1,1,1,1,0],
+#     [1,1,1,1,0,0,1,0,1,1],
+# ])
+# noisy = np.array([
 #     [0,0,1,0],
 #     [1,0,1,1],
 #     [1,1,1,1],
 #     [0,1,0,1]
+# ])
+# noisy = np.array([
+#     [0,1,1,0],
+#     [1,0,0,1],
+#     [1,1,0,0],
+#     [0,0,1,0]
 # ])
 # noisy = np.zeros((4,4))
 # ms_package_path = '/home/frashidi/software/bin/ms'
@@ -158,7 +176,7 @@ def get_lower_bound(noisy, partition_randomly=False):
 
 #––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
 
-class PhISCS_a(pybnb.Problem):
+class Phylogeny_BnB_a(pybnb.Problem):
     def __init__(self, I):
         self.I = I
         self.X = np.where(self.I == 0)
@@ -203,7 +221,7 @@ class PhISCS_a(pybnb.Problem):
             yield node
 
 
-class PhISCS_b(pybnb.Problem):
+class Phylogeny_BnB_b(pybnb.Problem):
     def __init__(self, I):
         self.I = I
         self.nflip = 0
@@ -244,7 +262,7 @@ class PhISCS_b(pybnb.Problem):
         yield node
 
 
-class PhISCS_c(pybnb.Problem):
+class Phylogeny_BnB_c(pybnb.Problem):
     def __init__(self, I):
         self.I = I
         self.nflip = 0
@@ -255,7 +273,6 @@ class PhISCS_c(pybnb.Problem):
         return pybnb.minimize
 
     def objective(self):
-        # print("Obj: ", self.icf, self.colPair)
         if self.icf:
             return self.nflip
         else:
@@ -273,8 +290,6 @@ class PhISCS_c(pybnb.Problem):
         self.I, self.icf, self.colPair, self.boundVal, self.nflip = node.state
 
     def branch(self):
-        # print("Branch: ", self.icf, self.colPair)
-        # icf, (p,q) = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(self.I)
         if self.icf:
             return
         p, q = self.colPair
@@ -295,19 +310,67 @@ class PhISCS_c(pybnb.Problem):
         yield node
 
 
+class Phylogeny_BnB_d(pybnb.Problem):
+    def __init__(self, I):
+        self.I = I
+        self.nflip = 0
+        self.icf, self.colPair = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(self.I)
+        self.boundVal = 0
+    
+    def sense(self):
+        return pybnb.minimize
+
+    def objective(self):
+        if self.icf:
+            return self.nflip
+        else:
+            return pybnb.Problem.infeasible_objective(self)
+
+    def bound(self):
+        newBound = self.nflip + get_lower_bound(self.I, partition_randomly=options.r)
+        self.boundVal = max(self.boundVal, newBound)
+        return self.boundVal
+
+    def save_state(self, node):
+        node.state = (self.icf, self.colPair, self.boundVal, self.nflip)
+
+    def load_state(self, node):
+        self.icf, self.colPair, self.boundVal, self.nflip = node.state
+
+    def branch(self):
+        if self.icf:
+            return
+        p, q = self.colPair
+        p,q,oneone,zeroone,onezero = get_a_coflict(self.I, p, q)
+        
+        node = pybnb.Node()
+        self.I[onezero,q] = 1
+        newIcf, newColPar = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(self.I)
+        node.state = (newIcf, newColPar, self.boundVal, self.nflip+1)
+        yield node
+        self.I[onezero,q] = 0
+        
+        node = pybnb.Node()
+        self.I[zeroone,p] = 1
+        newIcf, newColPar = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(self.I)
+        node.state = (newIcf, newColPar, self.boundVal, self.nflip+1)
+        yield node
+        self.I[zeroone,p] = 0
+
+
 
 if options.w == 'a':
-    print('PhISCS_a is chosen')
-    problem = PhISCS_a(noisy)
+    print('Phylogeny_BnB_a is chosen')
+    problem = Phylogeny_BnB_a(noisy)
 elif options.w == 'b':
-    print('PhISCS_b is chosen')
-    problem = PhISCS_b(noisy)
+    print('Phylogeny_BnB_b is chosen')
+    problem = Phylogeny_BnB_b(noisy)
 elif options.w == 'c':
-    print('PhISCS_c is chosen')
-    problem = PhISCS_c(noisy)
-# elif options.w == 'd':
-#     print('PhISCS_d is chosen')
-#     problem = PhISCS_d(noisy)
+    print('Phylogeny_BnB_c is chosen')
+    problem = Phylogeny_BnB_c(noisy)
+elif options.w == 'd':
+    print('Phylogeny_BnB_d is chosen')
+    problem = Phylogeny_BnB_d(noisy)
 else:
     print('Wrong Algorithm')
 
@@ -315,9 +378,9 @@ a = datetime.datetime.now()
 results = pybnb.solve(problem, log_interval_seconds=10.0)
 b = datetime.datetime.now()
 c = b - a
-print('PhISCS_BnB in microseconds:', c.microseconds)
+print('Phylogeny_BnB in microseconds:', c.microseconds)
 # print(results.solution_status, type(results.solution_status))
 if results.solution_status != "unknown":
-    print('Number of flips reported by PhISCS_BnB:', results.best_node.state[-1])
+    print('Number of flips reported by Phylogeny_BnB:', results.best_node.state[-1])
     icf, _ = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(results.best_node.state[0])
-    print('Is the output matrix reported by PhISCS_BnB conflict free:', icf)
+    print('Is the output matrix reported by Phylogeny_BnB conflict free:', icf)
