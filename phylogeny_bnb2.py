@@ -5,6 +5,7 @@ import operator
 import time
 from collections import defaultdict
 from optparse import OptionParser
+import networkx as nx
 parser = OptionParser()
 parser.add_option('-n', '--numberOfCells', dest='n', help='', type=int, default=5)
 parser.add_option('-m', '--numberOfMutations', dest='m', help='', type=int, default=5)
@@ -98,10 +99,13 @@ def all_possible_pairs_of_columns(lst):
                 yield [pair] + rest
 
 
-def get_lower_bound(D, appoc, changed_column, ifpoc_previous):
-    importance_for_pairs_of_columns = defaultdict(lambda: 0)
+def get_lower_bound(D, changed_column, previous_G):
+    if changed_column == None:
+        G = nx.Graph()
+    else:
+        G = previous_G
 
-    def calc_importance_for_one_pair_of_columns(p, q, importance_for_pairs_of_columns):
+    def calc_min0110_for_one_pair_of_columns(p, q, G):
         foundOneOne = False
         numberOfZeroOne = 0
         numberOfOneZero = 0
@@ -113,42 +117,32 @@ def get_lower_bound(D, appoc, changed_column, ifpoc_previous):
             if D[r,p] == 1 and D[r,q] == 0:
                 numberOfOneZero += 1
         if foundOneOne:
-            importance_for_pairs_of_columns[(p,q)] = min(numberOfZeroOne, numberOfOneZero)
-    
+            G.add_edge(p, q, weight=min(numberOfZeroOne, numberOfOneZero))
+        else:
+            G.add_edge(p, q, weight=0)
     if changed_column == None:
         for p in range(D.shape[1]):
             for q in range(p + 1, D.shape[1]):
-                calc_importance_for_one_pair_of_columns(p, q, importance_for_pairs_of_columns)
+                calc_min0110_for_one_pair_of_columns(p, q, G)
     else:
-        importance_for_pairs_of_columns = ifpoc_previous
         q = changed_column
         for p in range(D.shape[1]):
             if p < q:
-                calc_importance_for_one_pair_of_columns(p, q, importance_for_pairs_of_columns)
+                calc_min0110_for_one_pair_of_columns(p, q, G)
             elif q < p:
-                calc_importance_for_one_pair_of_columns(q, p, importance_for_pairs_of_columns)
+                calc_min0110_for_one_pair_of_columns(q, p, G)
 
-    maximum_importance_for_pairs_of_columns = defaultdict(lambda: 0)
-    mifpoc_index = {}
-    index = 0
-    for pairs in appoc:
-        for pair in pairs:
-            maximum_importance_for_pairs_of_columns[index] += importance_for_pairs_of_columns[pair]
-        mifpoc_index[index] = pairs
-        index += 1
-    result = sorted(maximum_importance_for_pairs_of_columns.items(), key=operator.itemgetter(1), reverse=True)
-    # print(mifpoc_index[result[0][0]])
-    return result[0][1], importance_for_pairs_of_columns
-
-
-appoc = list(all_possible_pairs_of_columns(list(range(noisy.shape[1]))))
-
+    best_pairing = nx.max_weight_matching(G)
+    lb = 0
+    for a, b in best_pairing:
+        lb += G[a][b]["weight"]
+    return lb, G
 
 # a = time.time()
-# lb, ifpoc_previous = get_lower_bound(noisy, appoc, None, None)
+# lb, previous_G = get_lower_bound(noisy, None, None)
 # b = time.time()
 # print('First: {:.5f}'.format(b-a))
-# print(lb, ifpoc_previous)
+# print(lb)
 # noisy = np.array([
 #     [0,1,0,1,0,0,1,1,1,0],
 #     [0,1,1,0,1,1,1,0,1,0],
@@ -159,13 +153,13 @@ appoc = list(all_possible_pairs_of_columns(list(range(noisy.shape[1]))))
 #     [1,0,0,1,0,1,0,0,0,0],
 #     [1,1,1,1,0,0,1,0,1,1],
 #     [0,0,1,0,1,1,1,1,1,0],
-#     [1,1,1,1,0,0,1,0,1,1]
+#     [1,1,1,1,0,0,1,0,1,1],
 # ])
 # a = time.time()
-# lb, ifpoc = get_lower_bound(noisy, appoc, 3, ifpoc_previous)
+# lb, new_G = get_lower_bound(noisy, 3, previous_G)
 # b = time.time()
 # print('Second: {:.5f}'.format(b-a))
-# print(lb, ifpoc)
+# print(lb)
 # exit()
 
 #––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
@@ -175,7 +169,7 @@ best_objective = np.inf
 class Phylogeny_BnB(pybnb.Problem):
     def __init__(self, I):
         self.I = I
-        self.lb, self.ifpoc = get_lower_bound(self.I, appoc, None, None)
+        self.lb, self.G = get_lower_bound(self.I, None, None)
         self.icf, self.col_pair = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(self.I)
         self.nflip = 0
     
@@ -192,20 +186,20 @@ class Phylogeny_BnB(pybnb.Problem):
         # if best_objective == 20:
         #     return 20
         # else:
-        lb, new_ifpoc = get_lower_bound(self.I, appoc, None, self.ifpoc)
+        lb, new_G = get_lower_bound(self.I, None, self.G)
         self.lb = max(self.lb, self.nflip + lb)
         return self.lb
         # return 19
 
     def notify_new_best_node(self, node, current):
-        print('---------', node.objective)
+        # print('---------', node.objective)
         best_objective = node.objective
 
     def save_state(self, node):
-        node.state = (self.I, self.ifpoc, self.icf, self.col_pair, self.lb, self.nflip)
+        node.state = (self.I, self.G, self.icf, self.col_pair, self.lb, self.nflip)
 
     def load_state(self, node):
-        self.I, self.ifpoc, self.icf, self.col_pair, self.lb, self.nflip = node.state
+        self.I, self.G, self.icf, self.col_pair, self.lb, self.nflip = node.state
 
     def branch(self):
         if self.icf:
@@ -217,20 +211,20 @@ class Phylogeny_BnB(pybnb.Problem):
         I = self.I.copy()
         I[onezero,q] = 1
         new_icf, new_col_pair = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(I)
-        new_ifpoc = None
-        # lb, new_ifpoc = get_lower_bound(I, appoc, q, self.ifpoc)
+        new_G = None
+        # lb, new_G = get_lower_bound(I, q, self.G)
         # self.lb = max(self.lb, self.nflip + lb)
-        node.state = (I, new_ifpoc, new_icf, new_col_pair, self.lb, self.nflip+1)
+        node.state = (I, new_G, new_icf, new_col_pair, self.lb, self.nflip+1)
         yield node
         
         node = pybnb.Node()
         I = self.I.copy()
         I[zeroone,p] = 1
         new_icf, new_col_pair = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(I)
-        new_ifpoc = None
-        # lb, new_ifpoc = get_lower_bound(I, appoc, p, self.ifpoc)
+        new_G = None
+        # lb, new_G = get_lower_bound(I, p, self.G)
         # self.lb = max(self.lb, self.nflip + lb)
-        node.state = (I, new_ifpoc, new_icf, new_col_pair, self.lb, self.nflip+1)
+        node.state = (I, new_G, new_icf, new_col_pair, self.lb, self.nflip+1)
         yield node
 
 
