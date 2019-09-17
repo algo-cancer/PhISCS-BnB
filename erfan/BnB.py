@@ -10,6 +10,7 @@ import pandas as pd
 from tqdm import tqdm
 import itertools
 
+randomPartition = False
 
 class PhISCS_b(pybnb.Problem):
     def __init__(self, I):
@@ -27,7 +28,7 @@ class PhISCS_b(pybnb.Problem):
             return pybnb.Problem.infeasible_objective(self)
 
     def bound(self):
-        return self.nflip + get_lower_bound(self.I, partition_randomly=True)
+        return self.nflip + get_lower_bound(self.I, partition_randomly=randomPartition)
 
     def save_state(self, node):
         node.state = (self.I, self.nflip)
@@ -53,11 +54,12 @@ class PhISCS_b(pybnb.Problem):
 
 
 class PhISCS_c(pybnb.Problem):
-    def __init__(self, I):
+    def __init__(self, I, boundingAlg):
         self.I = I
         self.nflip = 0
         self.icf, self.colPair = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(self.I)
         self.boundVal = 0
+        self.boundingAlg = boundingAlg
 
     def sense(self):
         return pybnb.minimize
@@ -70,7 +72,7 @@ class PhISCS_c(pybnb.Problem):
             return pybnb.Problem.infeasible_objective(self)
 
     def bound(self):
-        newBound = self.nflip + get_lower_bound(self.I, partition_randomly=True)
+        newBound = self.nflip + self.boundingAlg(self.I)
         self.boundVal = max(self.boundVal, newBound)
         return self.boundVal
 
