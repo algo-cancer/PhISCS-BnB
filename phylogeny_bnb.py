@@ -2,7 +2,7 @@ import pybnb
 import numpy as np
 from utils import *
 import operator
-import datetime
+import time
 from collections import defaultdict
 from optparse import OptionParser
 parser = OptionParser()
@@ -25,7 +25,7 @@ noisy = np.random.randint(2, size=(options.n, options.m))
 #     [1,0,0,1,0,1,0,0,0,0],
 #     [1,1,1,1,0,0,1,0,1,1],
 #     [0,0,1,0,1,1,1,1,1,0],
-#     [1,1,1,1,0,0,1,0,1,1],
+#     [1,1,1,1,0,0,1,0,1,1]
 # ])
 # noisy = np.array([
 #     [0,0,1,0],
@@ -42,11 +42,10 @@ noisy = np.random.randint(2, size=(options.n, options.m))
 # noisy = np.zeros((4,4))
 # ms_package_path = '/home/frashidi/software/bin/ms'
 # ground, noisy, (countFN,countFP,countNA) = get_data(n=30, m=15, seed=1, fn=0.20, fp=0, na=0, ms_package_path=ms_package_path)
-a = datetime.datetime.now()
+a = time.time()
 solution, (flips_0_1, flips_1_0, flips_2_0, flips_2_1) = PhISCS_I(noisy, beta=0.9, alpha=0.00000001)
-b = datetime.datetime.now()
-c = b - a
-print('PhISCS_I in microseconds: ', c.microseconds)
+b = time.time()
+print('PhISCS_I in seconds: {:.3f}'.format(b-a))
 print('Number of flips reported by PhISCS_I:', len(np.where(solution != noisy)[0]))
 
 
@@ -112,8 +111,12 @@ def get_lower_bound(noisy, partition_randomly=False):
                         zeroone += 1
                     if D[r,p] == 1 and D[r,q] == 0:
                         onezero += 1
-                if oneone*zeroone*onezero > 0:
-                    important_columns[(p,q)] += oneone*zeroone*onezero
+                ## greedy approach based on the number of conflicts in a pair of columns
+                # if oneone*zeroone*onezero > 0:
+                #     important_columns[(p,q)] += oneone*zeroone*onezero
+                ## greedy approach based on the min number of 01 or 10 in a pair of columns
+                if oneone > 0:
+                    important_columns[(p,q)] += min(zeroone, onezero)
         return important_columns
     
     def get_partition_sophisticated(D):
@@ -374,11 +377,10 @@ elif options.w == 'd':
 else:
     print('Wrong Algorithm')
 
-a = datetime.datetime.now()
+a = time.time()
 results = pybnb.solve(problem, log_interval_seconds=10.0)
-b = datetime.datetime.now()
-c = b - a
-print('Phylogeny_BnB in microseconds:', c.microseconds)
+b = time.time()
+print('Phylogeny_BnB in seconds: {:.3f}'.format(b-a))
 # print(results.solution_status, type(results.solution_status))
 if results.solution_status != "unknown":
     print('Number of flips reported by Phylogeny_BnB:', results.best_node.state[-1])
