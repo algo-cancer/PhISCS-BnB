@@ -120,6 +120,7 @@ def get_lower_bound(D, changed_column, previous_G):
             G.add_edge(p, q, weight=min(numberOfZeroOne, numberOfOneZero))
         else:
             G.add_edge(p, q, weight=0)
+
     if changed_column == None:
         for p in range(D.shape[1]):
             for q in range(p + 1, D.shape[1]):
@@ -133,34 +134,11 @@ def get_lower_bound(D, changed_column, previous_G):
                 calc_min0110_for_one_pair_of_columns(q, p, G)
 
     best_pairing = nx.max_weight_matching(G)
+    # print(best_pairing)
     lb = 0
     for a, b in best_pairing:
         lb += G[a][b]["weight"]
     return lb, G
-
-# a = time.time()
-# lb, previous_G = get_lower_bound(noisy, None, None)
-# b = time.time()
-# print('First: {:.5f}'.format(b-a))
-# print(lb)
-# noisy = np.array([
-#     [0,1,0,1,0,0,1,1,1,0],
-#     [0,1,1,0,1,1,1,0,1,0],
-#     [1,0,0,1,0,1,1,1,0,0],
-#     [1,0,0,0,0,0,0,1,0,0],
-#     [1,1,1,1,1,1,0,1,0,1],
-#     [0,1,1,1,1,1,1,1,0,0],
-#     [1,0,0,1,0,1,0,0,0,0],
-#     [1,1,1,1,0,0,1,0,1,1],
-#     [0,0,1,0,1,1,1,1,1,0],
-#     [1,1,1,1,0,0,1,0,1,1],
-# ])
-# a = time.time()
-# lb, new_G = get_lower_bound(noisy, 3, previous_G)
-# b = time.time()
-# print('Second: {:.5f}'.format(b-a))
-# print(lb)
-# exit()
 
 #––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
 
@@ -186,8 +164,8 @@ class Phylogeny_BnB(pybnb.Problem):
         # if best_objective == 20:
         #     return 20
         # else:
-        lb, new_G = get_lower_bound(self.I, None, self.G)
-        self.lb = max(self.lb, self.nflip + lb)
+        # lb, new_G = get_lower_bound(self.I, None, self.G)
+        # self.lb = max(self.lb, self.nflip + lb)
         return self.lb
         # return 19
 
@@ -209,28 +187,30 @@ class Phylogeny_BnB(pybnb.Problem):
         
         node = pybnb.Node()
         I = self.I.copy()
+        G = self.G.copy()
         I[onezero,q] = 1
         new_icf, new_col_pair = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(I)
-        new_G = None
-        # lb, new_G = get_lower_bound(I, q, self.G)
-        # self.lb = max(self.lb, self.nflip + lb)
+        lb, new_G = get_lower_bound(I, q, G)
+        self.lb = max(self.lb, self.nflip+1+lb)
         node.state = (I, new_G, new_icf, new_col_pair, self.lb, self.nflip+1)
+        node.queue_priority = -1*self.lb
         yield node
         
         node = pybnb.Node()
         I = self.I.copy()
+        G = self.G.copy()
         I[zeroone,p] = 1
         new_icf, new_col_pair = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(I)
-        new_G = None
-        # lb, new_G = get_lower_bound(I, p, self.G)
-        # self.lb = max(self.lb, self.nflip + lb)
+        lb, new_G = get_lower_bound(I, p, G)
+        self.lb = max(self.lb, self.nflip+1+lb)
         node.state = (I, new_G, new_icf, new_col_pair, self.lb, self.nflip+1)
+        node.queue_priority = -1*self.lb
         yield node
 
 
 problem = Phylogeny_BnB(noisy)
 a = time.time()
-results = pybnb.solve(problem, log_interval_seconds=10.0)#, queue_strategy='breadth')
+results = pybnb.solve(problem, log_interval_seconds=10.0, queue_strategy='custom')
 b = time.time()
 print('Phylogeny_BnB in seconds: {:.3f}'.format(b-a))
 if results.solution_status != 'unknown':
