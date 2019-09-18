@@ -1,9 +1,7 @@
 import pybnb
 import numpy as np
 from utils import *
-import operator
 import time
-from collections import defaultdict
 from optparse import OptionParser
 import networkx as nx
 parser = OptionParser()
@@ -13,7 +11,7 @@ options, args = parser.parse_args()
 
 
 noisy = np.random.randint(2, size=(options.n, options.m))
-# print(noisy)
+# print(repr(noisy))
 noisy = np.array([
     [0,1,0,0,0,0,1,1,1,0],
     [0,1,1,0,1,1,1,0,1,0],
@@ -26,14 +24,41 @@ noisy = np.array([
     [0,0,1,0,1,1,1,1,1,0],
     [1,1,1,1,0,0,1,0,1,1],
 ])
+# noisy = np.array([
+#     [0, 1, 1, 1, 1, 0, 1, 0, 0, 0, 1, 1, 0, 1, 0],
+#     [0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0, 1, 1, 0],
+#     [1, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 0],
+#     [0, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 1, 0, 0, 0],
+#     [0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 1],
+#     [1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1],
+#     [1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1],
+#     [1, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1, 1, 0],
+#     [1, 1, 1, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0],
+#     [0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0],
+#     [0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 1, 0],
+#     [1, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1],
+#     [0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1],
+#     [0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1],
+#     [1, 1, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0],
+#     [0, 1, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0],
+#     [1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1],
+#     [1, 0, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 1]
+# ])
 # ms_package_path = '/home/frashidi/software/bin/ms'
 # ground, noisy, (countFN,countFP,countNA) = get_data(n=30, m=15, seed=1, fn=0.20, fp=0, na=0, ms_package_path=ms_package_path)
+
 a = time.time()
 solution, (flips_0_1, flips_1_0, flips_2_0, flips_2_1) = PhISCS_I(noisy, beta=0.9, alpha=0.00000001)
 b = time.time()
 print('PhISCS_I in seconds: {:.3f}'.format(b-a))
 print('Number of flips reported by PhISCS_I:', len(np.where(solution != noisy)[0]))
 
+# csp_solver_path = '/home/frashidi/software/temp/csp_solvers/maxino/code/build/release/maxino'
+# a = time.time()
+# solution = PhISCS_B(noisy, beta=0.9, alpha=0.00000001, csp_solver_path=csp_solver_path)
+# b = time.time()
+# print('PhISCS_B in seconds: {:.3f}'.format(b-a))
+# print('Number of flips reported by PhISCS_B:', len(np.where(solution != noisy)[0]))
 
 #––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
 
@@ -46,7 +71,7 @@ def is_conflict_free_gusfield_and_get_two_columns_in_coflicts(I):
         return np.transpose(c), idx
 
     O, idx = sort_bin(I)
-    #todo: delete duplicate columns
+    #TODO: delete duplicate columns
     #print(O, '\n')
     Lij = np.zeros(O.shape, dtype=int)
     for i in range(O.shape[0]):
@@ -67,7 +92,6 @@ def is_conflict_free_gusfield_and_get_two_columns_in_coflicts(I):
 
 
 def get_a_coflict(D, p, q):
-    #todo: oneone is not important you can get rid of
     oneone = None
     zeroone = None
     onezero = None
@@ -81,22 +105,6 @@ def get_a_coflict(D, p, q):
         if oneone != None and zeroone != None and onezero != None:
             return (p,q,oneone,zeroone,onezero)
     return None
-
-
-def all_possible_pairs_of_columns(lst):
-    if len(lst) < 2:
-        yield []
-        return
-    if len(lst) % 2 == 1:
-        for i in range(len(lst)):
-            for result in all_possible_pairs_of_columns(lst[:i] + lst[i+1:]):
-                yield result
-    else:
-        a = lst[0]
-        for i in range(1,len(lst)):
-            pair = (a,lst[i])
-            for rest in all_possible_pairs_of_columns(lst[1:i]+lst[i+1:]):
-                yield [pair] + rest
 
 
 def get_lower_bound(D, changed_column, previous_G):
@@ -142,7 +150,7 @@ def get_lower_bound(D, changed_column, previous_G):
 
 #––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
 
-best_objective = np.inf
+# best_objective = np.inf
 
 class Phylogeny_BnB(pybnb.Problem):
     def __init__(self, I):
@@ -161,17 +169,11 @@ class Phylogeny_BnB(pybnb.Problem):
             return pybnb.Problem.infeasible_objective(self)
 
     def bound(self):
-        # if best_objective == 20:
-        #     return 20
-        # else:
-        # lb, new_G = get_lower_bound(self.I, None, self.G)
-        # self.lb = max(self.lb, self.nflip + lb)
         return self.lb
-        # return 19
+        # return 79
 
-    def notify_new_best_node(self, node, current):
-        # print('---------', node.objective)
-        best_objective = node.objective
+    # def notify_new_best_node(self, node, current):
+    #     best_objective = node.objective
 
     def save_state(self, node):
         node.state = (self.I, self.G, self.icf, self.col_pair, self.lb, self.nflip)
