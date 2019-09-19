@@ -152,9 +152,20 @@ def get_lower_bound(D, changed_column, previous_G):
 
 # best_objective = np.inf
 
+def apply_flips(I, F):
+    for i,j in F:
+        I[i,j] = 1
+    return I
+
+def deapply_flips(I, F):
+    for i,j in F:
+        I[i,j] = 0
+    return I
+
 class Phylogeny_BnB(pybnb.Problem):
     def __init__(self, I):
         self.I = I
+        self.F = []
         self.lb, self.G = get_lower_bound(self.I, None, None)
         self.icf, self.col_pair = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(self.I)
         self.nflip = 0
@@ -176,38 +187,43 @@ class Phylogeny_BnB(pybnb.Problem):
     #     best_objective = node.objective
 
     def save_state(self, node):
-        node.state = (self.I, self.G, self.icf, self.col_pair, self.lb, self.nflip)
+        node.state = (self.F, self.G, self.icf, self.col_pair, self.lb, self.nflip)
 
     def load_state(self, node):
-        self.I, self.G, self.icf, self.col_pair, self.lb, self.nflip = node.state
+        self.F, self.G, self.icf, self.col_pair, self.lb, self.nflip = node.state
 
     def branch(self):
         if self.icf:
             return
         p, q = self.col_pair
-        p,q,oneone,zeroone,onezero = get_a_coflict(self.I, p, q)
+        I = apply_flips(self.I, self.F)
+        p,q,oneone,zeroone,onezero = get_a_coflict(I, p, q)
         
-        node = pybnb.Node()
-        I = self.I.copy()
+        node_l = pybnb.Node()
         G = self.G.copy()
+        F = self.F.copy()
+        F.append((onezero,q))
         I[onezero,q] = 1
         new_icf, new_col_pair = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(I)
         lb, new_G = get_lower_bound(I, q, G)
         self.lb = max(self.lb, self.nflip+1+lb)
-        node.state = (I, new_G, new_icf, new_col_pair, self.lb, self.nflip+1)
-        node.queue_priority = -1*self.lb
-        yield node
+        node_l.state = (F, new_G, new_icf, new_col_pair, self.lb, self.nflip+1)
+        node_l.queue_priority = -self.lb
+        I[onezero,q] = 0
         
-        node = pybnb.Node()
-        I = self.I.copy()
+        node_r = pybnb.Node()
         G = self.G.copy()
+        F = self.F.copy()
+        F.append((zeroone,p))
         I[zeroone,p] = 1
         new_icf, new_col_pair = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(I)
         lb, new_G = get_lower_bound(I, p, G)
         self.lb = max(self.lb, self.nflip+1+lb)
-        node.state = (I, new_G, new_icf, new_col_pair, self.lb, self.nflip+1)
-        node.queue_priority = -1*self.lb
-        yield node
+        node_r.state = (F, new_G, new_icf, new_col_pair, self.lb, self.nflip+1)
+        node_r.queue_priority = -self.lb
+        
+        self.I = deapply_flips(I, F)
+        return [node_l, node_r]
 
 
 problem = Phylogeny_BnB(noisy)
