@@ -166,6 +166,7 @@ class Phylogeny_BnB(pybnb.Problem):
     def __init__(self, I):
         self.I = I
         self.F = []
+        self.nzero = len(np.where(self.I == 0)[0])
         self.lb, self.G = get_lower_bound(self.I, None, None)
         self.icf, self.col_pair = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(self.I)
         self.nflip = 0
@@ -177,11 +178,12 @@ class Phylogeny_BnB(pybnb.Problem):
         if self.icf:
             return self.nflip
         else:
-            return pybnb.Problem.infeasible_objective(self)
+            return self.nzero - self.nflip
+            # return pybnb.Problem.infeasible_objective(self)
 
     def bound(self):
         return self.lb
-        # return 79
+        # return 20
 
     # def notify_new_best_node(self, node, current):
     #     best_objective = node.objective
@@ -233,5 +235,6 @@ b = time.time()
 print('Phylogeny_BnB in seconds: {:.3f}'.format(b-a))
 if results.solution_status != 'unknown':
     print('Number of flips reported by Phylogeny_BnB:', results.best_node.state[-1])
-    icf, _ = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(results.best_node.state[0])
+    I = apply_flips(noisy, results.best_node.state[0])
+    icf, _ = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(I)
     print('Is the output matrix reported by Phylogeny_BnB conflict free:', icf)
