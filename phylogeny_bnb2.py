@@ -25,6 +25,12 @@ noisy = np.array([
     [1,1,1,1,0,0,1,0,1,1],
 ])
 # noisy = np.array([
+#     [0,1,1,0],
+#     [1,0,0,1],
+#     [1,1,0,0],
+#     [0,0,1,0]
+# ])
+# noisy = np.array([
 #     [0, 1, 1, 1, 1, 0, 1, 0, 0, 0, 1, 1, 0, 1, 0],
 #     [0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0, 1, 1, 0],
 #     [1, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 0],
@@ -61,35 +67,6 @@ solution, (flips_0_1, flips_1_0, flips_2_0, flips_2_1), c_time = PhISCS_I(noisy,
 # print('Number of flips reported by PhISCS_B:', len(np.where(solution != noisy)[0]))
 
 #––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
-
-def is_conflict_free_gusfield_and_get_two_columns_in_coflicts(I):
-    def sort_bin(a):
-        b = np.transpose(a)
-        b_view = np.ascontiguousarray(b).view(np.dtype((np.void, b.dtype.itemsize * b.shape[1])))
-        idx = np.argsort(b_view.ravel())[::-1]
-        c = b[idx]
-        return np.transpose(c), idx
-
-    O, idx = sort_bin(I)
-    #TODO: delete duplicate columns
-    #print(O, '\n')
-    Lij = np.zeros(O.shape, dtype=int)
-    for i in range(O.shape[0]):
-        maxK = 0
-        for j in range(O.shape[1]):
-            if O[i,j] == 1:
-                Lij[i,j] = maxK
-                maxK = j+1
-    #print(Lij, '\n')
-    Lj = np.amax(Lij, axis=0)
-    #print(Lj, '\n')
-    for i in range(O.shape[0]):
-        for j in range(O.shape[1]):
-            if O[i,j] == 1:
-                if Lij[i,j] != Lj[j]:
-                    return False, (idx[j], idx[Lj[j]-1])
-    return True, (None,None)
-
 
 def get_a_coflict(D, p, q):
     oneone = None
@@ -143,10 +120,14 @@ def get_lower_bound(D, changed_column, previous_G):
 
     best_pairing = nx.max_weight_matching(G)
     # print(best_pairing)
-    # for (u, v, wt) in G.edges.data('weight'):
-    #     print(u, v, wt)
-    lb = 0
     best_pair_qp, best_pair_w = (None, None), 0
+    # for (u, v, wt) in G.edges.data('weight'):
+    #     if wt > best_pair_w:
+    #         best_pair_qp = (u, v)
+    #         best_pair_w = wt
+        # print(u, v, wt)
+    lb = 0
+    # best_pair_qp, best_pair_w = (None, None), 0
     for a, b in best_pairing:
         # print(a,b,G[a][b]["weight"])
         if G[a][b]["weight"] > best_pair_w:
@@ -179,13 +160,13 @@ class Phylogeny_BnB(pybnb.Problem):
         return pybnb.minimize
 
     def objective(self):
-        if self.lb == self.nflip:
+        if self.lb == 0:
             return self.nflip
         else:
             return self.nzero - self.nflip
 
     def bound(self):
-        return self.lb
+        return self.nflip+self.lb+1
 
     def save_state(self, node):
         node.state = (self.F, self.G, self.best_pair, self.lb, self.nflip)
@@ -203,10 +184,9 @@ class Phylogeny_BnB(pybnb.Problem):
         F = self.F.copy()
         F.append((onezero,q))
         I[onezero,q] = 1
-        lb, new_G, new_best_pair = get_lower_bound(I, q, G)
-        self.lb = max(self.lb, self.nflip+1+lb)
-        node_l.state = (F, new_G, new_best_pair, self.lb, self.nflip+1)
-        node_l.queue_priority = -self.lb
+        new_lb, new_G, new_best_pair = get_lower_bound(I, q, G)
+        node_l.state = (F, new_G, new_best_pair, new_lb, self.nflip+1)
+        node_l.queue_priority = -new_lb
         I[onezero,q] = 0
         
         node_r = pybnb.Node()
@@ -214,11 +194,10 @@ class Phylogeny_BnB(pybnb.Problem):
         F = self.F.copy()
         F.append((zeroone,p))
         I[zeroone,p] = 1
-        lb, new_G, new_best_pair = get_lower_bound(I, p, G)
-        self.lb = max(self.lb, self.nflip+1+lb)
-        node_r.state = (F, new_G, new_best_pair, self.lb, self.nflip+1)
-        node_r.queue_priority = -self.lb
-        
+        new_lb, new_G, new_best_pair = get_lower_bound(I, p, G)
+        node_r.state = (F, new_G, new_best_pair, new_lb, self.nflip+1)
+        node_r.queue_priority = -new_lb
+
         self.I = deapply_flips(I, F)
         return [node_l, node_r]
 
