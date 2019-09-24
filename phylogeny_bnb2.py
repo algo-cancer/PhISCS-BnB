@@ -52,8 +52,6 @@ noisy = np.array([
 # print(repr(noisy))
 
 solution, (flips_0_1, flips_1_0, flips_2_0, flips_2_1), c_time = PhISCS_I(noisy, beta=0.9, alpha=0.00000001)
-print('PhISCS_I in seconds: {:.3f}'.format(c_time))
-print('Number of flips reported by PhISCS_I:', len(np.where(solution != noisy)[0]))
 
 # csp_solver_path = '/home/frashidi/software/temp/csp_solvers/maxino/code/build/release/maxino'
 # a = time.time()
@@ -148,10 +146,14 @@ def get_lower_bound(D, changed_column, previous_G):
     # for (u, v, wt) in G.edges.data('weight'):
     #     print(u, v, wt)
     lb = 0
+    best_pair_qp, best_pair_w = (None, None), 0
     for a, b in best_pairing:
         # print(a,b,G[a][b]["weight"])
+        if G[a][b]["weight"] > best_pair_w:
+            best_pair_w = G[a][b]["weight"]
+            best_pair_qp = (a, b)
         lb += G[a][b]["weight"]
-    return lb, G
+    return lb, G, best_pair_qp
 
 #––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
 
@@ -170,15 +172,14 @@ class Phylogeny_BnB(pybnb.Problem):
         self.I = I
         self.F = []
         self.nzero = len(np.where(self.I == 0)[0])
-        self.lb, self.G = get_lower_bound(self.I, None, None)
-        self.icf, self.col_pair = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(self.I)
+        self.lb, self.G, self.best_pair = get_lower_bound(self.I, None, None)
         self.nflip = 0
     
     def sense(self):
         return pybnb.minimize
 
     def objective(self):
-        if self.icf:
+        if self.lb == self.nflip:
             return self.nflip
         else:
             return self.nzero - self.nflip
@@ -187,15 +188,13 @@ class Phylogeny_BnB(pybnb.Problem):
         return self.lb
 
     def save_state(self, node):
-        node.state = (self.F, self.G, self.icf, self.col_pair, self.lb, self.nflip)
+        node.state = (self.F, self.G, self.best_pair, self.lb, self.nflip)
 
     def load_state(self, node):
-        self.F, self.G, self.icf, self.col_pair, self.lb, self.nflip = node.state
+        self.F, self.G, self.best_pair, self.lb, self.nflip = node.state
 
     def branch(self):
-        if self.icf:
-            return
-        p, q = self.col_pair
+        p, q = self.best_pair
         I = apply_flips(self.I, self.F)
         p,q,oneone,zeroone,onezero = get_a_coflict(I, p, q)
         
@@ -204,10 +203,9 @@ class Phylogeny_BnB(pybnb.Problem):
         F = self.F.copy()
         F.append((onezero,q))
         I[onezero,q] = 1
-        new_icf, new_col_pair = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(I)
-        lb, new_G = get_lower_bound(I, q, G)
+        lb, new_G, new_best_pair = get_lower_bound(I, q, G)
         self.lb = max(self.lb, self.nflip+1+lb)
-        node_l.state = (F, new_G, new_icf, new_col_pair, self.lb, self.nflip+1)
+        node_l.state = (F, new_G, new_best_pair, self.lb, self.nflip+1)
         node_l.queue_priority = -self.lb
         I[onezero,q] = 0
         
@@ -216,10 +214,9 @@ class Phylogeny_BnB(pybnb.Problem):
         F = self.F.copy()
         F.append((zeroone,p))
         I[zeroone,p] = 1
-        new_icf, new_col_pair = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(I)
-        lb, new_G = get_lower_bound(I, p, G)
+        lb, new_G, new_best_pair = get_lower_bound(I, p, G)
         self.lb = max(self.lb, self.nflip+1+lb)
-        node_r.state = (F, new_G, new_icf, new_col_pair, self.lb, self.nflip+1)
+        node_r.state = (F, new_G, new_best_pair, self.lb, self.nflip+1)
         node_r.queue_priority = -self.lb
         
         self.I = deapply_flips(I, F)
@@ -230,6 +227,8 @@ problem = Phylogeny_BnB(noisy)
 a = time.time()
 results = pybnb.solve(problem, log_interval_seconds=10.0, queue_strategy='custom')
 b = time.time()
+print('PhISCS_I in seconds: {:.3f}'.format(c_time))
+print('Number of flips reported by PhISCS_I:', len(np.where(solution != noisy)[0]))
 print('Phylogeny_BnB in seconds: {:.3f}'.format(b-a))
 if results.solution_status != 'unknown':
     print('Number of flips reported by Phylogeny_BnB:', results.best_node.state[-1])
