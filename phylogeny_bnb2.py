@@ -2,16 +2,16 @@ import pybnb
 import numpy as np
 from utils import *
 import time
-from optparse import OptionParser
+from argparse import ArgumentParser
 import networkx as nx
-parser = OptionParser()
-parser.add_option('-n', '--numberOfCells', dest='n', help='', type=int, default=5)
-parser.add_option('-m', '--numberOfMutations', dest='m', help='', type=int, default=5)
-options, args = parser.parse_args()
+parser = ArgumentParser()
+parser.add_argument('-n', '--numberOfCells', dest='n', help='', type=int, default=5)
+parser.add_argument('-m', '--numberOfMutations', dest='m', help='', type=int, default=5)
+parser.add_argument('-fn', '--falseNegativeRate', dest='fn', help='', type=float, default=0.2)
+args = parser.parse_args()
 
 
-noisy = np.random.randint(2, size=(options.n, options.m))
-# print(repr(noisy))
+# noisy = np.random.randint(2, size=(args.n, args.m))
 noisy = np.array([
     [0,1,0,0,0,0,1,1,1,0],
     [0,1,1,0,1,1,1,0,1,0],
@@ -45,12 +45,14 @@ noisy = np.array([
 #     [1, 0, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 1]
 # ])
 # ms_package_path = '/home/frashidi/software/bin/ms'
-# ground, noisy, (countFN,countFP,countNA) = get_data(n=30, m=15, seed=1, fn=0.20, fp=0, na=0, ms_package_path=ms_package_path)
+# ground, noisy, (countFN,countFP,countNA) = get_data(n=args.n, m=args.m,
+#                                                     seed=10,fn=args.fn,fp=0,na=0,
+#                                                     ms_package_path=ms_package_path)
+# print('Number of flips introduced in I: fn={}, fp={}, na={}'.format(countFN, countFP, countNA))
+# print(repr(noisy))
 
-a = time.time()
-solution, (flips_0_1, flips_1_0, flips_2_0, flips_2_1) = PhISCS_I(noisy, beta=0.9, alpha=0.00000001)
-b = time.time()
-print('PhISCS_I in seconds: {:.3f}'.format(b-a))
+solution, (flips_0_1, flips_1_0, flips_2_0, flips_2_1), c_time = PhISCS_I(noisy, beta=0.9, alpha=0.00000001)
+print('PhISCS_I in seconds: {:.3f}'.format(c_time))
 print('Number of flips reported by PhISCS_I:', len(np.where(solution != noisy)[0]))
 
 # csp_solver_path = '/home/frashidi/software/temp/csp_solvers/maxino/code/build/release/maxino'
@@ -143,14 +145,15 @@ def get_lower_bound(D, changed_column, previous_G):
 
     best_pairing = nx.max_weight_matching(G)
     # print(best_pairing)
+    # for (u, v, wt) in G.edges.data('weight'):
+    #     print(u, v, wt)
     lb = 0
     for a, b in best_pairing:
+        # print(a,b,G[a][b]["weight"])
         lb += G[a][b]["weight"]
     return lb, G
 
 #––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
-
-# best_objective = np.inf
 
 def apply_flips(I, F):
     for i,j in F:
@@ -179,14 +182,9 @@ class Phylogeny_BnB(pybnb.Problem):
             return self.nflip
         else:
             return self.nzero - self.nflip
-            # return pybnb.Problem.infeasible_objective(self)
 
     def bound(self):
         return self.lb
-        # return 20
-
-    # def notify_new_best_node(self, node, current):
-    #     best_objective = node.objective
 
     def save_state(self, node):
         node.state = (self.F, self.G, self.icf, self.col_pair, self.lb, self.nflip)

@@ -2,6 +2,7 @@ import os
 import subprocess
 import numpy as np
 import random, math
+import time
 from gurobipy import *
 
 
@@ -123,77 +124,79 @@ def PhISCS_I(I, beta, alpha):
     numCells, numMutations = I.shape
     sol_Y = []
     sol_K = []
-    with HiddenPrints():
-        model = Model('PhISCS_ILP')
-        model.Params.LogFile = 'gurobi.log'
-        #model.Params.Threads = 1
-        #model.setParam('TimeLimit', 10*60)
-        
-        Y = {}
-        for c in range(numCells):
-            for m in range(numMutations):
-                    Y[c, m] = model.addVar(vtype=GRB.BINARY, name='Y({0},{1})'.format(c, m))
-        B = {}
-        for p in range(numMutations+1):
-            for q in range(numMutations+1):
-                B[p, q, 1, 1] = model.addVar(vtype=GRB.BINARY, obj=0,
-                                             name='B[{0},{1},1,1]'.format(p, q))
-                B[p, q, 1, 0] = model.addVar(vtype=GRB.BINARY, obj=0,
-                                             name='B[{0},{1},1,0]'.format(p, q))
-                B[p, q, 0, 1] = model.addVar(vtype=GRB.BINARY, obj=0,
-                                             name='B[{0},{1},0,1]'.format(p, q))
-        K = {}
-        for m in range(numMutations+1):
-            K[m] = model.addVar(vtype=GRB.BINARY, name='K[{0}]'.format(m))
-        model.addConstr(K[numMutations] == 0)
-        model.update()
+    # with HiddenPrints():
+    model = Model('PhISCS_ILP')
+    model.Params.LogFile = ''
+    model.Params.Threads = 1
+    # model.setParam('TimeLimit', 10*60)
+    
+    Y = {}
+    for c in range(numCells):
+        for m in range(numMutations):
+                Y[c, m] = model.addVar(vtype=GRB.BINARY, name='Y({0},{1})'.format(c, m))
+    B = {}
+    for p in range(numMutations+1):
+        for q in range(numMutations+1):
+            B[p, q, 1, 1] = model.addVar(vtype=GRB.BINARY, obj=0,
+                                            name='B[{0},{1},1,1]'.format(p, q))
+            B[p, q, 1, 0] = model.addVar(vtype=GRB.BINARY, obj=0,
+                                            name='B[{0},{1},1,0]'.format(p, q))
+            B[p, q, 0, 1] = model.addVar(vtype=GRB.BINARY, obj=0,
+                                            name='B[{0},{1},0,1]'.format(p, q))
+    K = {}
+    for m in range(numMutations+1):
+        K[m] = model.addVar(vtype=GRB.BINARY, name='K[{0}]'.format(m))
+    model.addConstr(K[numMutations] == 0)
+    model.update()
 
-        model.addConstr(quicksum(K[m] for m in range(numMutations)) <= maxMutationsToEliminate)
-        for i in range(numCells):
-            for p in range(numMutations):
-                for q in range(numMutations):
-                    model.addConstr(Y[i,p] + Y[i,q] - B[p,q,1,1] <= 1)
-                    model.addConstr(-Y[i,p] + Y[i,q] - B[p,q,0,1] <= 0)
-                    model.addConstr(Y[i,p] - Y[i,q] - B[p,q,1,0] <= 0)
-        for p in range(numMutations+1):
-            model.addConstr(B[p,numMutations, 1, 0] == 0)
+    model.addConstr(quicksum(K[m] for m in range(numMutations)) <= maxMutationsToEliminate)
+    for i in range(numCells):
         for p in range(numMutations):
             for q in range(numMutations):
-                model.addConstr(B[p,q,0,1] + B[p,q,1,0] + B[p,q,1,1] <= 2 + K[p] + K[q])
+                model.addConstr(Y[i,p] + Y[i,q] - B[p,q,1,1] <= 1)
+                model.addConstr(-Y[i,p] + Y[i,q] - B[p,q,0,1] <= 0)
+                model.addConstr(Y[i,p] - Y[i,q] - B[p,q,1,0] <= 0)
+    for p in range(numMutations+1):
+        model.addConstr(B[p,numMutations, 1, 0] == 0)
+    for p in range(numMutations):
+        for q in range(numMutations):
+            model.addConstr(B[p,q,0,1] + B[p,q,1,0] + B[p,q,1,1] <= 2 + K[p] + K[q])
 
-        objective = 0
-        for j in range(numMutations):
-            numZeros = 0
-            numOnes  = 0
-            for i in range(numCells):
-                if I[i][j] == 0:
-                    numZeros += 1
-                    objective += np.log(beta/(1-alpha)) * Y[i,j]
-                elif I[i][j] == 1:
-                    numOnes += 1
-                    objective += np.log((1-beta)/alpha) * Y[i,j]
-                
-            objective += numZeros * np.log(1-alpha)
-            objective += numOnes * np.log(alpha)
-            objective -= K[j] * (numZeros * np.log(1-alpha) + numOnes * (np.log(alpha) + np.log((1-beta)/alpha)))
-
-        model.setObjective(objective, GRB.MAXIMIZE)
-        model.optimize()
-
-        if model.status == GRB.Status.INFEASIBLE:
-            print('The odel is infeasible.')
-            exit(0)
-
-        removedMutsIDs = []
-        for j in range(numMutations):
-            sol_K.append(nearestInt(float(K[j].X)))
-            if sol_K[j] == 1:
-                removedMutsIDs.append(mutIDs[j])
-        
+    objective = 0
+    for j in range(numMutations):
+        numZeros = 0
+        numOnes  = 0
         for i in range(numCells):
-            sol_Y.append([nearestInt(float(Y[i,j].X)) for j in range(numMutations)])
+            if I[i][j] == 0:
+                numZeros += 1
+                objective += np.log(beta/(1-alpha)) * Y[i,j]
+            elif I[i][j] == 1:
+                numOnes += 1
+                objective += np.log((1-beta)/alpha) * Y[i,j]
+            
+        objective += numZeros * np.log(1-alpha)
+        objective += numOnes * np.log(alpha)
+        objective -= K[j] * (numZeros * np.log(1-alpha) + numOnes * (np.log(alpha) + np.log((1-beta)/alpha)))
 
-    return np.array(sol_Y), count_flips(I, sol_K, sol_Y)
+    model.setObjective(objective, GRB.MAXIMIZE)
+    a = time.time()
+    model.optimize()
+    b = time.time()
+
+    if model.status == GRB.Status.INFEASIBLE:
+        print('The odel is infeasible.')
+        exit(0)
+
+    removedMutsIDs = []
+    for j in range(numMutations):
+        sol_K.append(nearestInt(float(K[j].X)))
+        if sol_K[j] == 1:
+            removedMutsIDs.append(mutIDs[j])
+    
+    for i in range(numCells):
+        sol_Y.append([nearestInt(float(Y[i,j].X)) for j in range(numMutations)])
+
+    return np.array(sol_Y), count_flips(I, sol_K, sol_Y), b-a
 
 
 def PhISCS_B(matrix, beta, alpha, csp_solver_path):
