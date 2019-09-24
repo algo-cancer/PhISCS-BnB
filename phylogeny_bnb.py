@@ -151,7 +151,9 @@ class Phylogeny_BnB(pybnb.Problem):
 
 
 # problem = Phylogeny_BnB(noisy, lb_max_weight_matching)
-problem = Phylogeny_BnB(noisy, lb_gurobi)
+# problem = Phylogeny_BnB(noisy, lb_gurobi)
+# problem = Phylogeny_BnB(noisy, lb_greedy)
+# problem = Phylogeny_BnB(noisy, lb_random)
 a = time.time()
 results = pybnb.solve(problem, log_interval_seconds=10.0, queue_strategy='custom')
 b = time.time()
