@@ -1,9 +1,9 @@
 import pybnb
 import numpy as np
 from utils import *
+from phylogeny_lb import *
 import time
 from argparse import ArgumentParser
-import networkx as nx
 parser = ArgumentParser()
 parser.add_argument('-n', '--numberOfCells', dest='n', help='', type=int, default=5)
 parser.add_argument('-m', '--numberOfMutations', dest='m', help='', type=int, default=5)
@@ -83,59 +83,6 @@ def get_a_coflict(D, p, q):
             return (p,q,oneone,zeroone,onezero)
     return None
 
-
-def get_lower_bound(D, changed_column, previous_G):
-    if changed_column == None:
-        G = nx.Graph()
-    else:
-        G = previous_G
-
-    def calc_min0110_for_one_pair_of_columns(p, q, G):
-        foundOneOne = False
-        numberOfZeroOne = 0
-        numberOfOneZero = 0
-        for r in range(D.shape[0]):
-            if D[r,p] == 1 and D[r,q] == 1:
-                foundOneOne = True
-            if D[r,p] == 0 and D[r,q] == 1:
-                numberOfZeroOne += 1
-            if D[r,p] == 1 and D[r,q] == 0:
-                numberOfOneZero += 1
-        if foundOneOne:
-            G.add_edge(p, q, weight=min(numberOfZeroOne, numberOfOneZero))
-        else:
-            G.add_edge(p, q, weight=0)
-
-    if changed_column == None:
-        for p in range(D.shape[1]):
-            for q in range(p + 1, D.shape[1]):
-                calc_min0110_for_one_pair_of_columns(p, q, G)
-    else:
-        q = changed_column
-        for p in range(D.shape[1]):
-            if p < q:
-                calc_min0110_for_one_pair_of_columns(p, q, G)
-            elif q < p:
-                calc_min0110_for_one_pair_of_columns(q, p, G)
-
-    best_pairing = nx.max_weight_matching(G)
-    # print(best_pairing)
-    best_pair_qp, best_pair_w = (None, None), 0
-    # for (u, v, wt) in G.edges.data('weight'):
-    #     if wt > best_pair_w:
-    #         best_pair_qp = (u, v)
-    #         best_pair_w = wt
-        # print(u, v, wt)
-    lb = 0
-    # best_pair_qp, best_pair_w = (None, None), 0
-    for a, b in best_pairing:
-        # print(a,b,G[a][b]["weight"])
-        if G[a][b]["weight"] > best_pair_w:
-            best_pair_w = G[a][b]["weight"]
-            best_pair_qp = (a, b)
-        lb += G[a][b]["weight"]
-    return lb, G, best_pair_qp
-
 #––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
 
 def apply_flips(I, F):
@@ -149,11 +96,12 @@ def deapply_flips(I, F):
     return I
 
 class Phylogeny_BnB(pybnb.Problem):
-    def __init__(self, I):
+    def __init__(self, I, bounding_alg):
         self.I = I
+        self.bounding_alg = bounding_alg
         self.F = []
         self.nzero = len(np.where(self.I == 0)[0])
-        self.lb, self.G, self.best_pair = get_lower_bound(self.I, None, None)
+        self.lb, self.G, self.best_pair = self.bounding_alg(self.I, None, None)
         self.nflip = 0
     
     def sense(self):
@@ -184,7 +132,7 @@ class Phylogeny_BnB(pybnb.Problem):
         F = self.F.copy()
         F.append((onezero,q))
         I[onezero,q] = 1
-        new_lb, new_G, new_best_pair = get_lower_bound(I, q, G)
+        new_lb, new_G, new_best_pair = self.bounding_alg(I, q, G)
         node_l.state = (F, new_G, new_best_pair, new_lb, self.nflip+1)
         node_l.queue_priority = -new_lb
         I[onezero,q] = 0
@@ -194,7 +142,7 @@ class Phylogeny_BnB(pybnb.Problem):
         F = self.F.copy()
         F.append((zeroone,p))
         I[zeroone,p] = 1
-        new_lb, new_G, new_best_pair = get_lower_bound(I, p, G)
+        new_lb, new_G, new_best_pair = self.bounding_alg(I, p, G)
         node_r.state = (F, new_G, new_best_pair, new_lb, self.nflip+1)
         node_r.queue_priority = -new_lb
 
@@ -202,7 +150,8 @@ class Phylogeny_BnB(pybnb.Problem):
         return [node_l, node_r]
 
 
-problem = Phylogeny_BnB(noisy)
+# problem = Phylogeny_BnB(noisy, lb_max_weight_matching)
+problem = Phylogeny_BnB(noisy, lb_gurobi)
 a = time.time()
 results = pybnb.solve(problem, log_interval_seconds=10.0, queue_strategy='custom')
 b = time.time()

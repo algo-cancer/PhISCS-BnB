@@ -1,0 +1,77 @@
+
+Using non-default solver options:
+ - log_interval_seconds: 10.0 (default: 1.0)
+ - queue_strategy: custom (default: bound)
+
+Starting branch & bound solve:
+ - dispatcher pid: 195368 (phi.cs.indiana.edu)
+ - worker processes: 1
+--------------------------------------------------------------------------------------------------------------------------
+         Nodes        |                      Objective Bounds                       |              Work              
+      Expl    Unexpl  |      Incumbent           Bound    Rel. Gap         Abs. Gap | Time (s)  Nodes/Sec Imbalance   Idle
+         0         1  |            inf            -inf         inf%             inf |      0.0       0.00     0.00%      0
+*        1         2  |             45              15   66.666667%              30 |      0.0     276.14     0.00%      0
+*        2         3  |             44              15   65.909091%              29 |      0.0     281.64     0.00%      0
+*        3         4  |             43              15   65.116279%              28 |      0.0     292.00     0.00%      0
+*        4         5  |             42              15   64.285714%              27 |      0.0     342.94     0.00%      0
+      Expl    Unexpl  |      Incumbent           Bound    Rel. Gap         Abs. Gap | Time (s)  Nodes/Sec Imbalance   Idle
+*        6         7  |             41              15   63.414634%              26 |      0.0     464.37     0.00%      0
+*        8         9  |             40              15   62.500000%              25 |      0.0     450.89     0.00%      0
+*        9        10  |             39              15   61.538462%              24 |      0.0     455.41     0.00%      0
+*       10        11  |             38              15   60.526316%              23 |      0.0     455.50     0.00%      0
+*       12        13  |             37              15   59.459459%              22 |      0.0     376.66     0.00%      0
+      Expl    Unexpl  |      Incumbent           Bound    Rel. Gap         Abs. Gap | Time (s)  Nodes/Sec Imbalance   Idle
+*       13        14  |             36              15   58.333333%              21 |      0.0     353.68     0.00%      0
+*       15        16  |             35              15   57.142857%              20 |      0.0     372.98     0.00%      0
+*       16        17  |             34              15   55.882353%              19 |      0.0     279.26     0.00%      0
+*       17        18  |             33              15   54.545455%              18 |      0.0     402.96     0.00%      0
+*       18        19  |             32              15   53.125000%              17 |      0.0     695.52     0.00%      0
+      Expl    Unexpl  |      Incumbent           Bound    Rel. Gap         Abs. Gap | Time (s)  Nodes/Sec Imbalance   Idle
+*       19        20  |             31              15   51.612903%              16 |      0.0     526.52     0.00%      0
+*       20        21  |             30              15   50.000000%              15 |      0.1      61.62     0.00%      0
+*       21        22  |             29              15   48.275862%              14 |      0.1     291.80     0.00%      0
+*       23        24  |             28              15   46.428571%              13 |      0.1     363.47     0.00%      0
+*       27        28  |             27              15   44.444444%              12 |      0.1     427.19     0.00%      0
+      Expl    Unexpl  |      Incumbent           Bound    Rel. Gap         Abs. Gap | Time (s)  Nodes/Sec Imbalance   Idle
+*       28        29  |             26              15   42.307692%              11 |      0.1     370.24     0.00%      0
+*       29        30  |             25              15   40.000000%              10 |      0.1     320.55     0.00%      0
+*       30        31  |             24              15   37.500000%               9 |      0.1     356.58     0.00%      0
+WARNING: Local node bound is worse than local node objective (bound=23, objective=22)
+*       83        19  |             22              15   31.818182%               7 |      0.1     881.77     0.00%      0
+WARNING: Local node bound is worse than local node objective (bound=21, objective=20)
+*      371        20  |             20              15   25.000000%               5 |      0.5     781.18     0.00%      0
+Solve interrupted by user. Waiting for current worker jobs to complete before terminating the solve.
+      Expl    Unexpl  |      Incumbent           Bound    Rel. Gap         Abs. Gap | Time (s)  Nodes/Sec Imbalance   Idle
+      1280         5  |             20              18   10.000000%               2 |      1.6     816.76     0.00%      0
+--------------------------------------------------------------------------------------------------------------------------
+
+Feasible solution found
+
+solver results:
+ - solution_status: feasible
+ - termination_condition: interrupted
+ - objective: 20
+ - bound: 18
+ - absolute_gap: 2
+ - relative_gap: 0.1
+ - nodes: 1280
+ - wall_time: 1.63 s
+ - best_node: Node(objective=20)
+
+Number of Workers:        1
+Load Imbalance:       0.00%
+ - min: 1280 (proc rank=0)
+ - max: 1280 (proc rank=0)
+Average Worker Timing:
+ - queue:       3.00% [avg time:  38.3 us, count: 1280]
+ - load_state:  0.55% [avg time:   6.9 us, count: 1280]
+ - bound:       0.05% [avg time: 652.7 ns, count: 1280]
+ - objective:   0.03% [avg time: 783.1 ns, count:  654]
+ - branch:     94.76% [avg time:   2.4 ms, count:  652]
+ - other:       1.60% [avg time:  20.4 us, count: 1280]
+
+PhISCS_I in seconds: 0.034
+Number of flips reported by PhISCS_I: 20
+Phylogeny_BnB in seconds: 1.642
+Number of flips reported by Phylogeny_BnB: 20
+Is the output matrix reported by Phylogeny_BnB conflict free: True
