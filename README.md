@@ -5,7 +5,7 @@
 2. If you can install gurobi it would be great because in the script we are comparing the running time with gurobi as well. If you don't want to, simply get rid of the following lines:
 
 ```
-from utils import *
+from util import *
 solution, (flips_0_1, flips_1_0, flips_2_0, flips_2_1) = PhISCS_I(noisy, beta=0.9, alpha=0.00000001)
 ```
 

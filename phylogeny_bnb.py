@@ -1,6 +1,6 @@
 import pybnb
 import numpy as np
-from utils import *
+from util import *
 from phylogeny_lb import *
 import time
 from argparse import ArgumentParser
@@ -12,7 +12,6 @@ args = parser.parse_args()
 
 
 # noisy = np.random.randint(2, size=(args.n, args.m))
-ms_path = '/home/frashidi/software/bin/ms'
 ground, noisy, (countFN,countFP,countNA) = get_data(n=args.n, m=args.m, seed=10, fn=args.fn, fp=0, na=0, ms_path=ms_path)
 
 # (countFN,countFP,countNA) = (0,0,0)
@@ -30,8 +29,9 @@ ground, noisy, (countFN,countFP,countNA) = get_data(n=args.n, m=args.m, seed=10,
 # ])
 # print(repr(noisy))
 
-solution, (flips_0_1, flips_1_0, flips_2_0, flips_2_1), ci_time = PhISCS_I(noisy, beta=0.9, alpha=0.00000001)
-solution, cb_time = PhISCS_B(noisy, beta=0.9, alpha=0.00000001, csp_solver_path=csp_solver_path)
+solution, (f_0_1_i, f_1_0_i, f_2_0_i, f_2_1_i), ci_time = PhISCS_I(noisy, beta=0.9, alpha=0.00000001)
+solution, (f_0_1_b, f_1_0_b, f_2_0_b, f_2_1_b), cb_time = PhISCS_B(noisy, beta=0.9, alpha=0.00000001,
+                                                                            csp_solver_path=csp_solver_path)
 
 # top10_bad_entries_in_violations(noisy)
 #––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
@@ -130,17 +130,18 @@ a = time.time()
 results = solver.solve(problem,
                         log_interval_seconds=10.0, 
                         queue_strategy='custom',
-                        #objective_stop=20,
-                        time_limit=0.5
+                        # objective_stop=20,
+                        time_limit=1
                       )
 b = time.time()
 # queue = solver.save_dispatcher_queue()
 # print(len(queue.nodes))
+# print(results.termination_condition)
 print('Number of flips introduced in I: fn={}, fp={}, na={}'.format(countFN, countFP, countNA))
 print('PhISCS_I in seconds: {:.3f}'.format(ci_time))
-print('Number of flips reported by PhISCS_I:', len(np.where(solution != noisy)[0]))
+print('Number of flips reported by PhISCS_I:', f_0_1_i)
 print('PhISCS_B in seconds: {:.3f}'.format(cb_time))
-print('Number of flips reported by PhISCS_B:', len(np.where(solution != noisy)[0]))
+print('Number of flips reported by PhISCS_B:', f_0_1_b)
 print('Phylogeny_BnB in seconds: {:.3f}'.format(b-a))
 if results.solution_status != 'unknown':
     print('Number of flips reported by Phylogeny_BnB:', results.best_node.state[-1])

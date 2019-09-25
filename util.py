@@ -4,6 +4,7 @@ import numpy as np
 import random, math
 import time
 from gurobipy import *
+from const import *
 
 def is_conflict_free_gusfield_and_get_two_columns_in_coflicts(I):
     def sort_bin(a):
@@ -115,6 +116,25 @@ def get_data(n, m, seed, fn, fp, na, ms_path):
     else:
         return get_data(n, m, seed+1, fn, fp, na, ms_path)
 
+def count_flips(I, sol_K, sol_Y):
+    flips_0_1 = 0
+    flips_1_0 = 0
+    flips_2_0 = 0
+    flips_2_1 = 0
+    n, m = I.shape
+    for i in range(n):
+        for j in range(m):
+            if sol_K[j] == 0:
+                if I[i][j] == 0 and sol_Y[i][j] == 1:
+                    flips_0_1 += 1
+                elif I[i][j] == 1 and sol_Y[i][j] == 0:
+                    flips_1_0 += 1
+                elif I[i][j] == 2 and sol_Y[i][j] == 0:
+                    flips_2_0 += 1
+                elif I[i][j] == 2 and sol_Y[i][j] == 1:
+                    flips_2_1 += 1
+    return (flips_0_1, flips_1_0, flips_2_0, flips_2_1)
+
 
 def PhISCS_I(I, beta, alpha):
     class HiddenPrints:
@@ -128,25 +148,6 @@ def PhISCS_I(I, beta, alpha):
 
     def nearestInt(x):
         return int(x+0.5)
-
-    def count_flips(I, sol_K, sol_Y):
-        flips_0_1 = 0
-        flips_1_0 = 0
-        flips_2_0 = 0
-        flips_2_1 = 0
-        n, m = I.shape
-        for i in range(n):
-            for j in range(m):
-                if sol_K[j] == 0:
-                    if I[i][j] == 0 and sol_Y[i][j] == 1:
-                        flips_0_1 += 1
-                    elif I[i][j] == 1 and sol_Y[i][j] == 0:
-                        flips_1_0 += 1
-                    elif I[i][j] == 2 and sol_Y[i][j] == 0:
-                        flips_2_0 += 1
-                    elif I[i][j] == 2 and sol_Y[i][j] == 1:
-                        flips_2_1 += 1
-        return (flips_0_1, flips_1_0, flips_2_0, flips_2_1)
 
     maxMutationsToEliminate = 0
     numCells, numMutations = I.shape
@@ -282,7 +283,7 @@ def PhISCS_B(matrix, beta, alpha, csp_solver_path):
                 clauseHard.append(cnf)
                 cnf = '{} {}'.format(-X[i,j], -Y[i,j])
                 clauseHard.append(cnf)
-            elif matrix[i,j] == 3:
+            elif matrix[i,j] == 2:
                 numTwo += 1
                 cnf = '{} {}'.format(-1*X[i,j], Y[i,j])
                 clauseHard.append(cnf)
@@ -342,7 +343,7 @@ def PhISCS_B(matrix, beta, alpha, csp_solver_path):
                 else:
                     O[i,j] = 1
             numVar += 1
-    return O, b-a
+    return O, count_flips(matrix, matrix.shape[1]*[0], O), b-a
 
 
 def top10_bad_entries_in_violations(D):

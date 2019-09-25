@@ -1,75 +1,9 @@
 import numpy as np
-from utils import *
+from util import *
 import networkx as nx
 import subprocess
 from collections import defaultdict
-
-csp_solver_path = './openwbo'
-
-def lb_csp(D, changed_column, previous_G):
-    if changed_column == None:
-        G = nx.Graph()
-    else:
-        G = previous_G
-
-    def calc_min0110_for_one_pair_of_columns(p, q, G):
-        foundOneOne = False
-        numberOfZeroOne = 0
-        numberOfOneZero = 0
-        for r in range(D.shape[0]):
-            if D[r,p] == 1 and D[r,q] == 1:
-                foundOneOne = True
-            if D[r,p] == 0 and D[r,q] == 1:
-                numberOfZeroOne += 1
-            if D[r,p] == 1 and D[r,q] == 0:
-                numberOfOneZero += 1
-        if foundOneOne:
-            G.add_edge(p, q, weight=min(numberOfZeroOne, numberOfOneZero))
-        else:
-            G.add_edge(p, q, weight=0)
-
-    if changed_column == None:
-        for p in range(D.shape[1]):
-            for q in range(p + 1, D.shape[1]):
-                calc_min0110_for_one_pair_of_columns(p, q, G)
-    else:
-        q = changed_column
-        for p in range(D.shape[1]):
-            if p < q:
-                calc_min0110_for_one_pair_of_columns(p, q, G)
-            elif q < p:
-                calc_min0110_for_one_pair_of_columns(q, p, G)
-
-    clause_soft = defaultdict('')
-    for (u, v, wt) in G.edges.data('weight'):
-        if u < v:
-            clause_soft[(u,v)]
-
-    outfile = 'cnf.tmp'
-    with open(outfile, 'w') as out:
-        out.write('p wcnf {} {} {}\n'.format(numVarY+numVarX+numVarB, len(clauseSoft)+len(clauseHard), hardWeight))
-        
-        for i in range(D.shape[1]):
-            cnf = ''
-            for j in range(i, D.shape[1]):
-                numVarX = 0
-                cnf += '{}'.format(numVarX)
-                out.write('{} 0\n'.format(cnf))
-                G[i][j]
-    
-    command = '{} {}'.format(csp_solver_path, outfile)
-    proc = subprocess.Popen(command.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    output, error = proc.communicate()
-
-    variables = output.decode().split('\n')[-2][2:].split(' ')
-    print(variables)
-    
-    print(best_pairing)
-    best_pair_qp, best_pair_w = (None, None), 0
-    lb = 0
-    return lb, G, best_pair_qp
-
-# print(lb_csp(np.zeros((3,2)), None, None))
+from const import *
 
 def lb_greedy(D, a, b):
     def get_important_pair_of_columns_in_conflict(D):
@@ -157,17 +91,18 @@ def lb_phiscs_b(D, a, b):
     
     lb = 0
     for block in blockshaped(D, D.shape[0], 5):
-        solution, c_time = PhISCS_B(block, beta=0.9, alpha=0.00000001, csp_solver_path=csp_solver_path)
-        lb += len(np.where(solution != block)[0])
+        solution, (flips_0_1, flips_1_0, flips_2_0, flips_2_1), c_time = PhISCS_B(block, beta=0.9, alpha=0.00000001,
+                                                                                    csp_solver_path=csp_solver_path)
+        lb += flips_0_1
     icf, best_pair_qp = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(D)
     return lb, {}, best_pair_qp
 
 
 def lb_openwbo(D, a, b):
-    solution, c_time = PhISCS_B(D, beta=0.9, alpha=0.00000001, csp_solver_path=csp_solver_path)
-    lb = len(np.where(solution != D)[0])
+    solution, (flips_0_1, flips_1_0, flips_2_0, flips_2_1), c_time = PhISCS_B(D, beta=0.9, alpha=0.00000001,
+                                                                                csp_solver_path=csp_solver_path)
     icf, best_pair_qp = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(D)
-    return lb, {}, best_pair_qp
+    return flips_0_1, {}, best_pair_qp
 
 
 def lb_gurobi(D, a, b):
