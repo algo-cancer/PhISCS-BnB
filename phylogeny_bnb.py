@@ -146,7 +146,8 @@ class Phylogeny_BnB(pybnb.Problem):
         return [node_l, node_r]
 
 
-problem = Phylogeny_BnB(noisy, lb_max_weight_matching)
+# problem = Phylogeny_BnB(noisy, lb_max_weight_matching)
+problem = Phylogeny_BnB(noisy, lb_openwbo)
 # problem = Phylogeny_BnB(noisy, lb_gurobi)
 # problem = Phylogeny_BnB(noisy, lb_greedy)
 # problem = Phylogeny_BnB(noisy, lb_random)

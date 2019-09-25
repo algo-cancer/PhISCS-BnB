@@ -4,6 +4,8 @@ import networkx as nx
 import subprocess
 from collections import defaultdict
 
+csp_solver_path = '/data/frashidi/_Archived/1_PhISCS/_src/solver/open-wbo/open-wbo_glucose4.1_static'
+
 def lb_csp(D, changed_column, previous_G):
     if changed_column == None:
         G = nx.Graph()
@@ -55,7 +57,6 @@ def lb_csp(D, changed_column, previous_G):
                 out.write('{} 0\n'.format(cnf))
                 G[i][j]
     
-    csp_solver_path = '/home/frashidi/software/temp/csp_solvers/maxino/code/build/release/maxino'
     command = '{} {}'.format(csp_solver_path, outfile)
     proc = subprocess.Popen(command.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output, error = proc.communicate()
@@ -142,6 +143,12 @@ def lb_random(D, a, b):
     icf, best_pair_qp = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(D)
     return lb, {}, best_pair_qp
 
+
+def lb_openwbo(D, a, b):
+    solution, c_time = PhISCS_B(D, beta=0.9, alpha=0.00000001, csp_solver_path=csp_solver_path)
+    lb = len(np.where(solution != D)[0])
+    icf, best_pair_qp = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(D)
+    return lb, {}, best_pair_qp
 
 def lb_gurobi(D, a, b):
     solution, (flips_0_1, flips_1_0, flips_2_0, flips_2_1), c_time = PhISCS_I(D, beta=0.9, alpha=0.00000001)
