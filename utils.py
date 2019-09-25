@@ -53,7 +53,7 @@ def is_conflict_free_farid(D):
     return conflict_free
 
 
-def get_data(n, m, seed, fn, fp, na, ms_package_path):
+def get_data(n, m, seed, fn, fp, na, ms_path):
     def make_noisy(data, fn, fp, na):
         n, m = data.shape
         data2 = -1*np.ones(shape=(n, m)).astype(int)
@@ -95,7 +95,7 @@ def get_data(n, m, seed, fn, fp, na, ms_package_path):
         return True if np.random.random() < p else False
 
     def build_ground_by_ms(n, m, seed):
-        command = '{ms} {n} 1 -s {m} -seeds 7369 217 {r} | tail -n {n}'.format(ms=ms_package_path, n=n, m=m, r=seed)
+        command = '{ms} {n} 1 -s {m} -seeds 7369 217 {r} | tail -n {n}'.format(ms=ms_path, n=n, m=m, r=seed)
         result = os.popen(command).read()
         data = np.empty((n,m), dtype=int)
         i = 0
@@ -113,7 +113,7 @@ def get_data(n, m, seed, fn, fp, na, ms_package_path):
         if not is_conflict_free_farid(noisy):
             return ground, noisy, (countFN,countFP,countNA)
     else:
-        return get_data(n, m, seed+1, fn, fp, na, ms_package_path)
+        return get_data(n, m, seed+1, fn, fp, na, ms_path)
 
 
 def PhISCS_I(I, beta, alpha):
@@ -343,3 +343,40 @@ def PhISCS_B(matrix, beta, alpha, csp_solver_path):
                     O[i,j] = 1
             numVar += 1
     return O, b-a
+
+
+def top10_bad_entries_in_violations(D):
+    def calc_how_many_violations_are_in(D, i, j):
+        total = 0
+        for p in range(D.shape[1]):
+            if p == j:
+                continue
+            oneone = 0
+            zeroone = 0
+            onezero = 0
+            founded = False
+            for r in range(D.shape[0]):
+                if D[r,p] == 1 and D[r,j] == 1:
+                    oneone += 1
+                    if r == i:
+                        founded = True
+                if D[r,p] == 0 and D[r,j] == 1:
+                    zeroone += 1
+                    if r == i:
+                        founded = True
+                if D[r,p] == 1 and D[r,j] == 0:
+                    onezero += 1
+                    if r == i:
+                        founded = True
+            if founded:
+                total += oneone*zeroone*onezero
+        return total
+
+    violations = {}
+    for r in range(D.shape[0]):
+        for p in range(D.shape[1]):
+            if D[r,p] == 0:
+                violations[(r,p)] = calc_how_many_violations_are_in(D, r, p)
+
+    for x in sorted(violations.items(), key=operator.itemgetter(1), reverse=True)[:10]:
+        print(x[0], '(entry={}): how many gametes'.format(D[x[0]]), x[1])

@@ -4,7 +4,7 @@ import networkx as nx
 import subprocess
 from collections import defaultdict
 
-csp_solver_path = '/data/frashidi/_Archived/1_PhISCS/_src/solver/open-wbo/open-wbo_glucose4.1_static'
+csp_solver_path = './openwbo'
 
 def lb_csp(D, changed_column, previous_G):
     if changed_column == None:
@@ -144,11 +144,31 @@ def lb_random(D, a, b):
     return lb, {}, best_pair_qp
 
 
+def lb_phiscs_b(D, a, b):
+    # def get_partition_random(D, n_group_members=5):
+    #     d = int(D.shape[1]/n_group_members)
+    #     partitions_id = np.random.choice(range(D.shape[1]), size=(d, n_group_members), replace=False)
+    #     return partitions_id
+    def blockshaped(arr, nrows, ncols):
+        h, w = arr.shape
+        assert h % nrows == 0, "{} rows is not evenly divisble by {}".format(h, nrows)
+        assert w % ncols == 0, "{} cols is not evenly divisble by {}".format(w, ncols)
+        return (arr.reshape(h//nrows, nrows, -1, ncols).swapaxes(1,2).reshape(-1, nrows, ncols))
+    
+    lb = 0
+    for block in blockshaped(D, D.shape[0], 5):
+        solution, c_time = PhISCS_B(block, beta=0.9, alpha=0.00000001, csp_solver_path=csp_solver_path)
+        lb += len(np.where(solution != block)[0])
+    icf, best_pair_qp = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(D)
+    return lb, {}, best_pair_qp
+
+
 def lb_openwbo(D, a, b):
     solution, c_time = PhISCS_B(D, beta=0.9, alpha=0.00000001, csp_solver_path=csp_solver_path)
     lb = len(np.where(solution != D)[0])
     icf, best_pair_qp = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(D)
     return lb, {}, best_pair_qp
+
 
 def lb_gurobi(D, a, b):
     solution, (flips_0_1, flips_1_0, flips_2_0, flips_2_1), c_time = PhISCS_I(D, beta=0.9, alpha=0.00000001)
