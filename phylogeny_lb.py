@@ -38,33 +38,37 @@ def lb_csp(D, changed_column, previous_G):
             elif q < p:
                 calc_min0110_for_one_pair_of_columns(q, p, G)
 
-    G = nx.Graph()
-    G.add_edge(1,2,weight=3)
-    print(G[5][2]["weight"])
-    # best_pairing = nx.max_weight_matching(G)
+    clause_soft = defaultdict('')
+    for (u, v, wt) in G.edges.data('weight'):
+        if u < v:
+            clause_soft[(u,v)]
+
+    outfile = 'cnf.tmp'
+    with open(outfile, 'w') as out:
+        out.write('p wcnf {} {} {}\n'.format(numVarY+numVarX+numVarB, len(clauseSoft)+len(clauseHard), hardWeight))
+        
+        for i in range(D.shape[1]):
+            cnf = ''
+            for j in range(i, D.shape[1]):
+                numVarX = 0
+                cnf += '{}'.format(numVarX)
+                out.write('{} 0\n'.format(cnf))
+                G[i][j]
+    
     csp_solver_path = '/home/frashidi/software/temp/csp_solvers/maxino/code/build/release/maxino'
-    outfile = '/data/frashidi/Phylogeny_BnB/cnf.tmp'
     command = '{} {}'.format(csp_solver_path, outfile)
     proc = subprocess.Popen(command.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output, error = proc.communicate()
-    for i in range(D.shape[1]):
-        for j in range(i, D.shape[1]):
-            G[i][j]
-        
 
-    variables = output.decode().split('\n')[-2][2:-1].split(' ')
+    variables = output.decode().split('\n')[-2][2:].split(' ')
     print(variables)
     
     print(best_pairing)
     best_pair_qp, best_pair_w = (None, None), 0
     lb = 0
-    # for a, b in best_pairing:
-    #     if G[a][b]["weight"] > best_pair_w:
-    #         best_pair_w = G[a][b]["weight"]
-    #         best_pair_qp = (a, b)
-    #     lb += G[a][b]["weight"]
     return lb, G, best_pair_qp
 
+# print(lb_csp(np.zeros((3,2)), None, None))
 
 def lb_greedy(D, a, b):
     def get_important_pair_of_columns_in_conflict(D):
@@ -81,10 +85,6 @@ def lb_greedy(D, a, b):
                         zeroone += 1
                     if D[r,p] == 1 and D[r,q] == 0:
                         onezero += 1
-                ## greedy approach based on the number of conflicts in a pair of columns
-                # if oneone*zeroone*onezero > 0:
-                #     important_columns[(p,q)] += oneone*zeroone*onezero
-                ## greedy approach based on the min number of 01 or 10 in a pair of columns
                 if oneone > 0:
                     important_columns[(p,q)] += min(zeroone, onezero)
         return important_columns

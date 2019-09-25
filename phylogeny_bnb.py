@@ -12,6 +12,13 @@ args = parser.parse_args()
 
 
 # noisy = np.random.randint(2, size=(args.n, args.m))
+# ms_package_path = '/home/frashidi/software/bin/ms'
+# ground, noisy, (countFN,countFP,countNA) = get_data(n=args.n, m=args.m,
+#                                                     seed=10,fn=args.fn,fp=0,na=0,
+#                                                     ms_package_path=ms_package_path)
+# print(repr(noisy))
+
+(countFN,countFP,countNA) = (0,0,0)
 noisy = np.array([
     [0,1,0,0,0,0,1,1,1,0],
     [0,1,1,0,1,1,1,0,1,0],
@@ -50,21 +57,10 @@ noisy = np.array([
 #     [1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1],
 #     [1, 0, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 1]
 # ])
-# ms_package_path = '/home/frashidi/software/bin/ms'
-# ground, noisy, (countFN,countFP,countNA) = get_data(n=args.n, m=args.m,
-#                                                     seed=10,fn=args.fn,fp=0,na=0,
-#                                                     ms_package_path=ms_package_path)
-# print('Number of flips introduced in I: fn={}, fp={}, na={}'.format(countFN, countFP, countNA))
-# print(repr(noisy))
 
-solution, (flips_0_1, flips_1_0, flips_2_0, flips_2_1), c_time = PhISCS_I(noisy, beta=0.9, alpha=0.00000001)
-
-# csp_solver_path = '/home/frashidi/software/temp/csp_solvers/maxino/code/build/release/maxino'
-# a = time.time()
-# solution = PhISCS_B(noisy, beta=0.9, alpha=0.00000001, csp_solver_path=csp_solver_path)
-# b = time.time()
-# print('PhISCS_B in seconds: {:.3f}'.format(b-a))
-# print('Number of flips reported by PhISCS_B:', len(np.where(solution != noisy)[0]))
+solution, (flips_0_1, flips_1_0, flips_2_0, flips_2_1), ci_time = PhISCS_I(noisy, beta=0.9, alpha=0.00000001)
+csp_solver_path = '/data/frashidi/_Archived/1_PhISCS/_src/solver/open-wbo/open-wbo_glucose4.1_static'
+solution, cb_time = PhISCS_B(noisy, beta=0.9, alpha=0.00000001, csp_solver_path=csp_solver_path)
 
 #––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
 
@@ -150,15 +146,19 @@ class Phylogeny_BnB(pybnb.Problem):
         return [node_l, node_r]
 
 
-# problem = Phylogeny_BnB(noisy, lb_max_weight_matching)
+problem = Phylogeny_BnB(noisy, lb_max_weight_matching)
 # problem = Phylogeny_BnB(noisy, lb_gurobi)
 # problem = Phylogeny_BnB(noisy, lb_greedy)
 # problem = Phylogeny_BnB(noisy, lb_random)
+
 a = time.time()
 results = pybnb.solve(problem, log_interval_seconds=10.0, queue_strategy='custom')
 b = time.time()
-print('PhISCS_I in seconds: {:.3f}'.format(c_time))
+print('Number of flips introduced in I: fn={}, fp={}, na={}'.format(countFN, countFP, countNA))
+print('PhISCS_I in seconds: {:.3f}'.format(ci_time))
 print('Number of flips reported by PhISCS_I:', len(np.where(solution != noisy)[0]))
+print('PhISCS_B in seconds: {:.3f}'.format(cb_time))
+print('Number of flips reported by PhISCS_B:', len(np.where(solution != noisy)[0]))
 print('Phylogeny_BnB in seconds: {:.3f}'.format(b-a))
 if results.solution_status != 'unknown':
     print('Number of flips reported by Phylogeny_BnB:', results.best_node.state[-1])

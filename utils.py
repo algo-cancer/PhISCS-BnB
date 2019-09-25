@@ -228,15 +228,11 @@ def PhISCS_I(I, beta, alpha):
 
 
 def PhISCS_B(matrix, beta, alpha, csp_solver_path):
-    par_const = 1000000
-    par_precisionFactor = 1000
     n,m = matrix.shape
     par_fnRate = beta
     par_fpRate = alpha
-    par_fnWeight     = str(np.round_(par_precisionFactor * np.log(par_const * par_fnRate)))[:-2]
-    par_fnWeight_neg = str(np.round_(par_precisionFactor * np.log(par_const * (1 - par_fnRate))))[:-2]
-    par_fpWeight     = str(np.round_(par_precisionFactor * np.log(par_const * par_fpRate)))[:-2]
-    par_fpWeight_neg = str(np.round_(par_precisionFactor * np.log(par_const * (1 - par_fpRate))))[:-2]
+    par_fnWeight = 1
+    par_fpWeight = 10
 
     Y = np.empty((n,m), dtype=np.int64)
     numVarY = 0
@@ -272,25 +268,21 @@ def PhISCS_B(matrix, beta, alpha, csp_solver_path):
         for j in range(m):
             if matrix[i,j] == 0:
                 numZero += 1
-                cnf = '{} {}'.format(par_fnWeight, X[i,j])
+                cnf = '{} {}'.format(par_fnWeight, -X[i,j])
                 clauseSoft.append(cnf)
-                cnf = '{} {}'.format(par_fnWeight_neg, -1*X[i,j])
-                clauseSoft.append(cnf)
-                cnf = '{} {}'.format(-1*X[i,j], Y[i,j])
+                cnf = '{} {}'.format(-X[i,j], Y[i,j])
                 clauseHard.append(cnf)
-                cnf = '{} {}'.format(X[i,j], -1*Y[i,j])
+                cnf = '{} {}'.format(X[i,j], -Y[i,j])
                 clauseHard.append(cnf)
             elif matrix[i,j] == 1:
                 numOne += 1
-                cnf = '{} {}'.format(par_fpWeight, X[i,j])
-                clauseSoft.append(cnf)
-                cnf = '{} {}'.format(par_fpWeight_neg, -1*X[i,j])
+                cnf = '{} {}'.format(par_fpWeight, -X[i,j])
                 clauseSoft.append(cnf)
                 cnf = '{} {}'.format(X[i,j], Y[i,j])
                 clauseHard.append(cnf)
-                cnf = '{} {}'.format(-1*X[i,j], -1*Y[i,j])
+                cnf = '{} {}'.format(-X[i,j], -Y[i,j])
                 clauseHard.append(cnf)
-            elif matrix[i,j] == 2:
+            elif matrix[i,j] == 3:
                 numTwo += 1
                 cnf = '{} {}'.format(-1*X[i,j], Y[i,j])
                 clauseHard.append(cnf)
@@ -313,15 +305,7 @@ def PhISCS_B(matrix, beta, alpha, csp_solver_path):
                 cnf = '{} {} {}'.format(-B[p,q,0,1], -B[p,q,1,0], -B[p,q,1,1])
                 clauseHard.append(cnf)
 
-    par_fnWeight     = np.round_(par_precisionFactor * np.log(par_const * par_fnRate), decimals=1)
-    par_fnWeight_neg = np.round_(par_precisionFactor * np.log(par_const * (1 - par_fnRate)), decimals=1)
-    par_fpWeight     = np.round_(par_precisionFactor * np.log(par_const * par_fpRate), decimals=1)
-    par_fpWeight_neg = np.round_(par_precisionFactor * np.log(par_const * (1 - par_fpRate)), decimals=1)
-    hardWeight = numZero * np.ceil(par_fnWeight) + \
-                 numZero * np.ceil(par_fnWeight_neg) + \
-                 numOne  * np.ceil(par_fpWeight) + \
-                 numOne  * np.ceil(par_fpWeight_neg)
-    hardWeight = str(hardWeight)[:-2]
+    hardWeight = numZero * par_fnWeight + numOne * par_fpWeight + 1
 
     outfile = 'cnf.tmp'
     with open(outfile, 'w') as out:
@@ -330,13 +314,14 @@ def PhISCS_B(matrix, beta, alpha, csp_solver_path):
             out.write('{} 0\n'.format(cnf))
         for cnf in clauseHard:
             out.write('{} {} 0\n'.format(hardWeight, cnf))
-
     
+    a = time.time()
     command = '{} {}'.format(csp_solver_path, outfile)
     proc = subprocess.Popen(command.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output, error = proc.communicate()
+    b = time.time()
 
-    variables = output.decode().split('\n')[-2][2:-1].split(' ')
+    variables = output.decode().split('\n')[-2][2:].split(' ')
     O = np.empty((n,m), dtype=np.int8)
     numVar = 0
     for i in range(n):
@@ -357,26 +342,4 @@ def PhISCS_B(matrix, beta, alpha, csp_solver_path):
                 else:
                     O[i,j] = 1
             numVar += 1
-
-    variables = output.decode().split('\n')[-2][2:-1].split(' ')
-    O = np.empty((n,m), dtype=np.int8)
-    numVar = 0
-    for i in range(n):
-        for j in range(m):
-            if matrix[i,j] == 0:
-                if '-' in variables[numVar]:
-                    O[i,j] = 0
-                else:
-                    O[i,j] = 1
-            elif matrix[i,j] == 1:
-                if '-' in variables[numVar]:
-                    O[i,j] = 0
-                else:
-                    O[i,j] = 1
-            elif matrix[i,j] == 2:
-                if '-' in variables[numVar]:
-                    O[i,j] = 0
-                else:
-                    O[i,j] = 1
-            numVar += 1
-    return O
+    return O, b-a
