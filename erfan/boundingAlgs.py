@@ -11,13 +11,17 @@ import itertools
 from BnB import *
 from t1 import gmLBw, gmLB
 
+
+def greedyViolationsPartitionBounding(I):
+  return get_lower_bound(I, partition_randomly=False)
+
+
 def randomPartitionBounding(I):
-  return get_lower_bound(I, partition_randomly=True)
+  return get_lower_bound_new(I, partition_randomly=True)
 
 
 def greedyPartitionBounding(I):
-  return get_lower_bound(I, partition_randomly=False)
-
+  return get_lower_bound_new(I, partition_randomly=False)
 
 def mxWeightedMatchingPartitionBounding(I):
   return gmLBw(I)

@@ -10,114 +10,195 @@ import pandas as pd
 from tqdm import tqdm
 import itertools
 from lp_bounding import makeGurobiModel, flip, unFlipLast, LP_Bounding_Model, LP_brief
-
+from interfaces import *
+from Boundings.LP import *
+from Boundings.MWM import *
+import copy
+import scipy.sparse as sp
 
 class ErfanBnB(pybnb.Problem):
-    def __init__(self, I, boundingAlg):
-        self.I = I
-        self.nflip = 0
-        self.icf, self.colPair = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(self.I)
-        self.boundVal = 0
-        self.boundingAlg = boundingAlg
-        self.model, self.Y = makeGurobiModel(I)
+  """
+  Bounding algorithm:
+  - uses gusfield
+  - accepts any boundingAlg with the interface
+  - I is getting copied
+  """
+  def __init__(self, I, boundingAlg : BoundingAlgAbstract, checkBounding = False):
+    self.I = I
+    self.delta = sp.lil_matrix(I.shape, dtype = np.int8) # this can be coo_matrix too
+    self.icf, self.colPair = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(self.I)
+    self.boundVal = 0
+    self.boundingAlg = boundingAlg
+    self.boundingAlg.reset(I)
+    self.checkBounding = checkBounding
 
-    def sense(self):
-        return pybnb.minimize
 
-    def objective(self):
-        # print("Obj: ", self.icf, self.colPair)
-        if self.icf:
-            return self.nflip
-        else:
-            return pybnb.Problem.infeasible_objective(self)
+  def getNFlips(self):
+    return self.delta.count_nonzero()
 
-    def bound(self):
-        t1 = time.time()
-        newBound = LP_Bounding_Model(self.model)
-        t2 = time.time()
-        newBoundp = self.nflip + LP_brief(self.I)
-        t3 = time.time()
+  def sense(self):
+    return pybnb.minimize
 
-        if newBound < newBoundp:
-          print(repr(self.I))
-          print(newBound, newBoundp)
-          print(t2 - t1, t3 - t2)
-          exit(0)
-        # print()
-        # print(newBound, newBoundp)
-        # print(t2 - t1, t3 - t2)
-        # print()
-        # exit(0)
-        self.boundVal = max(self.boundVal, newBound)
-        return self.boundVal
+  def objective(self):
+    # print(f"OBJ: {self.icf}, {self.getNFlips()}")
+    if self.icf:
+      return self.getNFlips()
+    else:
+      return pybnb.Problem.infeasible_objective(self)
 
-    def save_state(self, node):
-        node.state = (self.I, self.icf, self.colPair, self.boundVal, self.nflip, self.model, self.Y)
+  def bound(self):
+    if self.checkBounding: # Debugging here
+      ll = myPhISCS_I(np.asarray(self.I+self.delta))
+      if ll + self.delta.count_nonzero() < self.boundVal:
+        print(ll, self.getNFlips(), self.boundVal)
+        print(" ============== ")
+        print(repr(self.I))
+        print(repr(self.delta.todense()))
+        print(" ============== ")
+        ss = SemiDynamicLPBounding()
+        ss.reset(self.I)
+        print(f"np.allclose(self.boundingAlg.matrix, self.I)={np.allclose(self.boundingAlg.matrix, self.I)}")
+        print(f"len(self.boundingAlg.model.getConstrs()) = {len(self.boundingAlg.model.getConstrs())}")
+        print(f"len(ss.model.getConstrs()) = {len(ss.model.getConstrs())}")
+        thisAnswer = ss.getBound(self.delta)
+        print(f"np.allclose(self.boundingAlg.matrix, self.I)={np.allclose(self.boundingAlg.matrix, self.I)}")
+        print(f"len(self.boundingAlg.model.getConstrs()) = {len(self.boundingAlg.model.getConstrs())}")
+        print(f"len(ss.model.getConstrs()) = {len(ss.model.getConstrs())}")
 
-    def load_state(self, node):
-        self.I, self.icf, self.colPair, self.boundVal, self.nflip, self.model, self.Y = node.state
+        print(f"{thisAnswer} vs {self.boundingAlg.getBound(self.delta)} vs {self.boundVal}")
+        print(f"{thisAnswer} vs {self.boundingAlg.getBound(self.delta)} vs {self.boundVal}")
 
-    def branch(self):
-        # print("Branch: ", self.icf, self.colPair)
-        # icf, (p,q) = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(self.I)
-        if self.icf:
-            return
-        p, q = self.colPair
-        p, q, oneone, zeroone, onezero = get_a_coflict(self.I, p, q)
+        exit(0)
+    return self.boundVal
 
-        node = pybnb.Node()
-        I = self.I.copy()
-        I[onezero, q] = 1
-        flip(onezero, q, self.model, self.Y)
-        newIcf, newColPar = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(I)
-        node.state = (I, newIcf, newColPar, self.boundVal, self.nflip + 1, self.model, self.Y)
-        yield node
-        unFlipLast(self.model)
+  def save_state(self, node):
+    node.state = (self.delta, self.icf, self.colPair, self.boundVal, self.boundingAlg.getState())
 
-        node = pybnb.Node()
-        I = self.I.copy()
-        I[zeroone, p] = 1
-        flip(zeroone, q, self.model, self.Y)
-        newIcf, newColPar = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(I)
-        node.state = (I, newIcf, newColPar, self.boundVal, self.nflip + 1, self.model, self.Y)
-        yield node
-        unFlipLast(self.model)
+  def load_state(self, node):
+    self.delta, self.icf, self.colPair, self.boundVal, boundingAlgState = node.state
+    self.boundingAlg.setState(boundingAlgState)
 
+  def getCurrentMatrix(self):
+    return self.I + self.delta
+
+  def branch(self):
+    if self.icf: # by fliping more the objective is not going to get better
+      return
+    p, q = self.colPair
+    p, q, oneone, zeroone, onezero = get_a_coflict(self.getCurrentMatrix(), p, q)
+
+    for a, b in [(onezero, q), (zeroone, p)]:
+      # print(f"{(a,b)} is made!")
+      node = pybnb.Node()
+      nodedelta =  copy.deepcopy(self.delta)
+      nodedelta[a, b] = 1
+      nodeicf, nodecolPair = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(self.I + nodedelta )
+
+      # print("--------------", nodedelta.todense())
+
+      newBound = self.boundingAlg.getBound(nodedelta)
+      # pat = np.array([[0, 0, 0, 0, 0],
+      #   [0, 0, 0, 0, 0],
+      #   [0, 0, 1, 0, 0],
+      #   [1, 0, 1, 0, 0],
+      #   [0, 0, 0, 0, 0]])
+      # if np.allclose(nodedelta.todense() , pat):
+      #   print("--------------", newBound, self.boundVal)
+      #   ss = SemiDynamicLPBounding()
+      #   ss.reset(self.I)
+      #   print(ss.getBound(nodedelta), self.boundingAlg.getBound(nodedelta), type(self.boundingAlg))
+      #   exit(0)
+
+
+      nodeboundVal = max(self.boundVal, newBound)
+      node.state = (nodedelta, nodeicf, nodecolPair, nodeboundVal, self.boundingAlg.getState())
+      node.queue_priority = - newBound
+      yield node
 
 def ErfanBnBSolver(x):
-    problem = ErfanBnB(x, None)
-    results = pybnb.solve(problem, log=None)
-    ans = results.best_node.state[0]
-    return ans
+  problem = ErfanBnB(x, EmptyBoundingAlg())
+  results = pybnb.solve(problem) #, log=None)
+  ans = results.best_node.state[0]
+  return ans
 
 if __name__ == '__main__':
-    n, m = 9, 9
-    # x = np.random.randint(2, size=(n, m))
-    x = np.array([[0, 0, 1, 1, 1, 1, 1],
-       [1, 0, 1, 0, 1, 1, 1],
-       [0, 1, 1, 0, 0, 1, 1],
-       [0, 0, 1, 1, 1, 0, 1],
-       [1, 0, 1, 1, 1, 1, 0],
-       [0, 0, 1, 0, 0, 0, 1],
-       [0, 1, 1, 0, 0, 0, 1]])
+  timeLimit = 120
+  gurobi_env = Env()
+  n, m = 8, 8
+  # n, m = 5, 5
+  x = np.random.randint(2, size=(n, m))
+  # x = np.array([[0, 1, 1, 0],
+  #            [1, 0, 1, 1],
+  #            [0, 1, 0, 1],
+  #            [1, 1, 1, 1]])
 
-    xc = np.array([[0, 0, 1, 1, 1, 1, 1],
-       [1, 0, 1, 0, 1, 1, 1],
-       [0, 1, 1, 0, 0, 1, 1],
-       [1, 0, 1, 1, 1, 0, 1],
-       [1, 0, 1, 1, 1, 1, 0],
-       [0, 0, 1, 0, 0, 0, 1],
-       [0, 1, 1, 0, 0, 0, 1]])
+# counterexample for (SemiDynamicLPBounding(), 'fifo'),
+  # x = np.array([[1, 0, 0, 0, 0, 0],
+  #      [1, 1, 0, 0, 0, 1],
+  #      [0, 1, 0, 0, 1, 0],
+  #      [0, 1, 0, 1, 1, 0],
+  #      [0, 0, 0, 0, 0, 0],
+  #      [1, 1, 1, 1, 1, 0],
+  #      [1, 0, 1, 1, 1, 0],
+  #      [1, 0, 1, 1, 0, 1]])
 
+  # x = np.array([[0, 1, 1, 1, 1, 1],
+  #                [1, 0, 1, 1, 0, 1],
+  #                [1, 0, 1, 1, 0, 1],
+  #                [0, 0, 0, 0, 1, 1],
+  #                [0, 0, 0, 0, 1, 1],
+  #                [1, 0, 1, 1, 0, 0],
+  #                [0, 0, 0, 0, 1, 0],
+  #                [1, 1, 1, 0, 0, 1]])
+  # x = np.array([[1, 0, 1, 0, 0],
+  #      [1, 1, 1, 1, 0],
+  #      [1, 1, 0, 1, 0],
+  #      [0, 1, 0, 1, 1],
+  #      [0, 0, 1, 1, 1]], dtype=np.int8)
 
-    print(np.nonzero(x != xc))
+  # print(repr(x))
+  optim = myPhISCS_I(x)
+  print("Optimal answer:", optim)
+  if optim>12:
     exit(0)
-    print("HERE")
-    problem = ErfanBnB(x, None)
-    results = pybnb.solve(problem, log=None)
-    ans = results.best_node.state[0]
-    nf = len(np.where(ans != x)[0])
-    print(x)
-    print(ans)
-    print(nf)
 
+  boundings = [
+    # EmptyBoundingAlg(),
+    # (NaiveBounding(), 'fifo'), # The time measures of First one is not trusted for cache issues
+    # (NaiveBounding(), 'depth'),
+    # (NaiveBounding(), 'custom'),
+    # (SemiDynamicLPBounding(), 'fifo'),
+    # (SemiDynamicLPBounding(), 'depth'),
+    # (SemiDynamicLPBounding(), 'custom'),
+    # (SemiDynamicLPBounding(), 'custom'),
+    # (SemiDynamicLPBounding(), 'custom'),
+    # (StaticLPBounding(), 'fifo'),
+    # (StaticLPBounding(), 'custom'),
+    # (StaticLPBounding(), 'custom'),
+    # (StaticLPBounding(), 'custom'),
+    # (StaticLPBounding(), 'depth'),
+    (DynamicMWMBounding(), 'custom'),
+    (DynamicMWMBounding(), 'custom'),
+    (DynamicMWMBounding(), 'custom'),
+    # (DynamicMWMBounding(), 'fifo'),
+    # (DynamicMWMBounding(), 'depth'),
+    # (DynamicMWMBounding(), 'custom'),
+    (StaticMWMBounding(), 'custom'),
+    (StaticMWMBounding(), 'custom'),
+    (StaticMWMBounding(), 'custom'),
+    # (StaticMWMBounding(), 'depth')
+  ]
+
+  for boundFunc, queue_strategy in boundings:
+    # print(boundFunc.getName(), queue_strategy, flush = True)
+  # for boundFunc, queue_strategy in tqdm(boundings):
+    time1 = time.time()
+    problem1 = ErfanBnB(x, boundFunc, False)
+    solver = pybnb.solver.Solver()
+    results1 = solver.solve(problem1,  queue_strategy = queue_strategy, log = None, time_limit = timeLimit)
+    # results1 = solver.solve(problem1,  queue_strategy = queue_strategy,)
+    time1 = time.time() - time1
+    delta = results1.best_node.state[0]
+    nf1 = delta.count_nonzero()
+    # print(repr(delta.todense()))
+    print(nf1, str(time1)[:5], results1.nodes, boundFunc.getName(), queue_strategy , flush=True)

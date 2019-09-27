@@ -8,6 +8,11 @@ from collections import defaultdict
 from instances import *
 
 
+def myPhISCS_I(x):
+    solution, (flips_0_1, flips_1_0, flips_2_0, flips_2_1), _ = PhISCS_I(x, beta=0.98, alpha=0.00000001)
+    nf = len(np.where(solution != x)[0])
+    return nf
+
 def is_conflict_free_gusfield_and_get_two_columns_in_coflicts(I):
   def sort_bin(a):
     b = np.transpose(a)
@@ -53,6 +58,87 @@ def get_a_coflict(D, p, q):
     if oneone != None and zeroone != None and onezero != None:
       return (p, q, oneone, zeroone, onezero)
   return None
+
+def get_lower_bound_new(noisy, partition_randomly=False):
+  def get_important_pair_of_columns_in_conflict(D):
+    important_columns = defaultdict(lambda: 0)
+    for p in range(D.shape[1]):
+      for q in range(p + 1, D.shape[1]):
+        oneone = 0
+        zeroone = 0
+        onezero = 0
+        for r in range(D.shape[0]):
+          if D[r, p] == 1 and D[r, q] == 1:
+            oneone += 1
+          if D[r, p] == 0 and D[r, q] == 1:
+            zeroone += 1
+          if D[r, p] == 1 and D[r, q] == 0:
+            onezero += 1
+        ## greedy approach based on the number of conflicts in a pair of columns
+        # if oneone*zeroone*onezero > 0:
+        #     important_columns[(p,q)] += oneone*zeroone*onezero
+        ## greedy approach based on the min number of 01 or 10 in a pair of columns
+        if oneone > 0:
+          important_columns[(p, q)] += min(zeroone, onezero)
+    return important_columns
+
+  def get_partition_sophisticated(D):
+    ipofic = get_important_pair_of_columns_in_conflict(D)
+    if len(ipofic) == 0:
+      return []
+    sorted_ipofic = sorted(ipofic.items(), key=operator.itemgetter(1), reverse=True)
+    pairs = [sorted_ipofic[0][0]]
+    elements = [sorted_ipofic[0][0][0], sorted_ipofic[0][0][1]]
+    sorted_ipofic.remove(sorted_ipofic[0])
+    for x in sorted_ipofic[:]:
+      notFound = True
+      for y in x[0]:
+        if y in elements:
+          sorted_ipofic.remove(x)
+          notFound = False
+          break
+      if notFound:
+        pairs.append(x[0])
+        elements.append(x[0][0])
+        elements.append(x[0][1])
+    # print(sorted_ipofic, pairs, elements)
+    partitions = []
+    for x in pairs:
+      partitions.append(D[:, x])
+    return partitions
+
+  def get_partition_random(D):
+    d = int(D.shape[1] / 2)
+    partitions_id = np.random.choice(range(D.shape[1]), size=(d, 2), replace=False)
+    partitions = []
+    for x in partitions_id:
+      partitions.append(D[:, x])
+    return partitions
+
+  def get_lower_bound_for_a_pair_of_columns(D):
+    foundOneOne = False
+    numberOfZeroOne = 0
+    numberOfOneZero = 0
+    for r in range(D.shape[0]):
+      if D[r, 0] == 1 and D[r, 1] == 1:
+        foundOneOne = True
+      if D[r, 0] == 0 and D[r, 1] == 1:
+        numberOfZeroOne += 1
+      if D[r, 0] == 1 and D[r, 1] == 0:
+        numberOfOneZero += 1
+    if foundOneOne:
+      if numberOfZeroOne * numberOfOneZero > 0:
+        return min(numberOfZeroOne, numberOfOneZero)
+    return 0
+
+  LB = []
+  if partition_randomly:
+    partitions = get_partition_random(noisy)
+  else:
+    partitions = get_partition_sophisticated(noisy)
+  for D in partitions:
+    LB.append(get_lower_bound_for_a_pair_of_columns(D))
+  return sum(LB)
 
 
 def get_lower_bound(noisy, partition_randomly=False):

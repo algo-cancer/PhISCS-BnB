@@ -60,10 +60,6 @@ def unFlipLast(model):
 
 
 def LP_Bounding(I):
-  def nearestInt(x):
-    return x
-    # return int(x + 0.5)
-
   beta, alpha = 0.99, 0.0001
   numCells, numMutations = I.shape
   sol_Y = []
@@ -122,6 +118,7 @@ def LP_Bounding(I):
 
 
 def LP_Bounding_direct(I):
+  """obj does not need translation"""
   numCells, numMutations = I.shape
 
   model = Model('LP_3')
@@ -226,13 +223,30 @@ def LP_Bounding_Model(model):
 
 
 if __name__ == '__main__':
-  n, m = 20, 20
+  n, m = 8, 8
   x = np.random.randint(2, size=(n, m))
 
+  mm, y = makeGurobiModel(x)
+
+
   nf = LP_brief(x)
-  # print(nf, np.ceil(calcNF(nf, n0, n1, alpha, beta)))
+  nf2 = LP_Bounding_Model(mm)
+
+  print(nf, nf2)
+  ind = np.nonzero(1-x)
+  a, b = ind[0][0], ind[1][0]
+
+  x[a, b] = 1
+
+  tt1 = time.time()
+  nf = LP_brief(x)
+  tt1 = time.time() - tt1
 
 
-  nf3 = LP_Bounding_direct_4(x)
+  tt2 = time.time()
+  flip(a, b, mm, y)
+  nf2 = LP_Bounding_Model(mm)
+  tt2 = time.time() - tt2
 
-  print(nf, nf3)
+  print(nf, nf2)
+  print(tt1, tt2)
