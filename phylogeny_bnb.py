@@ -12,7 +12,7 @@ args = parser.parse_args()
 
 
 # noisy = np.random.randint(2, size=(args.n, args.m))
-ground, noisy, (countFN,countFP,countNA) = get_data(n=args.n, m=args.m, seed=10, fn=args.fn, fp=0, na=0, ms_path=ms_path)
+# ground, noisy, (countFN,countFP,countNA) = get_data(n=args.n, m=args.m, seed=10, fn=args.fn, fp=0, na=0, ms_path=ms_path)
 
 (countFN,countFP,countNA) = (0,0,0)
 noisy = np.array([
@@ -135,7 +135,7 @@ results = solver.solve(problem,
                         log_interval_seconds=10, 
                         queue_strategy='custom',
                         # objective_stop=20,
-                        # time_limit=0.5
+                        # time_limit=0.3
                       )
 b = time.time()
 # queue = solver.save_dispatcher_queue()

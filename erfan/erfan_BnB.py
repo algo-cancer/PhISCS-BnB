@@ -124,7 +124,7 @@ def ErfanBnBSolver(x):
 if __name__ == '__main__':
   timeLimit = 120
   gurobi_env = Env()
-  n, m = 8, 8
+  n, m = 9, 9
   # n, m = 5, 5
   x = np.random.randint(2, size=(n, m))
   # x = np.array([[0, 1, 1, 0],
@@ -159,7 +159,7 @@ if __name__ == '__main__':
   # print(repr(x))
   optim = myPhISCS_I(x)
   print("Optimal answer:", optim)
-  if optim>12:
+  if optim>25:
     exit(0)
 
   boundings = [
@@ -169,23 +169,25 @@ if __name__ == '__main__':
     # (NaiveBounding(), 'custom'),
     # (SemiDynamicLPBounding(), 'fifo'),
     # (SemiDynamicLPBounding(), 'depth'),
-    # (SemiDynamicLPBounding(), 'custom'),
-    # (SemiDynamicLPBounding(), 'custom'),
-    # (SemiDynamicLPBounding(), 'custom'),
+    (StaticILPBounding(), 'custom'),
+    (StaticILPBounding(), 'custom'),
+    (SemiDynamicLPBounding(), 'custom'),
+    (SemiDynamicLPBounding(), 'custom'),
+    (SemiDynamicLPBounding(), 'custom'),
     # (StaticLPBounding(), 'fifo'),
     # (StaticLPBounding(), 'custom'),
     # (StaticLPBounding(), 'custom'),
     # (StaticLPBounding(), 'custom'),
     # (StaticLPBounding(), 'depth'),
-    (DynamicMWMBounding(), 'custom'),
-    (DynamicMWMBounding(), 'custom'),
-    (DynamicMWMBounding(), 'custom'),
+    # (DynamicMWMBounding(), 'custom'),
+    # (DynamicMWMBounding(), 'custom'),
+    # (DynamicMWMBounding(), 'custom'),
     # (DynamicMWMBounding(), 'fifo'),
     # (DynamicMWMBounding(), 'depth'),
     # (DynamicMWMBounding(), 'custom'),
-    (StaticMWMBounding(), 'custom'),
-    (StaticMWMBounding(), 'custom'),
-    (StaticMWMBounding(), 'custom'),
+    # (StaticMWMBounding(), 'custom'),
+    # (StaticMWMBounding(), 'custom'),
+    # (StaticMWMBounding(), 'custom'),
     # (StaticMWMBounding(), 'depth')
   ]
 
@@ -202,3 +204,12 @@ if __name__ == '__main__':
     nf1 = delta.count_nonzero()
     # print(repr(delta.todense()))
     print(nf1, str(time1)[:5], results1.nodes, boundFunc.getName(), queue_strategy , flush=True)
+
+
+  if False:
+    timeLimit = 120
+    problem1 = ErfanBnB(x, SemiDynamicLPBounding(), False)
+    solver = pybnb.solver.Solver()
+    results1 = solver.solve(problem1,  queue_strategy = "custom", log = None, time_limit = timeLimit)
+    delta = results1.best_node.state[0]
+    nf1 = delta.count_nonzero()
