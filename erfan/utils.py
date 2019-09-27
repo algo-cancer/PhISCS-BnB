@@ -2,7 +2,36 @@ import os
 import subprocess
 import numpy as np
 import random, math
+import time
 from gurobipy import *
+
+def is_conflict_free_gusfield_and_get_two_columns_in_coflicts(I):
+    def sort_bin(a):
+        b = np.transpose(a)
+        b_view = np.ascontiguousarray(b).view(np.dtype((np.void, b.dtype.itemsize * b.shape[1])))
+        idx = np.argsort(b_view.ravel())[::-1]
+        c = b[idx]
+        return np.transpose(c), idx
+
+    O, idx = sort_bin(I)
+    #TODO: delete duplicate columns
+    #print(O, '\n')
+    Lij = np.zeros(O.shape, dtype=int)
+    for i in range(O.shape[0]):
+        maxK = 0
+        for j in range(O.shape[1]):
+            if O[i,j] == 1:
+                Lij[i,j] = maxK
+                maxK = j+1
+    #print(Lij, '\n')
+    Lj = np.amax(Lij, axis=0)
+    #print(Lj, '\n')
+    for i in range(O.shape[0]):
+        for j in range(O.shape[1]):
+            if O[i,j] == 1:
+                if Lij[i,j] != Lj[j]:
+                    return False, (idx[j], idx[Lj[j]-1])
+    return True, (None,None)
 
 
 def is_conflict_free_farid(D):
@@ -125,9 +154,9 @@ def PhISCS_I(I, beta, alpha):
     sol_K = []
     with HiddenPrints():
         model = Model('PhISCS_ILP')
-        model.Params.LogFile = 'gurobi.log'
-        #model.Params.Threads = 1
-        #model.setParam('TimeLimit', 10*60)
+        model.Params.LogFile = ''
+        model.Params.Threads = 1
+        # model.setParam('TimeLimit', 10*60)
         
         Y = {}
         for c in range(numCells):
@@ -137,11 +166,11 @@ def PhISCS_I(I, beta, alpha):
         for p in range(numMutations+1):
             for q in range(numMutations+1):
                 B[p, q, 1, 1] = model.addVar(vtype=GRB.BINARY, obj=0,
-                                             name='B[{0},{1},1,1]'.format(p, q))
+                                                name='B[{0},{1},1,1]'.format(p, q))
                 B[p, q, 1, 0] = model.addVar(vtype=GRB.BINARY, obj=0,
-                                             name='B[{0},{1},1,0]'.format(p, q))
+                                                name='B[{0},{1},1,0]'.format(p, q))
                 B[p, q, 0, 1] = model.addVar(vtype=GRB.BINARY, obj=0,
-                                             name='B[{0},{1},0,1]'.format(p, q))
+                                                name='B[{0},{1},0,1]'.format(p, q))
         K = {}
         for m in range(numMutations+1):
             K[m] = model.addVar(vtype=GRB.BINARY, name='K[{0}]'.format(m))
@@ -178,7 +207,9 @@ def PhISCS_I(I, beta, alpha):
             objective -= K[j] * (numZeros * np.log(1-alpha) + numOnes * (np.log(alpha) + np.log((1-beta)/alpha)))
 
         model.setObjective(objective, GRB.MAXIMIZE)
+        a = time.time()
         model.optimize()
+        b = time.time()
 
         if model.status == GRB.Status.INFEASIBLE:
             print('The odel is infeasible.')
@@ -193,7 +224,7 @@ def PhISCS_I(I, beta, alpha):
         for i in range(numCells):
             sol_Y.append([nearestInt(float(Y[i,j].X)) for j in range(numMutations)])
 
-    return np.array(sol_Y), count_flips(I, sol_K, sol_Y)
+    return np.array(sol_Y), count_flips(I, sol_K, sol_Y), b-a
 
 
 def PhISCS_B(matrix, beta, alpha, csp_solver_path):

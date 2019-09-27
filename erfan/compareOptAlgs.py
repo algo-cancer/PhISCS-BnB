@@ -14,9 +14,12 @@ from boundingAlgs import *
 from ips import ILP_1, LP_2
 from lp_bounding import LP_Bounding, LP_Bounding_direct
 from erfan_BnB import ErfanBnBSolver, ErfanBnB
+import phylogeny_lb
+import copy
 
 
 def solveWith(name, bounding, x):
+    ans = copy.copy(x)
     runTime = time.time()
     if isinstance(name, str) and "PhISCS_a" in name:
         assert False
@@ -35,6 +38,14 @@ def solveWith(name, bounding, x):
         results = pybnb.solve(problem, log=None)
         # results = pybnb.solve(problem)
         ans = results.best_node.state[0]
+        desc = f"{results.nodes}"
+    elif isinstance(name, str) and "Sept24_BnB" in name:
+        problem = Sept24_BnB(x, bounding)
+        results = pybnb.solve(problem, log=None)
+        # results = pybnb.solve(problem)
+        flipList = results.best_node.state[0]
+        for a, b in flipList:
+            ans[a, b] = 1
         desc = f"{results.nodes}"
     elif isinstance(name, str) and "ErfanBnB" in name:
         problem = ErfanBnB(x, bounding)
@@ -56,37 +67,41 @@ def solveWith(name, bounding, x):
     return ans, nf, runTime, desc
 
 
+
 if __name__ == '__main__':
     scriptName = os.path.basename(__file__).split(".")[0]
     print(f"{scriptName} starts here")
     methods = [
-        # "PhISCS_a",
-        # "PhISCS_a_False",
-        # "PhISCS_b",
-        # ("PhISCS_c", randomPartitionBounding),
-        # ("PhISCS_c", greedyPartitionBounding),
-        # ("PhISCS_c", mxWeightedMatchingPartitionBounding),
-        # ("PhISCS_c", mxMatchingPartitionBounding),
-        # ("PhISCS_c", LP_Bounding),
-        # ("PhISCS_c", LP_Bounding_direct),
-        # ("PhISCS_I", None),
-        ("ErfanBnB", None),
-        # (ILP_1, None),
-        # (LP_2, None),
+      # "PhISCS_a",
+      # "PhISCS_a_False",
+      # "PhISCS_b",
+      # ("PhISCS_c", randomPartitionBounding),
+      # ("PhISCS_c", greedyPartitionBounding),
+      ("PhISCS_c", mxWeightedMatchingPartitionBounding),
+      # ("PhISCS_c", mxMatchingPartitionBounding),
+      # ("PhISCS_c", LP_Bounding),
+      # ("PhISCS_c", LP_Bounding_direct),
+      # ("PhISCS_I", None),
+      # ("ErfanBnB", None), What is this?
+      # (ILP_1, None),
+      # (LP_2, None),
+      # ("Sept24_BnB", phylogeny_lb.lb_gurobi),
+      ("Sept24_BnB", phylogeny_lb.lb_max_weight_matching),
+      (ILP_1, None),
     ]
     df = pd.DataFrame(columns=["hash", "n", "m", "nf", "method", "runtime", "desc"])
     # n: number of Cells
     # m: number of Mutations
-    iterList = itertools.product([7, ], # n
-                                 [7, ], # m
-                                 list(range(1)) # i
+    iterList = itertools.product([5, 6, 7, 8], # n
+                                 [5, 6, 7, 8 ], # m
+                                 list(range(2)) # i
                                  )
     iterList = list(iterList)
 
     for n, m, i in tqdm(iterList):
     # for n, m, i in iterList:
             x = np.random.randint(2, size=(n, m))
-            print(repr(x))
+            # print(repr(x))
             for method, bounding in methods:
                 ans, nf, runTime, desc = solveWith(method, bounding, x)
                 # print(get)
@@ -96,15 +111,15 @@ if __name__ == '__main__':
                     "m": str(m),
                     "hash": hash(x.tostring()),
                     "method": f"{methodName}_{'' if bounding is None else bounding.__name__ }",
-                    "runtime": str(runTime),
+                    "runtime": str(runTime)[:8],
                     "nf": str(nf),
                     "desc": desc
                 }
                 # print(row)
                 df = df.append(row, ignore_index=True)
     print(df)
-    csvFileName = f"report_{scriptName}_{df.shape}_{time.time()}.csv"
-    df.to_csv(csvFileName)
-    print(f"CSV file stored at {csvFileName}")
+    # csvFileName = f"report_{scriptName}_{df.shape}_{time.time()}.csv"
+    # df.to_csv(csvFileName)
+    # print(f"CSV file stored at {csvFileName}")
 
 

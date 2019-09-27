@@ -13,34 +13,13 @@ from BnB import *
 from boundingAlgs import *
 from lp_bounding import LP_Bounding, LP_Bounding_direct, LP_Bounding_direct_4
 
-def rename(newname):
-    def decorator(f):
-        f.__name__ = newname
-        return f
-    return decorator
-
-
-def getKPartitionedPhISCS(k):
-    @rename(f'partitionedPhISCS_{k}')
-    def partitionedPhISCS(x):
-        ans = 0
-        for i in range(x.shape[1]//k):
-            ans += myPhISCS_I(x[:, i * k: (i+1) * k])
-        if x.shape[1] % k >= 2:
-            ans += myPhISCS_I(x[:, ((x.shape[1]//k) * k): ])
-        return ans
-    return partitionedPhISCS
-
+## still working copied from compareOPT
 
 if __name__ == '__main__':
     scriptName = os.path.basename(__file__).split(".")[0]
     print(f"{scriptName} starts here")
     methods = [
         myPhISCS_I,
-        # getKPartitionedPhISCS(2),
-        # getKPartitionedPhISCS(3),
-        # getKPartitionedPhISCS(4),
-        # getKPartitionedPhISCS(5),
         randomPartitionBounding,
         greedyViolationsPartitionBounding,
         greedyPartitionBounding,
