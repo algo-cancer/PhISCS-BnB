@@ -147,17 +147,16 @@ def lb_max_weight_matching(D, changed_column, previous_G):
 
     best_pairing = nx.max_weight_matching(G)
     # print(best_pairing)
-    best_pair_qp, best_pair_w = (None, None), 0
+    best_pair_qp, best_pair_w = (None, None), np.inf
     # for (u, v, wt) in G.edges.data('weight'):
     #     if wt > best_pair_w:
     #         best_pair_qp = (u, v)
     #         best_pair_w = wt
         # print(u, v, wt)
     lb = 0
-    # best_pair_qp, best_pair_w = (None, None), 0
     for a, b in best_pairing:
         # print(a,b,G[a][b]["weight"])
-        if G[a][b]["weight"] > best_pair_w:
+        if G[a][b]["weight"] < best_pair_w:
             best_pair_w = G[a][b]["weight"]
             best_pair_qp = (a, b)
         lb += G[a][b]["weight"]
