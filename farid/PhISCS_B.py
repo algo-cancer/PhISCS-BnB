@@ -7,13 +7,6 @@ from pysat.examples.rc2 import RC2
 from pysat.formula import WCNF
 
 
-def blockshaped(arr, nrows, ncols):
-  h, w = arr.shape
-  assert h % nrows == 0, "{} rows is not evenly divisble by {}".format(h, nrows)
-  assert w % ncols == 0, "{} cols is not evenly divisble by {}".format(w, ncols)
-  return (arr.reshape(h//nrows, nrows, -1, ncols).swapaxes(1,2).reshape(-1, nrows, ncols))
-
-
 def PhISCS_B(matrix, procnum=0, return_dict={}):
   rc2 = RC2(WCNF())
   n,m = matrix.shape
@@ -96,10 +89,11 @@ def PhISCS_B(matrix, procnum=0, return_dict={}):
 
 
 class StaticPhISCSBBounding(BoundingAlgAbstract):
-  def __init__(self):
+  def __init__(self, splitInto=2):
     self.matrix = None
     self.n = None
     self.m = None
+    self.splitInto = splitInto
 
   def reset(self, matrix):
     self.matrix = matrix
@@ -107,9 +101,12 @@ class StaticPhISCSBBounding(BoundingAlgAbstract):
     self.m = self.matrix.shape[1]
 
   def getBound(self, delta):
+  	# https://stackoverflow.com/questions/16856788/slice-2d-array-into-smaller-2d-arrays
     bound = 0
-    for block in blockshaped(np.array(self.matrix+delta), self.n, 5):
-        bound += PhISCS_B(block)
+    I = np.array(self.matrix+delta)
+    blocks = np.array_split(I, self.splitInto, axis=1)
+    for block in blocks:
+      bound += PhISCS_B(block)
     return bound + delta.count_nonzero()
 
 
