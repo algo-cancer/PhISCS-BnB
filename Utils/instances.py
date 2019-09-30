@@ -1,5 +1,6 @@
 import numpy as np
 
+
 I1 = np.array([
     [0,1,1,0],
     [1,0,0,1],
@@ -30,10 +31,10 @@ I5 = np.array([
     [0,0,1,0],
 ])
 
-I4 = np.random.randint(2, size=(100, 100))
 
-
+def getRandomMatrix(n, m):
+    return np.random.randint(2, size=(n, m))
 
 
 if __name__ == '__main__':
-  pass
+  print(getRandomMatrix(5, 5))

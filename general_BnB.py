@@ -92,22 +92,19 @@ class ErfanBnB(pybnb.Problem):
       node = pybnb.Node()
       nodedelta =  copy.deepcopy(self.delta)
       nodedelta[a, b] = 1
-      nodeicf, nodecolPair = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(self.I + nodedelta )
-
-      # print("--------------", nodedelta.todense())
-
       newBound = self.boundingAlg.getBound(nodedelta)
-      # pat = np.array([[0, 0, 0, 0, 0],
-      #   [0, 0, 0, 0, 0],
-      #   [0, 0, 1, 0, 0],
-      #   [1, 0, 1, 0, 0],
-      #   [0, 0, 0, 0, 0]])
-      # if np.allclose(nodedelta.todense() , pat):
-      #   print("--------------", newBound, self.boundVal)
-      #   ss = SemiDynamicLPBounding()
-      #   ss.reset(self.I)
-      #   print(ss.getBound(nodedelta), self.boundingAlg.getBound(nodedelta), type(self.boundingAlg))
-      #   exit(0)
+
+
+      nodeicf, nodecolPair = None, None
+      extraInfo = self.boundingAlg.extraInfo()
+      if extraInfo is not None:
+        if "icf" in extraInfo:
+          nodeicf = extraInfo["icf"]
+        if "pair_of_columns" in extraInfo:
+          nodecolPair = extraInfo["pair_of_columns"]
+
+      if nodeicf is None or nodecolPair is None:
+        nodeicf, nodecolPair = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(self.I + nodedelta )
 
 
       nodeboundVal = max(self.boundVal, newBound)

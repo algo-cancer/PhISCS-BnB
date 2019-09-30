@@ -1,15 +1,16 @@
 from Utils.const import *
 
+from ErfanFuncs import *
 from util import *
 import operator
-from collections import defaultdict
-import time
-import pandas as pd
-from tqdm import tqdm
-import itertools, os
-from BnB import *
-from boundingAlgs import *
-from lp_bounding import LP_Bounding, LP_Bounding_direct, LP_Bounding_direct_4
+# from collections import defaultdict
+# import time
+# import pandas as pd
+# from tqdm import tqdm
+# import itertools, os
+# from BnB import *
+# from boundingAlgs import *
+# from lp_bounding import LP_Bounding, LP_Bounding_direct, LP_Bounding_direct_4
 from interfaces import *
 
 from Boundings.LP import *
@@ -48,23 +49,22 @@ if __name__ == '__main__':
   methods = [
     myPhISCS_I,
     myPhISCS_B,
-    # fromInterfaceToMethod(StaticLPBounding(ratio = 0.5, continuous  = True)),
-    # fromInterfaceToMethod(StaticLPBounding(ratio = None, continuous  = False)),
-    # fromInterfaceToMethod(StaticLPBounding()),
-    # fromInterfaceToMethod(StaticILPBounding()),
-    # fromInterfaceToMethod(NaiveBounding()),
+    fromInterfaceToMethod(StaticLPBounding(ratio = 0.5, continuous  = True)),
+    fromInterfaceToMethod(StaticLPBounding(ratio = None, continuous  = False)),
+    fromInterfaceToMethod(StaticLPBounding()),
+    fromInterfaceToMethod(StaticILPBounding()),
+    fromInterfaceToMethod(NaiveBounding()),
     fromInterfaceToMethod(SemiDynamicLPBounding(ratio = None, continuous  = False)),
     fromInterfaceToMethod(SemiDynamicLPBounding(ratio = 0.7, continuous  = False)),
     fromInterfaceToMethod(SemiDynamicLPBounding(ratio = None, continuous  = True)),
     fromInterfaceToMethod(SemiDynamicLPBounding(ratio = 0.7, continuous  = True)),
     fromInterfaceToMethod(DynamicMWMBounding()),
     fromInterfaceToMethod(StaticMWMBounding()),
-    # myPhISCS_B,
-    getKPartitionedPhISCS(2),
-    getKPartitionedPhISCS(3),
-    getKPartitionedPhISCS(4),
-    getKPartitionedPhISCS(5),
-    randomPartitionBounding,
+    # getKPartitionedPhISCS(2),
+    # getKPartitionedPhISCS(3),
+    # getKPartitionedPhISCS(4),
+    # getKPartitionedPhISCS(5),
+    # randomPartitionBounding,
     # greedyViolationsPartitionBounding,
     # greedyPartitionBounding,
     # mxWeightedMatchingPartitionBounding,
@@ -97,7 +97,8 @@ if __name__ == '__main__':
       df = df.append(row, ignore_index=True)
   print(df)
   csvFileName = f"report_{scriptName}_{df.shape}_{time.time()}.csv"
-  df.to_csv(csvFileName)
-  print(f"CSV file stored at {csvFileName}")
+  csvPath = os.path.join(output_folder_path, csvFileName)
+  # df.to_csv(csvPath)
+  # print(f"CSV file stored at {csvPath}")
 
 
