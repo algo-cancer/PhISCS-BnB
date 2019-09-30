@@ -1,3 +1,5 @@
+import sys
+sys.path.append('/data/frashidi/Phylogeny_BnB/erfan/')
 import numpy as np
 from interfaces import *
 import scipy.sparse as sp
@@ -10,26 +12,6 @@ def blockshaped(arr, nrows, ncols):
   assert h % nrows == 0, "{} rows is not evenly divisble by {}".format(h, nrows)
   assert w % ncols == 0, "{} cols is not evenly divisble by {}".format(w, ncols)
   return (arr.reshape(h//nrows, nrows, -1, ncols).swapaxes(1,2).reshape(-1, nrows, ncols))
-
-
-def count_flips(I, sol_K, sol_Y):
-  flips_0_1 = 0
-  flips_1_0 = 0
-  flips_2_0 = 0
-  flips_2_1 = 0
-  n, m = I.shape
-  for i in range(n):
-      for j in range(m):
-          if sol_K[j] == 0:
-              if I[i][j] == 0 and sol_Y[i][j] == 1:
-                  flips_0_1 += 1
-              elif I[i][j] == 1 and sol_Y[i][j] == 0:
-                  flips_1_0 += 1
-              elif I[i][j] == 2 and sol_Y[i][j] == 0:
-                  flips_2_0 += 1
-              elif I[i][j] == 2 and sol_Y[i][j] == 1:
-                  flips_2_1 += 1
-  return flips_0_1
 
 
 def PhISCS_B(matrix, procnum=0, return_dict={}):
@@ -108,48 +90,47 @@ def PhISCS_B(matrix, procnum=0, return_dict={}):
                   O[i,j] = 1
           numVar += 1
   
-  return_dict[procnum] = count_flips(matrix, matrix.shape[1]*[0], O)[0]
-  return count_flips(matrix, matrix.shape[1]*[0], O)
+  flips_0_1 = np.count_nonzero(O-matrix)
+  return_dict[procnum] = flips_0_1
+  return flips_0_1
 
 
 class StaticPhISCSBBounding(BoundingAlgAbstract):
   def __init__(self):
     self.matrix = None
+    self.n = None
+    self.m = None
 
   def reset(self, matrix):
     self.matrix = matrix
+    self.n = self.matrix.shape[0]
+    self.m = self.matrix.shape[1]
 
   def getBound(self, delta):
     bound = 0
-    for block in blockshaped(self.matrix + delta, D.shape[0], 5):
+    for block in blockshaped(np.array(self.matrix+delta), self.n, 5):
         bound += PhISCS_B(block)
     return bound + delta.count_nonzero()
 
 
 if __name__ == '__main__':
 
-  # n, m = 10, 10
-  # x = np.random.randint(2, size=(n, m))
-  # delta = sp.lil_matrix((n, m ))
-
-  # x = np.array([[1, 0, 1, 0, 0],
-  #        [1, 1, 1, 1, 0],
-  #        [1, 1, 0, 1, 0],
-  #        [0, 1, 0, 1, 1],
-  #        [0, 0, 1, 1, 1]], dtype=np.int8)
-  #
-  # delta = sp.lil_matrix([[0, 0, 0, 0, 0],
-  #         [0, 0, 0, 0, 0],
-  #         [0, 0, 1, 0, 0],
-  #         [1, 0, 0, 0, 0],
-  #         [0, 0, 0, 0, 0]], dtype=np.int8)
-
-  # delta = np.array([[0, 0, 0, 0, 0],
-  #       [0, 0, 0, 0, 0],
-  #       [0, 0, 1, 0, 0],
-  #       [1, 0, 1, 0, 0],
-  #       [0, 0, 0, 0, 0]], dtype=np.int8)
+  noisy = np.array([
+    [0,1,0,0,0,0,1,1,1,0],
+    [0,1,1,0,1,1,1,0,1,0],
+    [1,0,0,1,0,1,1,1,0,0],
+    [1,0,0,0,0,0,0,1,0,0],
+    [1,1,1,1,1,1,0,1,0,1],
+    [0,1,1,1,1,1,1,1,0,0],
+    [1,0,0,1,0,1,0,0,0,0],
+    [1,1,1,1,0,0,1,0,1,1],
+    [0,0,1,0,1,1,1,1,1,0],
+    [1,1,1,1,0,0,1,0,1,1],
+  ], dtype=np.int8)
+  delta = sp.lil_matrix((noisy.shape))
+  delta[0,0] = 1
   
   algo = StaticPhISCSBBounding()
-  xp = np.asarray(x + delta)
+  algo.reset(noisy)
+  xp = np.asarray(noisy + delta)
   print(algo.getBound(delta))
