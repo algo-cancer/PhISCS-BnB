@@ -1,1 +1,0 @@
-ms_path = '/home/frashidi/software/bin/ms'

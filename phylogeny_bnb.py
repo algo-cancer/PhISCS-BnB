@@ -12,8 +12,8 @@ parser.add_argument('-fn', '--falseNegativeRate', dest='fn', help='', type=float
 args = parser.parse_args()
 
 
-# noisy = np.random.randint(2, size=(args.n, args.m))
-# ground, noisy, (countFN,countFP,countNA) = get_data(n=args.n, m=args.m, seed=10, fn=args.fn, fp=0, na=0, ms_path=ms_path)
+noisy = np.random.randint(2, size=(args.n, args.m))
+ground, noisy, (countFN,countFP,countNA) = get_data(n=args.n, m=args.m, seed=10, fn=args.fn, fp=0, na=0)
 
 (countFN,countFP,countNA) = (0,0,0)
 noisy = np.array([

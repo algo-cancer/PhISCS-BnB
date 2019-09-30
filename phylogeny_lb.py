@@ -1,7 +1,6 @@
 import numpy as np
 from util import *
 import networkx as nx
-import subprocess
 from collections import defaultdict
 import multiprocessing
 from const import *

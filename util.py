@@ -1,13 +1,12 @@
 import os
-import subprocess
 import numpy as np
 import random, math
 import time
 from gurobipy import *
 from const import *
-import tempfile
 from pysat.examples.rc2 import RC2
 from pysat.formula import WCNF
+ms_path = '/home/frashidi/software/bin/ms'
 
 
 def is_conflict_free_gusfield_and_get_two_columns_in_coflicts(I):
@@ -58,7 +57,7 @@ def is_conflict_free_farid(D):
     return conflict_free
 
 
-def get_data(n, m, seed, fn, fp, na, ms_path):
+def get_data(n, m, seed, fn, fp, na):
     def make_noisy(data, fn, fp, na):
         n, m = data.shape
         data2 = -1*np.ones(shape=(n, m)).astype(int)
