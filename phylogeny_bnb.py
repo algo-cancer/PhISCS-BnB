@@ -4,7 +4,6 @@ from util import *
 from phylogeny_lb import *
 import time
 from argparse import ArgumentParser
-import test
 parser = ArgumentParser()
 parser.add_argument('-n', '--numberOfCells', dest='n', help='', type=int, default=5)
 parser.add_argument('-m', '--numberOfMutations', dest='m', help='', type=int, default=5)
@@ -120,9 +119,9 @@ class Phylogeny_BnB(pybnb.Problem):
         return [node_l, node_r]
 
 
-problem = Phylogeny_BnB(noisy, lb_lp)
+# problem = Phylogeny_BnB(noisy, lb_lp)
 # problem = Phylogeny_BnB(noisy, lb_max_weight_matching)
-# problem = Phylogeny_BnB(noisy, lb_phiscs_b)
+problem = Phylogeny_BnB(noisy, lb_phiscs_b)
 # problem = Phylogeny_BnB(noisy, lb_openwbo)
 # problem = Phylogeny_BnB(noisy, lb_gurobi)
 # problem = Phylogeny_BnB(noisy, lb_greedy)

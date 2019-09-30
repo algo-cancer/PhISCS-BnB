@@ -3,7 +3,6 @@ from util import *
 import networkx as nx
 from collections import defaultdict
 import multiprocessing
-from const import *
 
 
 def lb_phiscs_b(D, a, b):
@@ -22,7 +21,7 @@ def lb_phiscs_b(D, a, b):
     for block in blockshaped(D, D.shape[0], 5):
         solution, (flips_0_1, flips_1_0, flips_2_0, flips_2_1), c_time = PhISCS_B(block)
         lb += flips_0_1
-
+    
     ## 2)
     # lb = 0
     # blocks = blockshaped(D, D.shape[0], 5)

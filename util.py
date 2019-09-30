@@ -3,7 +3,6 @@ import numpy as np
 import random, math
 import time
 from gurobipy import *
-from const import *
 from pysat.examples.rc2 import RC2
 from pysat.formula import WCNF
 ms_path = '/home/frashidi/software/bin/ms'
