@@ -1,10 +1,12 @@
 import os
-import subprocess
 import numpy as np
 import random, math
 import time
 from gurobipy import *
-from const import *
+from pysat.examples.rc2 import RC2
+from pysat.formula import WCNF
+ms_path = '/home/frashidi/software/bin/ms'
+
 
 def is_conflict_free_gusfield_and_get_two_columns_in_coflicts(I):
     def sort_bin(a):
@@ -54,7 +56,7 @@ def is_conflict_free_farid(D):
     return conflict_free
 
 
-def get_data(n, m, seed, fn, fp, na, ms_path):
+def get_data(n, m, seed, fn, fp, na):
     def make_noisy(data, fn, fp, na):
         n, m = data.shape
         data2 = -1*np.ones(shape=(n, m)).astype(int)
@@ -213,7 +215,7 @@ def PhISCS_I(I, beta, alpha):
         b = time.time()
 
         if model.status == GRB.Status.INFEASIBLE:
-            print('The odel is infeasible.')
+            print('The model is infeasible.')
             exit(0)
 
         removedMutsIDs = []
@@ -228,10 +230,9 @@ def PhISCS_I(I, beta, alpha):
     return np.array(sol_Y), count_flips(I, sol_K, sol_Y), b-a
 
 
-def PhISCS_B(matrix, beta, alpha, csp_solver_path):
+def PhISCS_B(matrix, procnum=0, return_dict={}):
+    rc2 = RC2(WCNF())
     n,m = matrix.shape
-    par_fnRate = beta
-    par_fpRate = alpha
     par_fnWeight = 1
     par_fpWeight = 10
 
@@ -260,89 +261,54 @@ def PhISCS_B(matrix, beta, alpha, csp_solver_path):
                     numVarB += 1
                     B[p,q,i,j] = numVarY + numVarX + numVarB;
     
-    clauseHard = []
-    clauseSoft = []
-    numZero = 0
-    numOne = 0
-    numTwo = 0
     for i in range(n):
         for j in range(m):
             if matrix[i,j] == 0:
-                numZero += 1
-                cnf = '{} {}'.format(par_fnWeight, -X[i,j])
-                clauseSoft.append(cnf)
-                cnf = '{} {}'.format(-X[i,j], Y[i,j])
-                clauseHard.append(cnf)
-                cnf = '{} {}'.format(X[i,j], -Y[i,j])
-                clauseHard.append(cnf)
+                rc2.add_clause([-X[i,j]], weight=par_fnWeight)
+                rc2.add_clause([-X[i,j], Y[i,j]])
+                rc2.add_clause([X[i,j], -Y[i,j]])
             elif matrix[i,j] == 1:
-                numOne += 1
-                cnf = '{} {}'.format(par_fpWeight, -X[i,j])
-                clauseSoft.append(cnf)
-                cnf = '{} {}'.format(X[i,j], Y[i,j])
-                clauseHard.append(cnf)
-                cnf = '{} {}'.format(-X[i,j], -Y[i,j])
-                clauseHard.append(cnf)
+                rc2.add_clause([-X[i,j]], weight=par_fpWeight)
+                rc2.add_clause([X[i,j], Y[i,j]])
+                rc2.add_clause([-X[i,j], -Y[i,j]])
             elif matrix[i,j] == 2:
-                numTwo += 1
-                cnf = '{} {}'.format(-1*X[i,j], Y[i,j])
-                clauseHard.append(cnf)
-                cnf = '{} {}'.format(X[i,j], -1*Y[i,j])
-                clauseHard.append(cnf)
+                rc2.add_clause([-X[i,j], Y[i,j]])
+                rc2.add_clause([X[i,j], -Y[i,j]])
 
     for i in range(n):
         for p in range(m):
             for q in range(p, m):
-                #~Yip v ~Yiq v Bpq11
-                cnf = '{} {} {}'.format(-Y[i,p], -Y[i,q], B[p,q,1,1])
-                clauseHard.append(cnf)
-                #Yip v ~Yiq v Bpq01
-                cnf = '{} {} {}'.format(Y[i,p], -Y[i,q], B[p,q,0,1])
-                clauseHard.append(cnf)
-                #~Yip v Yiq v Bpq10
-                cnf = '{} {} {}'.format(-Y[i,p], Y[i,q], B[p,q,1,0])
-                clauseHard.append(cnf)
-                #~Bpq01 v ~Bpq10 v ~Bpq11
-                cnf = '{} {} {}'.format(-B[p,q,0,1], -B[p,q,1,0], -B[p,q,1,1])
-                clauseHard.append(cnf)
-
-    hardWeight = numZero * par_fnWeight + numOne * par_fpWeight + 1
-
-    outfile = 'cnf.tmp'
-    with open(outfile, 'w') as out:
-        out.write('p wcnf {} {} {}\n'.format(numVarY+numVarX+numVarB, len(clauseSoft)+len(clauseHard), hardWeight))
-        for cnf in clauseSoft:
-            out.write('{} 0\n'.format(cnf))
-        for cnf in clauseHard:
-            out.write('{} {} 0\n'.format(hardWeight, cnf))
+                rc2.add_clause([-Y[i,p], -Y[i,q], B[p,q,1,1]])
+                rc2.add_clause([Y[i,p], -Y[i,q], B[p,q,0,1]])
+                rc2.add_clause([-Y[i,p], Y[i,q], B[p,q,1,0]])
+                rc2.add_clause([-B[p,q,0,1], -B[p,q,1,0], -B[p,q,1,1]])
     
     a = time.time()
-    command = '{} {}'.format(csp_solver_path, outfile)
-    proc = subprocess.Popen(command.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    output, error = proc.communicate()
+    variables = rc2.compute()
     b = time.time()
 
-    variables = output.decode().split('\n')[-2][2:].split(' ')
     O = np.empty((n,m), dtype=np.int8)
     numVar = 0
     for i in range(n):
         for j in range(m):
             if matrix[i,j] == 0:
-                if '-' in variables[numVar]:
+                if variables[numVar] < 0:
                     O[i,j] = 0
                 else:
                     O[i,j] = 1
             elif matrix[i,j] == 1:
-                if '-' in variables[numVar]:
+                if variables[numVar] < 0:
                     O[i,j] = 0
                 else:
                     O[i,j] = 1
             elif matrix[i,j] == 2:
-                if '-' in variables[numVar]:
+                if variables[numVar] < 0:
                     O[i,j] = 0
                 else:
                     O[i,j] = 1
             numVar += 1
+    
+    return_dict[procnum] = count_flips(matrix, matrix.shape[1]*[0], O)[0]
     return O, count_flips(matrix, matrix.shape[1]*[0], O), b-a
 
 

@@ -1,9 +1,52 @@
 import numpy as np
 from util import *
 import networkx as nx
-import subprocess
 from collections import defaultdict
-from const import *
+import multiprocessing
+
+
+def lb_phiscs_b(D, a, b):
+    # def get_partition_random(D, n_group_members=5):
+    #     d = int(D.shape[1]/n_group_members)
+    #     partitions_id = np.random.choice(range(D.shape[1]), size=(d, n_group_members), replace=False)
+    #     return partitions_id
+    def blockshaped(arr, nrows, ncols):
+        h, w = arr.shape
+        assert h % nrows == 0, "{} rows is not evenly divisble by {}".format(h, nrows)
+        assert w % ncols == 0, "{} cols is not evenly divisble by {}".format(w, ncols)
+        return (arr.reshape(h//nrows, nrows, -1, ncols).swapaxes(1,2).reshape(-1, nrows, ncols))
+    
+    ## 1)
+    lb = 0
+    for block in blockshaped(D, D.shape[0], 5):
+        solution, (flips_0_1, flips_1_0, flips_2_0, flips_2_1), c_time = PhISCS_B(block)
+        lb += flips_0_1
+    
+    ## 2)
+    # lb = 0
+    # blocks = blockshaped(D, D.shape[0], 5)
+    # with Pool(processes=len(blocks)) as pool:
+    #     result = pool.map(PhISCS_B, blocks)
+    # for x in result:
+    #     lb += x[1][0]
+
+    ## 3)
+    # blocks = blockshaped(D, D.shape[0], 5)
+    # manager = multiprocessing.Manager()
+    # return_dict = manager.dict()
+    # jobs = []
+    # for i in range(len(blocks)):
+    #     p = multiprocessing.Process(target=PhISCS_B, args=(blocks[i],i,return_dict))
+    #     jobs.append(p)
+    #     p.start()
+    
+    # for proc in jobs:
+    #     proc.join()
+    # lb = sum(return_dict.values())
+
+    icf, best_pair_qp = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(D)
+    return lb, {}, best_pair_qp, icf
+
 
 def lb_greedy(D, a, b):
     def get_important_pair_of_columns_in_conflict(D):
@@ -45,7 +88,7 @@ def lb_greedy(D, a, b):
         lb += ipofic[x]
     
     icf, best_pair_qp = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(D)
-    return lb, {}, best_pair_qp
+    return lb, {}, best_pair_qp, icf
     
 
 def lb_random(D, a, b):
@@ -75,40 +118,70 @@ def lb_random(D, a, b):
         lb += calc_min0110_for_one_pair_of_columns(D, x[0], x[1])
     
     icf, best_pair_qp = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(D)
-    return lb, {}, best_pair_qp
-
-
-def lb_phiscs_b(D, a, b):
-    # def get_partition_random(D, n_group_members=5):
-    #     d = int(D.shape[1]/n_group_members)
-    #     partitions_id = np.random.choice(range(D.shape[1]), size=(d, n_group_members), replace=False)
-    #     return partitions_id
-    def blockshaped(arr, nrows, ncols):
-        h, w = arr.shape
-        assert h % nrows == 0, "{} rows is not evenly divisble by {}".format(h, nrows)
-        assert w % ncols == 0, "{} cols is not evenly divisble by {}".format(w, ncols)
-        return (arr.reshape(h//nrows, nrows, -1, ncols).swapaxes(1,2).reshape(-1, nrows, ncols))
-    
-    lb = 0
-    for block in blockshaped(D, D.shape[0], 5):
-        solution, (flips_0_1, flips_1_0, flips_2_0, flips_2_1), c_time = PhISCS_B(block, beta=0.9, alpha=0.00000001,
-                                                                                    csp_solver_path=csp_solver_path)
-        lb += flips_0_1
-    icf, best_pair_qp = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(D)
-    return lb, {}, best_pair_qp
+    return lb, {}, best_pair_qp, icf
 
 
 def lb_openwbo(D, a, b):
-    solution, (flips_0_1, flips_1_0, flips_2_0, flips_2_1), c_time = PhISCS_B(D, beta=0.9, alpha=0.00000001,
-                                                                                csp_solver_path=csp_solver_path)
+    solution, (flips_0_1, flips_1_0, flips_2_0, flips_2_1), c_time = PhISCS_B(D)
     icf, best_pair_qp = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(D)
-    return flips_0_1, {}, best_pair_qp
+    return flips_0_1, {}, best_pair_qp, icf
 
 
 def lb_gurobi(D, a, b):
     solution, (flips_0_1, flips_1_0, flips_2_0, flips_2_1), c_time = PhISCS_I(D, beta=0.9, alpha=0.00000001)
     icf, best_pair_qp = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(D)
-    return flips_0_1, {}, best_pair_qp
+    return flips_0_1, {}, best_pair_qp, icf
+
+
+def lb_lp(I, a, b):
+    class HiddenPrints:
+        def __enter__(self):
+            self._original_stdout = sys.stdout
+            sys.stdout = open(os.devnull, 'w')
+
+        def __exit__(self, exc_type, exc_val, exc_tb):
+            sys.stdout.close()
+            sys.stdout = self._original_stdout
+    
+    with HiddenPrints():
+        model = Model('PhISCS_LP')
+        model.Params.LogFile = ''
+        model.Params.Threads = 1
+        # model.setParam('TimeLimit', 10*60)
+        numCells = I.shape[0]
+        numMutations = I.shape[1]
+        Y = {}
+        for c in range(numCells):
+            for m in range(numMutations):
+                if I[c, m] == 0:
+                    Y[c, m] = model.addVar(vtype=GRB.CONTINUOUS, obj=1, name='Y({0},{1})'.format(c, m))
+                elif I[c, m] == 1:
+                    Y[c, m] = 1
+        B = {}
+        for p in range(numMutations):
+            for q in range(numMutations):
+                B[p, q, 1, 1] = model.addVar(vtype=GRB.CONTINUOUS, obj=0,
+                                                name='B[{0},{1},1,1]'.format(p, q))
+                B[p, q, 1, 0] = model.addVar(vtype=GRB.CONTINUOUS, obj=0,
+                                                name='B[{0},{1},1,0]'.format(p, q))
+                B[p, q, 0, 1] = model.addVar(vtype=GRB.CONTINUOUS, obj=0,
+                                                name='B[{0},{1},0,1]'.format(p, q))
+        for i in range(numCells):
+            for p in range(numMutations):
+                for q in range(numMutations):
+                    model.addConstr(Y[i,p] + Y[i,q] - B[p,q,1,1] <= 1)
+                    model.addConstr(-Y[i,p] + Y[i,q] - B[p,q,0,1] <= 0)
+                    model.addConstr(Y[i,p] - Y[i,q] - B[p,q,1,0] <= 0)
+        for p in range(numMutations):
+            for q in range(numMutations):
+                model.addConstr(B[p,q,0,1] + B[p,q,1,0] + B[p,q,1,1] <= 2)
+
+        model.Params.ModelSense = GRB.MINIMIZE
+        model.optimize()
+        lb = np.int(np.ceil(model.objVal))
+
+        icf, best_pair_qp = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(I)
+        return lb, {}, best_pair_qp, icf
 
 
 def lb_max_weight_matching(D, changed_column, previous_G):
@@ -160,4 +233,8 @@ def lb_max_weight_matching(D, changed_column, previous_G):
             best_pair_w = G[a][b]["weight"]
             best_pair_qp = (a, b)
         lb += G[a][b]["weight"]
-    return lb, G, best_pair_qp
+    if lb == 0:
+        icf = True
+    else:
+        icf = False
+    return lb, G, best_pair_qp, icf

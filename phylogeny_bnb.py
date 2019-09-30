@@ -11,8 +11,8 @@ parser.add_argument('-fn', '--falseNegativeRate', dest='fn', help='', type=float
 args = parser.parse_args()
 
 
-# noisy = np.random.randint(2, size=(args.n, args.m))
-# ground, noisy, (countFN,countFP,countNA) = get_data(n=args.n, m=args.m, seed=10, fn=args.fn, fp=0, na=0, ms_path=ms_path)
+noisy = np.random.randint(2, size=(args.n, args.m))
+ground, noisy, (countFN,countFP,countNA) = get_data(n=args.n, m=args.m, seed=10, fn=args.fn, fp=0, na=0)
 
 (countFN,countFP,countNA) = (0,0,0)
 noisy = np.array([
@@ -30,9 +30,7 @@ noisy = np.array([
 # print(repr(noisy))
 
 solution, (f_0_1_i, f_1_0_i, f_2_0_i, f_2_1_i), ci_time = PhISCS_I(noisy, beta=0.98, alpha=0.00000001)
-solution, (f_0_1_b, f_1_0_b, f_2_0_b, f_2_1_b), cb_time = PhISCS_B(noisy, beta=0.98, alpha=0.00000001,
-                                                                            csp_solver_path=csp_solver_path)
-
+solution, (f_0_1_b, f_1_0_b, f_2_0_b, f_2_1_b), cb_time = PhISCS_B(noisy)
 # top10_bad_entries_in_violations(noisy)
 #––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
 
@@ -69,14 +67,14 @@ class Phylogeny_BnB(pybnb.Problem):
         self.bounding_alg = bounding_alg
         self.F = []
         self.nzero = len(np.where(self.I == 0)[0])
-        self.lb, self.G, self.best_pair = self.bounding_alg(self.I, None, None)
+        self.lb, self.G, self.best_pair, self.icf = self.bounding_alg(self.I, None, None)
         self.nflip = 0
     
     def sense(self):
         return pybnb.minimize
 
     def objective(self):
-        if self.lb == 0:
+        if self.icf:
             return self.nflip
         else:
             return self.nzero - self.nflip
@@ -85,10 +83,10 @@ class Phylogeny_BnB(pybnb.Problem):
         return self.nflip+self.lb
 
     def save_state(self, node):
-        node.state = (self.F, self.G, self.best_pair, self.lb, self.nflip)
+        node.state = (self.F, self.G, self.icf, self.best_pair, self.lb, self.nflip)
 
     def load_state(self, node):
-        self.F, self.G, self.best_pair, self.lb, self.nflip = node.state
+        self.F, self.G, self.icf, self.best_pair, self.lb, self.nflip = node.state
 
     def branch(self):
         p, q = self.best_pair
@@ -103,8 +101,8 @@ class Phylogeny_BnB(pybnb.Problem):
         F = self.F.copy()
         F.append((onezero,q))
         I[onezero,q] = 1
-        new_lb, new_G, new_best_pair = self.bounding_alg(I, q, G)
-        node_l.state = (F, new_G, new_best_pair, new_lb, self.nflip+1)
+        new_lb, new_G, new_best_pair, new_icf = self.bounding_alg(I, q, G)
+        node_l.state = (F, new_G, new_icf, new_best_pair, new_lb, self.nflip+1)
         node_l.queue_priority = -new_lb
         I[onezero,q] = 0
         
@@ -113,16 +111,17 @@ class Phylogeny_BnB(pybnb.Problem):
         F = self.F.copy()
         F.append((zeroone,p))
         I[zeroone,p] = 1
-        new_lb, new_G, new_best_pair = self.bounding_alg(I, p, G)
-        node_r.state = (F, new_G, new_best_pair, new_lb, self.nflip+1)
+        new_lb, new_G, new_best_pair, new_icf = self.bounding_alg(I, p, G)
+        node_r.state = (F, new_G, new_icf, new_best_pair, new_lb, self.nflip+1)
         node_r.queue_priority = -new_lb
 
         self.I = deapply_flips(I, F)
         return [node_l, node_r]
 
 
-problem = Phylogeny_BnB(noisy, lb_max_weight_matching)
-# problem = Phylogeny_BnB(noisy, lb_phiscs_b)
+# problem = Phylogeny_BnB(noisy, lb_lp)
+# problem = Phylogeny_BnB(noisy, lb_max_weight_matching)
+problem = Phylogeny_BnB(noisy, lb_phiscs_b)
 # problem = Phylogeny_BnB(noisy, lb_openwbo)
 # problem = Phylogeny_BnB(noisy, lb_gurobi)
 # problem = Phylogeny_BnB(noisy, lb_greedy)
@@ -135,7 +134,7 @@ results = solver.solve(problem,
                         log_interval_seconds=10, 
                         queue_strategy='custom',
                         # objective_stop=20,
-                        # time_limit=0.3
+                        # time_limit=0.4
                       )
 b = time.time()
 # queue = solver.save_dispatcher_queue()
