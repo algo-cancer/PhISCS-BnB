@@ -15,16 +15,21 @@ class DynamicLPBounding(BoundingAlgAbstract):
     raise NotImplementedError("The method not implemented")
 
 
+
 class SemiDynamicLPBounding(BoundingAlgAbstract):
-  def __init__(self, ratio = None):
+  def __init__(self, ratio = None, continuous = True):
     self.ratio = ratio
     self.matrix = None
     self.model = None
     self.yVars = None
+    self.continuous = continuous
+
+  def getName(self):
+    return type(self).__name__+f"_{self.ratio}_{self.continuous}"
 
   def reset(self, matrix):
     self.matrix = matrix
-    self.model, self.yVars = StaticLPBounding.makeGurobiModel(self.matrix)
+    self.model, self.yVars = StaticLPBounding.makeGurobiModel(self.matrix, continuous=self.continuous)
     self.model.optimize()
 
 
@@ -51,16 +56,21 @@ class SemiDynamicLPBounding(BoundingAlgAbstract):
 
 
 class StaticLPBounding(BoundingAlgAbstract):
-  def __init__(self, ratio = None):
+  def __init__(self, ratio = None, continuous = True):
     self.ratio = ratio
     self.matrix = None
+    self.continuous = continuous
+
+
+  def getName(self):
+    return type(self).__name__+f"_{self.ratio}_{self.continuous}"
 
 
   def reset(self, matrix):
     self.matrix = matrix
 
   def getBound(self, delta):
-    bound = StaticLPBounding.LP_brief(self.matrix + delta)
+    bound = StaticLPBounding.LP_brief(self.matrix + delta, self.continuous)
     if self.ratio is not None:
       bound = np.int(np.ceil(self.ratio * bound))
     else:
@@ -69,8 +79,8 @@ class StaticLPBounding(BoundingAlgAbstract):
     return bound + delta.count_nonzero()
 
   @staticmethod
-  def LP_brief(I):
-    model, Y = StaticLPBounding.makeGurobiModel(I)
+  def LP_brief(I, continuous= True):
+    model, Y = StaticLPBounding.makeGurobiModel(I, continuous = continuous)
     return StaticLPBounding.LP_Bounding_From_Model(model)
 
   @staticmethod

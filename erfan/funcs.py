@@ -8,6 +8,15 @@ from collections import defaultdict
 from instances import *
 
 
+csp_solver_path = "../openwbo"
+
+def myPhISCS_B(x):
+  solution, (f_0_1_b, f_1_0_b, f_2_0_b, f_2_1_b), cb_time = PhISCS_B(x, beta=0.98, alpha=0.00000001,
+                                                                            csp_solver_path=csp_solver_path)
+  nf = len(np.where(solution != x)[0])
+  return nf
+
+
 def myPhISCS_I(x):
     solution, (flips_0_1, flips_1_0, flips_2_0, flips_2_1), _ = PhISCS_I(x, beta=0.98, alpha=0.00000001)
     nf = len(np.where(solution != x)[0])
@@ -222,16 +231,17 @@ def get_lower_bound(noisy, partition_randomly=False):
 
 if __name__ == '__main__':
   I1 = np.array( [[0,1,1,0]
-,[1,1,1,1]
+,[1,1,0,1]
 ,[1,1,1,0]
 ,[0,0,1,0]])
-  print(is_conflict_free_gusfield(I1))
-  for i in [1]: #range(100):
-    np.random.seed(i)
-    xt = get_lower_bound(I1, True)
-    xf = get_lower_bound(I1, False)
-    if xt>1:
-      print(xt, xf, i)
-  # for I in [I1, I2, I3, I4, I5]:
-  #   res = is_conflict_free_gusfield(I)
-  #   print(res)
+  print(myPhISCS_I(I1), myPhISCS_B(I1))
+  # print(is_conflict_free_gusfield(I1))
+  # for i in [1]: #range(100):
+  #   np.random.seed(i)
+  #   xt = get_lower_bound(I1, True)
+  #   xf = get_lower_bound(I1, False)
+  #   if xt>1:
+  #     print(xt, xf, i)
+  # # for I in [I1, I2, I3, I4, I5]:
+  # #   res = is_conflict_free_gusfield(I)
+  # #   print(res)

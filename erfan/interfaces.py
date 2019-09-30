@@ -27,6 +27,15 @@ class BoundingAlgAbstract:
     pass
 
 
+  def extraInfo(self):
+    """
+    Some bounding algorithms can provide extra information after calling bounding.
+    E.g.,
+    return {"icf":True, "bestPair":(a,b)}
+    """
+    return set()
+
+
 class NaiveBounding(BoundingAlgAbstract):
   def __init__(self):
     pass
