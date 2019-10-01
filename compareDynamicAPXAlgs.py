@@ -7,6 +7,7 @@ from interfaces import *
 
 from Boundings.LP import *
 from Boundings.MWM import *
+from Boundings.PhISCS_B import *
 
 def rename(newname):
   def decorator(f):
@@ -40,17 +41,19 @@ if __name__ == '__main__':
   print(f"{scriptName} starts here")
   methods = [
     NaiveBounding(),
-    StaticLPBounding(ratio = None, continuous  = False),
-    SemiDynamicLPBounding(ratio = None, continuous  = False),
-    SemiDynamicLPBounding(ratio = None, continuous  = True),
+    StaticLPBounding(ratio = None, continuous = False),
+    SemiDynamicLPBounding(ratio = None, continuous = False),
+    SemiDynamicLPBounding(ratio = None, continuous = True),
     DynamicMWMBounding(),
     StaticMWMBounding(),
+    StaticPhISCSBBounding(splitInto = 2),
+    StaticPhISCSBBounding(splitInto = 3),
   ]
   dfInd = pd.DataFrame(columns=["index", "n",	"m", "nf",	"method", "runtime"])
   missingCols = ["meanUpdateTime", "sdUpdateTime", "medianUpdateTime", "mxUpdateTime", "mnUpdateTime"]
   dfTotal = pd.DataFrame(columns=["method", "resetTime", ] + missingCols)
-  n = 25 # n: number of Cells
-  m = 25 # m: number of Mutations
+  n = 12 # n: number of Cells
+  m = 12 # m: number of Mutations
   k = 10  # k: number extra edits to introduce
   x = np.random.randint(2, size=(n, m))
   delta = sp.lil_matrix((n, m))

@@ -6,7 +6,7 @@ from interfaces import *
 from ErfanFuncs import *
 
 class DynamicMWMBounding(BoundingAlgAbstract):
-  def __init__(self, ratio = None, ascendingOrder = True):
+  def __init__(self, ratio = None, ascendingOrder = False):
     """
     :param ratio:
     :param ascendingOrder: if True the column pair with max weight is chosen in extra info
@@ -76,7 +76,7 @@ class DynamicMWMBounding(BoundingAlgAbstract):
 
 
 class StaticMWMBounding(BoundingAlgAbstract):
-  def __init__(self, ratio = None, ascendingOrder = True):
+  def __init__(self, ratio = None, ascendingOrder = False):
     """
     :param ratio:
     :param ascendingOrder: if True the column pair with max weight is chosen in extra info

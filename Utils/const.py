@@ -18,6 +18,8 @@ import networkx as nx
 import copy
 import pandas as pd
 from tqdm import tqdm
+from pysat.examples.rc2 import RC2
+from pysat.formula import WCNF
 
 # For users and platforms
 userName = getpass.getuser()

@@ -1,10 +1,8 @@
 import sys
-sys.path.append('/data/frashidi/Phylogeny_BnB/erfan/')
-import numpy as np
+if __name__ == '__main__':
+  sys.path.append('../Utils')
+from const import *
 from interfaces import *
-import scipy.sparse as sp
-from pysat.examples.rc2 import RC2
-from pysat.formula import WCNF
 
 
 def PhISCS_B(matrix, procnum=0, return_dict={}):
@@ -99,6 +97,9 @@ class StaticPhISCSBBounding(BoundingAlgAbstract):
     self.matrix = matrix
     self.n = self.matrix.shape[0]
     self.m = self.matrix.shape[1]
+
+  def getName(self):
+    return type(self).__name__+"_"+str(self.splitInto)
 
   def getBound(self, delta):
   	# https://stackoverflow.com/questions/16856788/slice-2d-array-into-smaller-2d-arrays
