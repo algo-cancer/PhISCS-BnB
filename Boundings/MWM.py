@@ -3,13 +3,19 @@ if __name__ == '__main__':
   sys.path.append('../Utils')
 from const import *
 from interfaces import *
+from ErfanFuncs import *
 
 class DynamicMWMBounding(BoundingAlgAbstract):
-  def __init__(self, ascendingOrder = True):
+  def __init__(self, ratio = None, ascendingOrder = True):
+    """
+    :param ratio:
+    :param ascendingOrder: if True the column pair with max weight is chosen in extra info
+    """
     self.matrix = None
     self.G = None
-    self.extraInfo = {}
+    self._extraInfo = {}
     self.ascendingOrder = ascendingOrder
+    self.ratio = ratio
 
   def reset(self, matrix):
     self.matrix = matrix
@@ -17,6 +23,10 @@ class DynamicMWMBounding(BoundingAlgAbstract):
     for p in range(self.matrix.shape[1]):
       for q in range(p + 1, self.matrix.shape[1]):
         self.calc_min0110_for_one_pair_of_columns(p, q, self.matrix)
+
+  def getExtraInfo(self):
+    # return None
+    return self._extraInfo
 
   def calc_min0110_for_one_pair_of_columns(self, p, q, currentMatrix):
     foundOneOne = False
@@ -36,6 +46,7 @@ class DynamicMWMBounding(BoundingAlgAbstract):
 
   def getBound(self, delta):
     self.extraInfo = None
+
     currentMatrix = self.matrix + delta
     oldG = copy.deepcopy(self.G)
     flipsMat = np.transpose(delta.nonzero())
@@ -48,32 +59,38 @@ class DynamicMWMBounding(BoundingAlgAbstract):
           self.calc_min0110_for_one_pair_of_columns(q, p, currentMatrix)
 
     best_pairing = nx.max_weight_matching(self.G)
-    lb = 0
 
     sign = 1 if self.ascendingOrder else -1
 
-    optPairValue = delta.shape[0] * delta.shape[1] * sign # either + inf or - inf
-
+    optPairValue = delta.shape[0] * delta.shape[1] * (-sign) # either + inf or - inf
+    optPair = None
+    lb = 0
     for a, b in best_pairing:
       lb += self.G[a][b]["weight"]
       if self.G[a][b]["weight"] * sign > optPairValue * sign:
-        optPairValue = self.G[a][b]["weight"]
+        optPairValue = self.G[a][b]["weight"] * (-sign)
         optPair = (a, b)
-
     self.G = oldG
-    self.extraInfo = {"icf": (lb == 0), "one_pair_of_column": optPair}
+    self._extraInfo = {"icf": (lb == 0), "one_pair_of_columns": optPair if lb > 0 else None}
     return lb + flipsMat.shape[0]
 
 
 class StaticMWMBounding(BoundingAlgAbstract):
-  def __init__(self, ratio = None, ascendingOrder = True)):
+  def __init__(self, ratio = None, ascendingOrder = True):
+    """
+    :param ratio:
+    :param ascendingOrder: if True the column pair with max weight is chosen in extra info
+    """
     self.ratio = ratio
     self.matrix = None
     self.ascendingOrder = ascendingOrder
+    self._extraInfo = {}
 
   def reset(self, matrix):
     self.matrix = matrix
 
+  def getExtraInfo(self):
+    return self._extraInfo
 
   def getBound(self, delta):
     self.extraInfo = None
@@ -84,21 +101,19 @@ class StaticMWMBounding(BoundingAlgAbstract):
       for q in range(p + 1, currentMatrix.shape[1]):
         self.calc_min0110_for_one_pair_of_columns(p, q, currentMatrix)
     best_pairing = nx.max_weight_matching(self.G)
-    lb = 0
-    for a, b in best_pairing:
-      lb += self.G[a][b]["weight"]
 
     sign = 1 if self.ascendingOrder else -1
 
-    optPairValue = delta.shape[0] * delta.shape[1] * sign # either + inf or - inf
-
+    optPairValue = delta.shape[0] * delta.shape[1] * (-sign) # either + inf or - inf
+    optPair = None
+    lb = 0
     for a, b in best_pairing:
       lb += self.G[a][b]["weight"]
       if self.G[a][b]["weight"] * sign > optPairValue * sign:
         optPairValue = self.G[a][b]["weight"]
         optPair = (a, b)
 
-    self.extraInfo = {"icf": (lb == 0), "one_pair_of_column": optPair}
+    self._extraInfo = {"icf": (lb == 0), "one_pair_of_columns": optPair if lb > 0 else None}
 
     if self.ratio is None:
       returnValue = lb + nFlips
@@ -146,8 +161,8 @@ if __name__ == '__main__':
   #         [0, 0, 0, 0, 0, 0]], dtype=np.int8)
 
 
-  ss = StaticMWMBounding()
-  ss.reset(x)
+  staticMWMBounding = StaticMWMBounding()
+  staticMWMBounding.reset(x)
 
   algo = DynamicMWMBounding()
   resetTime = time.time()
@@ -155,15 +170,17 @@ if __name__ == '__main__':
   resetTime = time.time() - resetTime
   print(resetTime)
 
-  print(delta.count_nonzero())
+  # print(delta.count_nonzero())
   # print(x+delta)
-  print(algo.getBound(delta), ss.getBound(delta))
+  print(algo.getBound(delta), staticMWMBounding.getBound(delta))
+  print(myPhISCS_B(np.array(x + delta)))
 
-
-  for t in range(10):
+  for t in range(100):
     ind = np.nonzero(1 - (x+delta))
+    if ind[0].shape[0] == 0:
+      print("DONE!")
+      break
     a, b = ind[0][0], ind[1][0]
-    print(a,b)
     delta[a, b] = 1
 
     # algo.reset(x)
@@ -171,6 +188,6 @@ if __name__ == '__main__':
     bndAdapt = algo.getBound(delta)
     calcTime = time.time() - calcTime
     print(calcTime)
-
-    ssBnd = ss.getBound(delta)
-    print( bndAdapt == ssBnd, bndAdapt, ssBnd)
+    print(algo.getExtraInfo())
+    staticMWMBoundingBnd = staticMWMBounding.getBound(delta)
+    print( bndAdapt == staticMWMBoundingBnd, bndAdapt, staticMWMBoundingBnd)

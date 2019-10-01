@@ -27,7 +27,7 @@ class BoundingAlgAbstract:
     pass
 
 
-  def extraInfo(self):
+  def getExtraInfo(self):
     """
     Some bounding algorithms can provide extra information after calling bounding.
     E.g.,

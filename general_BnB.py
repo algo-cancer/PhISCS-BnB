@@ -1,20 +1,9 @@
-import numpy as np
-from instances import I1
-from funcs import *
-import pybnb
-from utils import *
-import operator
-from collections import defaultdict
-import time
-import pandas as pd
-from tqdm import tqdm
-import itertools
-from lp_bounding import makeGurobiModel, flip, unFlipLast, LP_Bounding_Model, LP_brief
+from Utils.const import *
+
 from interfaces import *
+from ErfanFuncs import *
 from Boundings.LP import *
 from Boundings.MWM import *
-import copy
-import scipy.sparse as sp
 
 class ErfanBnB(pybnb.Problem):
   """
@@ -96,14 +85,16 @@ class ErfanBnB(pybnb.Problem):
 
 
       nodeicf, nodecolPair = None, None
-      extraInfo = self.boundingAlg.extraInfo()
+      extraInfo = self.boundingAlg.getExtraInfo()
+      # print(extraInfo)
       if extraInfo is not None:
         if "icf" in extraInfo:
           nodeicf = extraInfo["icf"]
-        if "pair_of_columns" in extraInfo:
-          nodecolPair = extraInfo["pair_of_columns"]
-
+        if "one_pair_of_columns" in extraInfo:
+          nodecolPair = extraInfo["one_pair_of_columns"]
+      # print(nodeicf, nodecolPair)
       if nodeicf is None or nodecolPair is None:
+        # print("run gusfield")
         nodeicf, nodecolPair = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(self.I + nodedelta )
 
 
@@ -120,42 +111,31 @@ def ErfanBnBSolver(x):
 
 if __name__ == '__main__':
   timeLimit = 120
-  gurobi_env = Env()
-  n, m = 9, 9
+
+  # n, m = 8, 8
   # n, m = 5, 5
-  x = np.random.randint(2, size=(n, m))
-  # x = np.array([[0, 1, 1, 0],
-  #            [1, 0, 1, 1],
-  #            [0, 1, 0, 1],
-  #            [1, 1, 1, 1]])
+  # x = np.random.randint(2, size=(n, m))
+  x = np.array([[0, 1, 1, 1, 0, 0, 1, 0],
+       [0, 1, 0, 0, 0, 0, 0, 1],
+       [1, 1, 1, 0, 1, 0, 1, 1],
+       [1, 0, 1, 1, 0, 0, 1, 1],
+       [0, 1, 0, 1, 1, 0, 0, 0],
+       [1, 0, 1, 0, 0, 0, 0, 1],
+       [0, 0, 1, 0, 0, 0, 0, 1],
+       [0, 1, 0, 1, 1, 1, 0, 0]])
 
-# counterexample for (SemiDynamicLPBounding(), 'fifo'),
-  # x = np.array([[1, 0, 0, 0, 0, 0],
-  #      [1, 1, 0, 0, 0, 1],
-  #      [0, 1, 0, 0, 1, 0],
-  #      [0, 1, 0, 1, 1, 0],
-  #      [0, 0, 0, 0, 0, 0],
-  #      [1, 1, 1, 1, 1, 0],
-  #      [1, 0, 1, 1, 1, 0],
-  #      [1, 0, 1, 1, 0, 1]])
-
-  # x = np.array([[0, 1, 1, 1, 1, 1],
-  #                [1, 0, 1, 1, 0, 1],
-  #                [1, 0, 1, 1, 0, 1],
-  #                [0, 0, 0, 0, 1, 1],
-  #                [0, 0, 0, 0, 1, 1],
-  #                [1, 0, 1, 1, 0, 0],
-  #                [0, 0, 0, 0, 1, 0],
-  #                [1, 1, 1, 0, 0, 1]])
-  # x = np.array([[1, 0, 1, 0, 0],
-  #      [1, 1, 1, 1, 0],
-  #      [1, 1, 0, 1, 0],
-  #      [0, 1, 0, 1, 1],
-  #      [0, 0, 1, 1, 1]], dtype=np.int8)
-
-  # print(repr(x))
+  print(repr(x))
+  optimTime_I = time.time()
   optim = myPhISCS_I(x)
-  print("Optimal answer:", optim)
+  optimTime_I = time.time() - optimTime_I
+  print("Optimal answer (I):", optim)
+  print("Optimal time   (I):", optimTime_I)
+  optimTime_B = time.time()
+  optim = myPhISCS_B(x)
+  optimTime_B = time.time() - optimTime_B
+  print("Optimal answer (B):", optim)
+  print("Optimal time   (B):", optimTime_B)
+
   if optim>25:
     exit(0)
 
@@ -163,17 +143,19 @@ if __name__ == '__main__':
     # EmptyBoundingAlg(),
     # (NaiveBounding(), 'fifo'), # The time measures of First one is not trusted for cache issues
     # (NaiveBounding(), 'depth'),
-    # (NaiveBounding(), 'custom'),
+    (NaiveBounding(), 'custom'),
     # (SemiDynamicLPBounding(), 'fifo'),
     # (SemiDynamicLPBounding(), 'depth'),
-    (StaticILPBounding(), 'custom'),
-    (StaticILPBounding(), 'custom'),
-    (SemiDynamicLPBounding(), 'custom'),
-    (SemiDynamicLPBounding(), 'custom'),
-    (SemiDynamicLPBounding(), 'custom'),
+    # (StaticILPBounding(), 'custom'),
+    # (StaticILPBounding(), 'custom'),
+    # (SemiDynamicLPBounding(), 'custom'),
+    # (SemiDynamicLPBounding(), 'custom'),
+    # (SemiDynamicLPBounding(), 'custom'),
+    (SemiDynamicLPBounding(ratio=None, continuous = True), 'custom'),
+    (SemiDynamicLPBounding(ratio=None, continuous = False), 'custom'),
     # (StaticLPBounding(), 'fifo'),
     # (StaticLPBounding(), 'custom'),
-    # (StaticLPBounding(), 'custom'),
+    (StaticLPBounding(), 'custom'),
     # (StaticLPBounding(), 'custom'),
     # (StaticLPBounding(), 'depth'),
     # (DynamicMWMBounding(), 'custom'),
@@ -181,16 +163,14 @@ if __name__ == '__main__':
     # (DynamicMWMBounding(), 'custom'),
     # (DynamicMWMBounding(), 'fifo'),
     # (DynamicMWMBounding(), 'depth'),
-    # (DynamicMWMBounding(), 'custom'),
+    (DynamicMWMBounding(), 'custom'),
     # (StaticMWMBounding(), 'custom'),
     # (StaticMWMBounding(), 'custom'),
-    # (StaticMWMBounding(), 'custom'),
+    (StaticMWMBounding(), 'custom'),
     # (StaticMWMBounding(), 'depth')
   ]
 
   for boundFunc, queue_strategy in boundings:
-    # print(boundFunc.getName(), queue_strategy, flush = True)
-  # for boundFunc, queue_strategy in tqdm(boundings):
     time1 = time.time()
     problem1 = ErfanBnB(x, boundFunc, False)
     solver = pybnb.solver.Solver()
@@ -199,14 +179,5 @@ if __name__ == '__main__':
     time1 = time.time() - time1
     delta = results1.best_node.state[0]
     nf1 = delta.count_nonzero()
-    # print(repr(delta.todense()))
     print(nf1, str(time1)[:5], results1.nodes, boundFunc.getName(), queue_strategy , flush=True)
 
-
-  if False:
-    timeLimit = 120
-    problem1 = ErfanBnB(x, SemiDynamicLPBounding(), False)
-    solver = pybnb.solver.Solver()
-    results1 = solver.solve(problem1,  queue_strategy = "custom", log = None, time_limit = timeLimit)
-    delta = results1.best_node.state[0]
-    nf1 = delta.count_nonzero()

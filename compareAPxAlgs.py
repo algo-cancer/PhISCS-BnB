@@ -2,7 +2,6 @@ from Utils.const import *
 
 from ErfanFuncs import *
 from util import *
-import operator
 # from collections import defaultdict
 # import time
 # import pandas as pd
@@ -47,8 +46,8 @@ if __name__ == '__main__':
   scriptName = os.path.basename(__file__).split(".")[0]
   print(f"{scriptName} starts here")
   methods = [
-    myPhISCS_I,
-    myPhISCS_B,
+    # myPhISCS_I,
+    # myPhISCS_B,
     fromInterfaceToMethod(StaticLPBounding(ratio = 0.5, continuous  = True)),
     fromInterfaceToMethod(StaticLPBounding(ratio = None, continuous  = False)),
     fromInterfaceToMethod(StaticLPBounding()),
@@ -73,9 +72,9 @@ if __name__ == '__main__':
   df = pd.DataFrame(columns=["hash", "n",	"m", "nf",	"method", "runtime"])
   # n: number of Cells
   # m: number of Mutations
-  iterList = itertools.product([14,], # n
-                               [14,], # m
-                               list(range(2)) # i
+  iterList = itertools.product([14, 10], # n
+                               [14, 10], # m
+                               list(range(1)) # i
                                )
   iterList = list(iterList)
   for n, m, ind in tqdm(iterList):
@@ -98,7 +97,7 @@ if __name__ == '__main__':
   print(df)
   csvFileName = f"report_{scriptName}_{df.shape}_{time.time()}.csv"
   csvPath = os.path.join(output_folder_path, csvFileName)
-  # df.to_csv(csvPath)
-  # print(f"CSV file stored at {csvPath}")
+  df.to_csv(csvPath)
+  print(f"CSV file stored at {csvPath}")
 
 

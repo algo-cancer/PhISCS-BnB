@@ -1,6 +1,7 @@
 import sys
 if __name__ == '__main__':
   sys.path.append('../Utils')
+
 from const import *
 from ErfanFuncs import myPhISCS_I
 from interfaces import *
@@ -12,7 +13,7 @@ class DynamicLPBounding(BoundingAlgAbstract):
 
 
 class SemiDynamicLPBounding(BoundingAlgAbstract):
-  def __init__(self, ratio = None, continuous = True):
+  def __init__(self, ratio = None, continuous = True, nThreads = 1):
     self.ratio = ratio
     self.matrix = None
     self.model = None
