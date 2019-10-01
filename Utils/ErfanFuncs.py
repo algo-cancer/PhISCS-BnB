@@ -5,16 +5,15 @@ from instances import *
 
 
 def myPhISCS_B(x):
-  solution, (f_0_1_b, f_1_0_b, f_2_0_b, f_2_1_b), cb_time = PhISCS_B_external(x, beta=0.98, alpha=0.00000001,
-                                                                            csp_solver_path=csp_solver_path)
+  solution, (f_0_1_b, f_1_0_b, f_2_0_b, f_2_1_b), cb_time = PhISCS_B(x, beta=0.98, alpha=0.00000001)
   nf = len(np.where(solution != x)[0])
   return nf
 
 
 def myPhISCS_I(x):
-    solution, (flips_0_1, flips_1_0, flips_2_0, flips_2_1), _ = PhISCS_I(x, beta=0.98, alpha=0.00000001)
-    nf = len(np.where(solution != x)[0])
-    return nf
+  solution, (flips_0_1, flips_1_0, flips_2_0, flips_2_1), ci_time = PhISCS_I(x, beta=0.98, alpha=0.00000001)
+  nf = len(np.where(solution != x)[0])
+  return nf
 
 
 def is_conflict_free_gusfield_and_get_two_columns_in_coflicts(I):
