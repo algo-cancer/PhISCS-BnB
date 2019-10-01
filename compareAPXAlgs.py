@@ -95,7 +95,8 @@ if __name__ == '__main__':
       # print(row)
       df = df.append(row, ignore_index=True)
   print(df)
-  csvFileName = f"report_{scriptName}_{df.shape}_{time.time()}.csv"
+  nowTime = time.strftime("%m-%d-%H-%M-%S", time.gmtime())
+  csvFileName = f"report_{scriptName}_{df.shape}_{nowTime}.csv"
   csvPath = os.path.join(output_folder_path, csvFileName)
   df.to_csv(csvPath)
   print(f"CSV file stored at {csvPath}")

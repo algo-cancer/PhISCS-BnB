@@ -94,7 +94,7 @@ if __name__ == '__main__':
     dfTotal.loc[dfTotal["method"] == methodName, missingCols] =\
       np.mean(times), np.std(times, ddof = 1), np.median(times), np.min(times), np.max(times)
 
-  nowTime = time.time()
+  nowTime = time.strftime("%m-%d-%H-%M-%S", time.gmtime())
 
   csvFileName = f"reportTotal_{scriptName}_{dfTotal.shape}_{nowTime}.csv"
   csvPath = os.path.join(output_folder_path, csvFileName)
