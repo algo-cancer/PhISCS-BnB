@@ -245,7 +245,7 @@ def PhISCS_B_external(matrix, beta, alpha, csp_solver_path):
             numVarX += 1
             X[i,j] = numVarY + numVarX
 
-    B = np.empty((n,m,2,2), dtype=np.int64)
+    B = np.empty((m,m,2,2), dtype=np.int64)
     numVarB = 0
     for p in range(m):
         for q in range(m):
@@ -399,7 +399,7 @@ def PhISCS_B(matrix, beta, alpha):
             numVarX += 1
             X[i,j] = numVarY + numVarX
 
-    B = np.empty((n,m,2,2), dtype=np.int64)
+    B = np.empty((m,m,2,2), dtype=np.int64)
     numVarB = 0
     for p in range(m):
         for q in range(m):
