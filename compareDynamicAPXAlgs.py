@@ -7,7 +7,7 @@ from interfaces import *
 
 from Boundings.LP import *
 from Boundings.MWM import *
-from Boundings.PhISCS_B import *
+from Boundings.CSP import *
 
 def rename(newname):
   def decorator(f):
@@ -48,8 +48,8 @@ if __name__ == '__main__':
     SemiDynamicLPBounding(ratio = None, continuous = True),
     DynamicMWMBounding(),
     StaticMWMBounding(),
-    StaticPhISCSBBounding(splitInto = 2),
-    StaticPhISCSBBounding(splitInto = 3),
+    StaticCSPBounding(splitInto = 2),
+    StaticCSPBounding(splitInto = 3),
   ]
   dfInd = pd.DataFrame(columns=["index", "n",	"m", "nf",	"method", "runtime"])
   missingCols = ["meanUpdateTime", "sdUpdateTime", "medianUpdateTime", "mxUpdateTime", "mnUpdateTime"]

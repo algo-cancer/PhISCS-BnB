@@ -5,7 +5,7 @@ from const import *
 from interfaces import *
 
 
-def PhISCS_B(matrix, procnum=0, return_dict={}):
+def PhISCS_B_helper(matrix, procnum=0, return_dict={}):
   rc2 = RC2(WCNF())
   n,m = matrix.shape
   par_fnWeight = 1
@@ -27,7 +27,7 @@ def PhISCS_B(matrix, procnum=0, return_dict={}):
           numVarX += 1
           X[i,j] = numVarY + numVarX
 
-  B = np.empty((n,m,2,2), dtype=np.int64)
+  B = np.empty((m,m,2,2), dtype=np.int64)
   numVarB = 0
   for p in range(m):
       for q in range(m):
@@ -86,7 +86,7 @@ def PhISCS_B(matrix, procnum=0, return_dict={}):
   return flips_0_1
 
 
-class StaticPhISCSBBounding(BoundingAlgAbstract):
+class StaticCSPBounding(BoundingAlgAbstract):
   def __init__(self, splitInto=2):
     self.matrix = None
     self.n = None
@@ -107,7 +107,7 @@ class StaticPhISCSBBounding(BoundingAlgAbstract):
     I = np.array(self.matrix+delta)
     blocks = np.array_split(I, self.splitInto, axis=1)
     for block in blocks:
-      bound += PhISCS_B(block)
+      bound += PhISCS_B_helper(block)
     return bound + delta.count_nonzero()
 
 
@@ -128,7 +128,7 @@ if __name__ == '__main__':
   delta = sp.lil_matrix((noisy.shape))
   delta[0,0] = 1
   
-  algo = StaticPhISCSBBounding()
+  algo = StaticCSPBounding()
   algo.reset(noisy)
   xp = np.asarray(noisy + delta)
   print(algo.getBound(delta))

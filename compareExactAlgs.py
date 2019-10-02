@@ -5,7 +5,7 @@ from ErfanFuncs import *
 from Boundings.LP import *
 from Boundings.MWM import *
 from general_BnB import *
-# from Boundings.PhISCS_B import *
+from Boundings.CSP import *
 
 timeLimit = 50
 queue_strategy = "custom"
@@ -73,8 +73,8 @@ if __name__ == '__main__':
     # ("BnB", StaticMWMBounding(ascendingOrder=True)),
     # ("BnB", StaticMWMBounding(ascendingOrder=False)),
     # ("BnB", NaiveBounding()),
-    # StaticPhISCSBBounding(splitInto = 2),
-    # StaticPhISCSBBounding(splitInto = 3),
+    # StaticCSPBounding(splitInto = 2),
+    # StaticCSPBounding(splitInto = 3),
 
   ]
   df = pd.DataFrame(columns=["hash", "n", "m", "nf", "method", "runtime",])
