@@ -34,7 +34,7 @@ class RandomPartitioning(BoundingAlgAbstract):
         self.dist[j, i] = self.dist[i, j]
 
   def getBound(self, delta):
-    self.extraInfo = None
+    self._extraInfo = None
 
     currentMatrix = self.matrix + delta
     flipsMat = np.transpose(delta.nonzero())
@@ -55,10 +55,10 @@ class RandomPartitioning(BoundingAlgAbstract):
       else:
         costOfX = self.costOfColPair(x[0], x[1], currentMatrix)
       lb+= costOfX
-      if costOfX * sign > optPairValue * sign:
-        optPairValue = costOfX * (-sign)
+      if costOfX * sign > optPairValue * sign and costOfX > 0:
+        optPairValue = costOfX
         optPair = x
-    if lb > 0:
+    if lb > 0 and True:
       self._extraInfo = {"icf": False, "one_pair_of_columns": (optPair[0], optPair[1])}
     return lb + flipsMat.shape[0]
 
@@ -122,7 +122,7 @@ class DynamicMWMBounding(BoundingAlgAbstract):
       self.G.add_edge(p, q, weight=min(numberOfZeroOne, numberOfOneZero))
 
   def getBound(self, delta):
-    self.extraInfo = None
+    self_extraInfo = None
 
     currentMatrix = self.matrix + delta
     oldG = copy.deepcopy(self.G)
@@ -144,8 +144,8 @@ class DynamicMWMBounding(BoundingAlgAbstract):
     lb = 0
     for a, b in best_pairing:
       lb += self.G[a][b]["weight"]
-      if self.G[a][b]["weight"] * sign > optPairValue * sign:
-        optPairValue = self.G[a][b]["weight"] * (-sign)
+      if self.G[a][b]["weight"] * sign > optPairValue * sign and self.G[a][b]["weight"] > 0:
+        optPairValue = self.G[a][b]["weight"]
         optPair = (a, b)
     self.G = oldG
     self._extraInfo = {"icf": (lb == 0), "one_pair_of_columns": optPair if lb > 0 else None}
@@ -163,7 +163,6 @@ class StaticMWMBounding(BoundingAlgAbstract):
     self.ascendingOrder = ascendingOrder
     self._extraInfo = {}
 
-
   def getName(self):
     return type(self).__name__+f"_{self.ratio}_{self.ascendingOrder}"
 
@@ -174,7 +173,7 @@ class StaticMWMBounding(BoundingAlgAbstract):
     return self._extraInfo
 
   def getBound(self, delta):
-    self.extraInfo = None
+    self._extraInfo = None
     nFlips = delta.count_nonzero()
     currentMatrix = self.matrix + delta
     self.G = nx.Graph()
@@ -190,7 +189,7 @@ class StaticMWMBounding(BoundingAlgAbstract):
     lb = 0
     for a, b in best_pairing:
       lb += self.G[a][b]["weight"]
-      if self.G[a][b]["weight"] * sign > optPairValue * sign:
+      if self.G[a][b]["weight"] * sign > optPairValue * sign and self.G[a][b]["weight"] > 0:
         optPairValue = self.G[a][b]["weight"]
         optPair = (a, b)
 

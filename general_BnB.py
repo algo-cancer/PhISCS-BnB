@@ -5,7 +5,8 @@ from ErfanFuncs import *
 from Boundings.LP import *
 from Boundings.MWM import *
 
-class ErfanBnB(pybnb.Problem):
+
+class BnB(pybnb.Problem):
   """
   Bounding algorithm:
   - uses gusfield
@@ -20,7 +21,6 @@ class ErfanBnB(pybnb.Problem):
     self.boundingAlg = boundingAlg
     self.boundingAlg.reset(I)
     self.checkBounding = checkBounding
-
 
   def getNFlips(self):
     return self.delta.count_nonzero()
@@ -93,6 +93,7 @@ class ErfanBnB(pybnb.Problem):
         if "one_pair_of_columns" in extraInfo:
           nodecolPair = extraInfo["one_pair_of_columns"]
       # print(nodeicf, nodecolPair)
+      # print(is_conflict_free_gusfield_and_get_two_columns_in_coflicts(self.I + nodedelta ))
       if nodeicf is None or nodecolPair is None:
         # print("run gusfield")
         nodeicf, nodecolPair = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(self.I + nodedelta )
@@ -103,11 +104,11 @@ class ErfanBnB(pybnb.Problem):
       node.queue_priority = - newBound
       yield node
 
-def ErfanBnBSolver(x):
-  problem = ErfanBnB(x, EmptyBoundingAlg())
-  results = pybnb.solve(problem) #, log=None)
-  ans = results.best_node.state[0]
-  return ans
+# def ErfanBnBSolver(x):
+#   problem = BnB(x, EmptyBoundingAlg())
+#   results = pybnb.solve(problem) #, log=None)
+#   ans = results.best_node.state[0]
+#   return ans
 
 if __name__ == '__main__':
   timeLimit = 120
@@ -115,14 +116,19 @@ if __name__ == '__main__':
   # n, m = 8, 8
   # n, m = 5, 5
   # x = np.random.randint(2, size=(n, m))
-  x = np.array([[0, 1, 1, 1, 0, 0, 1, 0],
-       [0, 1, 0, 0, 0, 0, 0, 1],
-       [1, 1, 1, 0, 1, 0, 1, 1],
-       [1, 0, 1, 1, 0, 0, 1, 1],
-       [0, 1, 0, 1, 1, 0, 0, 0],
-       [1, 0, 1, 0, 0, 0, 0, 1],
-       [0, 0, 1, 0, 0, 0, 0, 1],
-       [0, 1, 0, 1, 1, 1, 0, 0]])
+  # x = np.array([[0, 1, 1, 1, 0, 0, 1, 0],
+  #      [0, 1, 0, 0, 0, 0, 0, 1],
+  #      [1, 1, 1, 0, 1, 0, 1, 1],
+  #      [1, 0, 1, 1, 0, 0, 1, 1],
+  #      [0, 1, 0, 1, 1, 0, 0, 0],
+  #      [1, 0, 1, 0, 0, 0, 0, 1],
+  #      [0, 0, 1, 0, 0, 0, 0, 1],
+  #      [0, 1, 0, 1, 1, 1, 0, 0]])
+  x = np.array([[0, 1, 1, 1, 1],
+       [0, 1, 1, 0, 1],
+       [0, 1, 1, 0, 0],
+       [0, 0, 0, 1, 0],
+       [0, 1, 1, 0, 0]])
 
   print(repr(x))
   optimTime_I = time.time()
@@ -143,7 +149,8 @@ if __name__ == '__main__':
     # EmptyBoundingAlg(),
     # (NaiveBounding(), 'fifo'), # The time measures of First one is not trusted for cache issues
     # (NaiveBounding(), 'depth'),
-    (NaiveBounding(), 'custom'),
+    # (NaiveBounding(), 'custom'),
+    (RandomPartitioning(ascendingOrder=True), 'custom'),
     # (SemiDynamicLPBounding(), 'fifo'),
     # (SemiDynamicLPBounding(), 'depth'),
     # (StaticILPBounding(), 'custom'),
@@ -151,11 +158,11 @@ if __name__ == '__main__':
     # (SemiDynamicLPBounding(), 'custom'),
     # (SemiDynamicLPBounding(), 'custom'),
     # (SemiDynamicLPBounding(), 'custom'),
-    (SemiDynamicLPBounding(ratio=None, continuous = True), 'custom'),
-    (SemiDynamicLPBounding(ratio=None, continuous = False), 'custom'),
+    # (SemiDynamicLPBounding(ratio=None, continuous = True), 'custom'),
+    # (SemiDynamicLPBounding(ratio=None, continuous = False), 'custom'),
     # (StaticLPBounding(), 'fifo'),
     # (StaticLPBounding(), 'custom'),
-    (StaticLPBounding(), 'custom'),
+    # (StaticLPBounding(), 'custom'),
     # (StaticLPBounding(), 'custom'),
     # (StaticLPBounding(), 'depth'),
     # (DynamicMWMBounding(), 'custom'),
@@ -163,16 +170,16 @@ if __name__ == '__main__':
     # (DynamicMWMBounding(), 'custom'),
     # (DynamicMWMBounding(), 'fifo'),
     # (DynamicMWMBounding(), 'depth'),
-    (DynamicMWMBounding(), 'custom'),
+    # (DynamicMWMBounding(), 'custom'),
     # (StaticMWMBounding(), 'custom'),
     # (StaticMWMBounding(), 'custom'),
-    (StaticMWMBounding(), 'custom'),
+    # (StaticMWMBounding(), 'custom'),
     # (StaticMWMBounding(), 'depth')
   ]
 
   for boundFunc, queue_strategy in boundings:
     time1 = time.time()
-    problem1 = ErfanBnB(x, boundFunc, False)
+    problem1 = BnB(x, boundFunc, False)
     solver = pybnb.solver.Solver()
     results1 = solver.solve(problem1,  queue_strategy = queue_strategy, log = None, time_limit = timeLimit)
     # results1 = solver.solve(problem1,  queue_strategy = queue_strategy,)
