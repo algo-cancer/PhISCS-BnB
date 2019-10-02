@@ -5,6 +5,80 @@ from const import *
 from interfaces import *
 from ErfanFuncs import *
 
+
+class RandomPartitioning(BoundingAlgAbstract):
+  def __init__(self, ratio=None, ascendingOrder=False):
+    """
+    :param ratio:
+    :param ascendingOrder: if True the column pair with max weight is chosen in extra info
+    :param randomPartitioning: if False best partitioning is used, otherwise a random
+    """
+    self.matrix = None
+    self._extraInfo = None
+    self.ascendingOrder = ascendingOrder
+    self.ratio = ratio
+    self.dist = None
+
+  def getName(self):
+    return type(self).__name__+f"_{self.ratio}_{self.ascendingOrder}"
+
+  def getExtraInfo(self):
+    return self._extraInfo
+
+  def reset(self, matrix):
+    self.matrix = matrix
+    self.dist = np.zeros(tuple([matrix.shape[1]] * 2), dtype = np.int)
+    for i in range(self.dist.shape[0]):
+      for j in range(i):
+        self.dist[i, j] = self.costOfColPair(i, j, self.matrix)
+        self.dist[j, i] = self.dist[i, j]
+
+  def getBound(self, delta):
+    self.extraInfo = None
+
+    currentMatrix = self.matrix + delta
+    flipsMat = np.transpose(delta.nonzero())
+    flippedColsSet = set(flipsMat[:, 1])
+
+    d = int(self.matrix.shape[1] / 2)
+    partitions_id = np.random.choice(range(self.matrix.shape[1]), size=(d, 2), replace=False)
+    lb = 0
+    sign = 1 if self.ascendingOrder else -1
+
+    optPairValue = delta.shape[0] * delta.shape[1] * (-sign)  # either + inf or - inf
+    optPair = None
+
+    for x in partitions_id:
+      costOfX = None
+      if x[0] not in flippedColsSet and x[1] not in flippedColsSet:
+        costOfX = self.dist[x[0], x[1]]
+      else:
+        costOfX = self.costOfColPair(x[0], x[1], currentMatrix)
+      lb+= costOfX
+      if costOfX * sign > optPairValue * sign:
+        optPairValue = costOfX * (-sign)
+        optPair = x
+    if lb > 0:
+      self._extraInfo = {"icf": False, "one_pair_of_columns": (optPair[0], optPair[1])}
+    return lb + flipsMat.shape[0]
+
+  def costOfColPair(self, p, q, mat):
+    foundOneOne = False
+    numberOfZeroOne = 0
+    numberOfOneZero = 0
+    for r in range(mat.shape[0]):
+      if mat[r, p] == 1 and mat[r, q] == 1:
+        foundOneOne = True
+      if mat[r, p] == 0 and mat[r, q] == 1:
+        numberOfZeroOne += 1
+      if mat[r, p] == 1 and mat[r, q] == 0:
+        numberOfOneZero += 1
+    if foundOneOne:
+      if numberOfZeroOne * numberOfOneZero > 0:
+        return min(numberOfZeroOne, numberOfOneZero)
+    return 0
+
+
 class DynamicMWMBounding(BoundingAlgAbstract):
   def __init__(self, ratio = None, ascendingOrder = False):
     """
@@ -16,6 +90,9 @@ class DynamicMWMBounding(BoundingAlgAbstract):
     self._extraInfo = {}
     self.ascendingOrder = ascendingOrder
     self.ratio = ratio
+
+  def getName(self):
+    return type(self).__name__+f"_{self.ratio}_{self.ascendingOrder}"
 
   def reset(self, matrix):
     self.matrix = matrix
@@ -86,6 +163,10 @@ class StaticMWMBounding(BoundingAlgAbstract):
     self.ascendingOrder = ascendingOrder
     self._extraInfo = {}
 
+
+  def getName(self):
+    return type(self).__name__+f"_{self.ratio}_{self.ascendingOrder}"
+
   def reset(self, matrix):
     self.matrix = matrix
 
@@ -139,7 +220,7 @@ class StaticMWMBounding(BoundingAlgAbstract):
 
 
 if __name__ == '__main__':
-  n, m = 10, 10
+  n, m = 10, 5
   x = np.random.randint(2, size=(n, m))
   delta = sp.lil_matrix((n, m))
 
@@ -160,34 +241,28 @@ if __name__ == '__main__':
   #         [0, 0, 0, 1, 0, 0],
   #         [0, 0, 0, 0, 0, 0]], dtype=np.int8)
 
+  algs = [
+    StaticMWMBounding(),
+    DynamicMWMBounding(ascendingOrder = False),
+    DynamicMWMBounding(ascendingOrder = True),
+    RandomPartitioning(ascendingOrder = False),
+    RandomPartitioning(ascendingOrder = True),
+  ]
+  print("optimal:", myPhISCS_B(np.array(x + delta)))
+  for algo in algs:
+    resetTime = time.time()
+    algo.reset(x)
+    resetTime = time.time() - resetTime
+    print(algo.getName(), algo.getBound(delta), resetTime)
 
-  staticMWMBounding = StaticMWMBounding()
-  staticMWMBounding.reset(x)
-
-  algo = DynamicMWMBounding()
-  resetTime = time.time()
-  algo.reset(x)
-  resetTime = time.time() - resetTime
-  print(resetTime)
-
-  # print(delta.count_nonzero())
-  # print(x+delta)
-  print(algo.getBound(delta), staticMWMBounding.getBound(delta))
-  print(myPhISCS_B(np.array(x + delta)))
-
-  for t in range(100):
+  # exit(0)
+  for t in range(3):
     ind = np.nonzero(1 - (x+delta))
     if ind[0].shape[0] == 0:
       print("DONE!")
       break
     a, b = ind[0][0], ind[1][0]
     delta[a, b] = 1
-
-    # algo.reset(x)
-    calcTime = time.time()
-    bndAdapt = algo.getBound(delta)
-    calcTime = time.time() - calcTime
-    print(calcTime)
-    print(algo.getExtraInfo())
-    staticMWMBoundingBnd = staticMWMBounding.getBound(delta)
-    print( bndAdapt == staticMWMBoundingBnd, bndAdapt, staticMWMBoundingBnd)
+    print("t =", t)
+    for algo in algs:
+      print(algo.getName(), algo.getBound(delta), algo.getExtraInfo())
