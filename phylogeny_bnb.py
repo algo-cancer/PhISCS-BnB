@@ -1,38 +1,13 @@
+from Utils.const import *
+
 import pybnb
 import numpy as np
-from util import *
+from Utils.util import *
 from phylogeny_lb import *
 import time
 from argparse import ArgumentParser
-parser = ArgumentParser()
-parser.add_argument('-n', '--numberOfCells', dest='n', help='', type=int, default=5)
-parser.add_argument('-m', '--numberOfMutations', dest='m', help='', type=int, default=5)
-parser.add_argument('-fn', '--falseNegativeRate', dest='fn', help='', type=float, default=0.2)
-args = parser.parse_args()
 
 
-noisy = np.random.randint(2, size=(args.n, args.m))
-ground, noisy, (countFN,countFP,countNA) = get_data(n=args.n, m=args.m, seed=10, fn=args.fn, fp=0, na=0)
-
-(countFN,countFP,countNA) = (0,0,0)
-noisy = np.array([
-    [0,1,0,0,0,0,1,1,1,0],
-    [0,1,1,0,1,1,1,0,1,0],
-    [1,0,0,1,0,1,1,1,0,0],
-    [1,0,0,0,0,0,0,1,0,0],
-    [1,1,1,1,1,1,0,1,0,1],
-    [0,1,1,1,1,1,1,1,0,0],
-    [1,0,0,1,0,1,0,0,0,0],
-    [1,1,1,1,0,0,1,0,1,1],
-    [0,0,1,0,1,1,1,1,1,0],
-    [1,1,1,1,0,0,1,0,1,1],
-])
-# print(repr(noisy))
-
-solution, (f_0_1_i, f_1_0_i, f_2_0_i, f_2_1_i), ci_time = PhISCS_I(noisy, beta=0.98, alpha=0.00000001)
-solution, (f_0_1_b, f_1_0_b, f_2_0_b, f_2_1_b), cb_time = PhISCS_B(noisy)
-# top10_bad_entries_in_violations(noisy)
-#––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
 
 def get_a_coflict(D, p, q):
     oneone = None
@@ -49,7 +24,6 @@ def get_a_coflict(D, p, q):
             return (p,q,oneone,zeroone,onezero)
     return None
 
-#––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
 
 def apply_flips(I, F):
     for i,j in F:
@@ -119,36 +93,64 @@ class Phylogeny_BnB(pybnb.Problem):
         return [node_l, node_r]
 
 
-# problem = Phylogeny_BnB(noisy, lb_lp)
-# problem = Phylogeny_BnB(noisy, lb_max_weight_matching)
-problem = Phylogeny_BnB(noisy, lb_phiscs_b)
-# problem = Phylogeny_BnB(noisy, lb_openwbo)
-# problem = Phylogeny_BnB(noisy, lb_gurobi)
-# problem = Phylogeny_BnB(noisy, lb_greedy)
-# problem = Phylogeny_BnB(noisy, lb_random)
+if __name__ == '__main__':
+    parser = ArgumentParser()
+    parser.add_argument('-n', '--numberOfCells', dest='n', help='', type=int, default=5)
+    parser.add_argument('-m', '--numberOfMutations', dest='m', help='', type=int, default=5)
+    parser.add_argument('-fn', '--falseNegativeRate', dest='fn', help='', type=float, default=0.2)
+    args = parser.parse_args()
 
-solver = pybnb.Solver()
-a = time.time()
-results = solver.solve(problem,
-                        # log=None,
-                        log_interval_seconds=10, 
-                        queue_strategy='custom',
-                        # objective_stop=20,
-                        # time_limit=0.4
-                      )
-b = time.time()
-# queue = solver.save_dispatcher_queue()
-# print(len(queue.nodes))
-# print(results.termination_condition)
-print('Number of flips introduced in I: fn={}, fp={}, na={}'.format(countFN, countFP, countNA))
-print('PhISCS_I in seconds: {:.3f}'.format(ci_time))
-print('Number of flips reported by PhISCS_I:', f_0_1_i)
-print('PhISCS_B in seconds: {:.3f}'.format(cb_time))
-print('Number of flips reported by‌ PhISCS_B:', f_0_1_b)
-print('Phylogeny_BnB in seconds: {:.3f}'.format(b-a))
-if results.solution_status != 'unknown':
-    print('Number of flips reported by Phylogeny_BnB:', results.best_node.state[-1])
-    I = apply_flips(noisy, results.best_node.state[0])
-    icf, _ = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(I)
-    print('Is the output matrix reported by Phylogeny_BnB conflict free:', icf)
-    print('Number of nodes processed by Phylogeny_BnB:', results.nodes)
+    noisy = np.random.randint(2, size=(args.n, args.m))
+    # ground, noisy, (countFN,countFP,countNA) = get_data(n=args.n, m=args.m, seed=10, fn=args.fn, fp=0, na=0)
+
+    # (countFN,countFP,countNA) = (0,0,0)
+    # noisy = np.array([
+    #     [0,1,0,0,0,0,1,1,1,0],
+    #     [0,1,1,0,1,1,1,0,1,0],
+    #     [1,0,0,1,0,1,1,1,0,0],
+    #     [1,0,0,0,0,0,0,1,0,0],
+    #     [1,1,1,1,1,1,0,1,0,1],
+    #     [0,1,1,1,1,1,1,1,0,0],
+    #     [1,0,0,1,0,1,0,0,0,0],
+    #     [1,1,1,1,0,0,1,0,1,1],
+    #     [0,0,1,0,1,1,1,1,1,0],
+    #     [1,1,1,1,0,0,1,0,1,1],
+    # ])
+    # print(repr(noisy))
+
+    solution, (f_0_1_i, f_1_0_i, f_2_0_i, f_2_1_i), ci_time = PhISCS_I(noisy, beta=0.98, alpha=0.00000001)
+    solution, (f_0_1_b, f_1_0_b, f_2_0_b, f_2_1_b), cb_time = PhISCS_B(noisy)
+
+    # problem = Phylogeny_BnB(noisy, lb_lp)
+    problem = Phylogeny_BnB(noisy, lb_max_weight_matching)
+    # problem = Phylogeny_BnB(noisy, lb_phiscs_b)
+    # problem = Phylogeny_BnB(noisy, lb_openwbo)
+    # problem = Phylogeny_BnB(noisy, lb_gurobi)
+    # problem = Phylogeny_BnB(noisy, lb_greedy)
+    # problem = Phylogeny_BnB(noisy, lb_random)
+
+    solver = pybnb.Solver()
+    a = time.time()
+    results = solver.solve(problem,
+                            # log=None,
+                            log_interval_seconds=10,
+                            queue_strategy='custom',
+                            # objective_stop=20,
+                            # time_limit=0.4
+                          )
+    b = time.time()
+    # queue = solver.save_dispatcher_queue()
+    # print(len(queue.nodes))
+    # print(results.termination_condition)
+    # print('Number of flips introduced in I: fn={}, fp={}, na={}'.format(countFN, countFP, countNA))
+    print('PhISCS_I in seconds: {:.3f}'.format(ci_time))
+    print('Number of flips reported by PhISCS_I:', f_0_1_i)
+    print('PhISCS_B in seconds: {:.3f}'.format(cb_time))
+    print('Number of flips reported by‌ PhISCS_B:', f_0_1_b)
+    print('Phylogeny_BnB in seconds: {:.3f}'.format(b-a))
+    if results.solution_status != 'unknown':
+        print('Number of flips reported by Phylogeny_BnB:', results.best_node.state[-1])
+        I = apply_flips(noisy, results.best_node.state[0])
+        icf, _ = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(I)
+        print('Is the output matrix reported by Phylogeny_BnB conflict free:', icf)
+        print('Number of nodes processed by Phylogeny_BnB:', results.nodes)

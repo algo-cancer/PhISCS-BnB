@@ -6,8 +6,10 @@ from Boundings.LP import *
 from Boundings.MWM import *
 from general_BnB import *
 from Boundings.CSP import *
+from phylogeny_bnb import Phylogeny_BnB
+from phylogeny_lb import *
 
-timeLimit = 50
+timeLimit = 90
 queue_strategy = "custom"
 
 def solveWith(name, bounding, x):
@@ -30,6 +32,21 @@ def solveWith(name, bounding, x):
     retDict["nNodes"] = str(results1.nodes)
     retDict["internalTime"] = results1.wall_time
     retDict["avgNodeTime"] = retDict["internalTime"] / results1.nodes
+  elif name == "OldBnB":
+    time1 = time.time()
+    problem1 = Phylogeny_BnB(x, bounding)
+    solver = pybnb.solver.Solver()
+    results1 = solver.solve(problem1,  queue_strategy = queue_strategy, log = None, time_limit = timeLimit)
+    retDict["runtime"] = time.time() - time1
+    # print(results1.solution_status, results1.termination_condition, results1.objective, results1.nodes, results1.wall_time)
+    if results1.solution_status != "unknown":
+      ans = results1.best_node.state[0]
+    retDict["nf"] = results1.objective
+    retDict["terminationCond"] = results1.termination_condition
+    retDict["nNodes"] = str(results1.nodes)
+    retDict["internalTime"] = results1.wall_time
+    retDict["avgNodeTime"] = retDict["internalTime"] / results1.nodes
+
   elif callable(name):
     argsNeeded = inspect.getfullargspec(name).args
     for arg in argsNeeded:
@@ -60,35 +77,49 @@ if __name__ == '__main__':
   scriptName = os.path.basename(__file__).split(".")[0]
   print(f"{scriptName} starts here")
   methods = [
-    # (PhISCS_B_external, None),
+    (PhISCS_B_external, None),
     (PhISCS_I, None),
-    # (PhISCS_B, None),
+    (PhISCS_B, None),
     # ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True)),
+    # ("BnB", SemiDynamicLPBounding(ratio=0.8, continuous = True)),
+    # ("BnB", SemiDynamicLPBounding(ratio=0.7, continuous = True)),
+    # ("BnB", SemiDynamicLPBounding(ratio=0.5, continuous = True)),
     # ("BnB", SemiDynamicLPBounding(ratio=None, continuous = False)),
-    # ("BnB", StaticLPBounding(ratio = None, continuous = False)),
+    # ("BnB", StaticLPBounding(ratio = None, continuous = True)),
     # ("BnB", RandomPartitioning(ascendingOrder=True)),
     # ("BnB", RandomPartitioning(ascendingOrder=False)),
+    ("OldBnB", lb_max_weight_matching),
     # ("BnB", DynamicMWMBounding(ascendingOrder=True)),
-    # ("BnB", DynamicMWMBounding(ascendingOrder=False)),
+    ("BnB", DynamicMWMBounding(ascendingOrder=False)),
+    ("OldBnB", lb_max_weight_matching),
+    ("OldBnB", lb_lp),
+    # ("OldBnB", lb_phiscs_b),
+    ("OldBnB", lb_openwbo),
+    ("OldBnB", lb_gurobi),
+    ("OldBnB", lb_greedy),
+    ("OldBnB", lb_random),
+
     # ("BnB", StaticMWMBounding(ascendingOrder=True)),
     # ("BnB", StaticMWMBounding(ascendingOrder=False)),
     # ("BnB", NaiveBounding()),
-    # StaticCSPBounding(splitInto = 2),
-    # StaticCSPBounding(splitInto = 3),
-
+    # ("BnB", StaticCSPBounding(splitInto = 2)),
+    # ("BnB", StaticCSPBounding(splitInto = 3)),
+    # ("BnB", StaticCSPBounding(splitInto = 4)),
+    # ("BnB", StaticCSPBounding(splitInto = 5)),
   ]
   df = pd.DataFrame(columns=["hash", "n", "m", "nf", "method", "runtime",])
   # n: number of Cells
   # m: number of Mutations
-  iterList = itertools.product([ 7, 8, 9, 10 ], # n
-                               [ 7, 8, 9, 10 ], # m
+  iterList = itertools.product([ 5, 6, ], # n
+                               # [ 6, 8, 10, 12, 14, 16, 18 ], # m
                                list(range(3)), # i
                                list(range(len(methods)))
                                )
   iterList = list(iterList)
 
   # for n, m, i in tqdm(iterList):
-  for n, m, i, methodInd in tqdm(iterList):
+  for n, i, methodInd in tqdm(iterList):
+    m = n
     # print(n, m, i, methodInd)
     if methodInd == 0: # make new Input
       x = np.random.randint(2, size=(n, m))
@@ -98,11 +129,21 @@ if __name__ == '__main__':
     # print(bounding.getName())
     ans, info = solveWith(method, bounding, x)
     methodName = method if isinstance(method, str) else method.__name__
+    boundingName = None
+    if bounding is None:
+      boundingName = ""
+    elif hasattr(bounding, "getName"):
+      boundingName = bounding.getName()
+    elif hasattr(bounding, "__name__"):
+      boundingName = bounding.__name__
+    else:
+      boundingName = "NoNameBounding"
+
     row = {
       "n": str(n),
       "m": str(m),
       "hash": xhash,
-      "method": f"{methodName}_{'' if bounding is None else bounding.getName() }",
+      "method": f"{methodName}_{boundingName}",
     }
     row.update(info)
     # print(row)
