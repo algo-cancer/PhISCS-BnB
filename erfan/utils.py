@@ -4,6 +4,7 @@ import numpy as np
 import random, math
 import time
 from gurobipy import *
+from const import *
 
 def is_conflict_free_gusfield_and_get_two_columns_in_coflicts(I):
     def sort_bin(a):
@@ -53,7 +54,7 @@ def is_conflict_free_farid(D):
     return conflict_free
 
 
-def get_data(n, m, seed, fn, fp, na, ms_package_path):
+def get_data(n, m, seed, fn, fp, na, ms_path):
     def make_noisy(data, fn, fp, na):
         n, m = data.shape
         data2 = -1*np.ones(shape=(n, m)).astype(int)
@@ -95,7 +96,7 @@ def get_data(n, m, seed, fn, fp, na, ms_package_path):
         return True if np.random.random() < p else False
 
     def build_ground_by_ms(n, m, seed):
-        command = '{ms} {n} 1 -s {m} -seeds 7369 217 {r} | tail -n {n}'.format(ms=ms_package_path, n=n, m=m, r=seed)
+        command = '{ms} {n} 1 -s {m} -seeds 7369 217 {r} | tail -n {n}'.format(ms=ms_path, n=n, m=m, r=seed)
         result = os.popen(command).read()
         data = np.empty((n,m), dtype=int)
         i = 0
@@ -113,7 +114,26 @@ def get_data(n, m, seed, fn, fp, na, ms_package_path):
         if not is_conflict_free_farid(noisy):
             return ground, noisy, (countFN,countFP,countNA)
     else:
-        return get_data(n, m, seed+1, fn, fp, na, ms_package_path)
+        return get_data(n, m, seed+1, fn, fp, na, ms_path)
+
+def count_flips(I, sol_K, sol_Y):
+    flips_0_1 = 0
+    flips_1_0 = 0
+    flips_2_0 = 0
+    flips_2_1 = 0
+    n, m = I.shape
+    for i in range(n):
+        for j in range(m):
+            if sol_K[j] == 0:
+                if I[i][j] == 0 and sol_Y[i][j] == 1:
+                    flips_0_1 += 1
+                elif I[i][j] == 1 and sol_Y[i][j] == 0:
+                    flips_1_0 += 1
+                elif I[i][j] == 2 and sol_Y[i][j] == 0:
+                    flips_2_0 += 1
+                elif I[i][j] == 2 and sol_Y[i][j] == 1:
+                    flips_2_1 += 1
+    return (flips_0_1, flips_1_0, flips_2_0, flips_2_1)
 
 
 def PhISCS_I(I, beta, alpha):
@@ -128,25 +148,6 @@ def PhISCS_I(I, beta, alpha):
 
     def nearestInt(x):
         return int(x+0.5)
-
-    def count_flips(I, sol_K, sol_Y):
-        flips_0_1 = 0
-        flips_1_0 = 0
-        flips_2_0 = 0
-        flips_2_1 = 0
-        n, m = I.shape
-        for i in range(n):
-            for j in range(m):
-                if sol_K[j] == 0:
-                    if I[i][j] == 0 and sol_Y[i][j] == 1:
-                        flips_0_1 += 1
-                    elif I[i][j] == 1 and sol_Y[i][j] == 0:
-                        flips_1_0 += 1
-                    elif I[i][j] == 2 and sol_Y[i][j] == 0:
-                        flips_2_0 += 1
-                    elif I[i][j] == 2 and sol_Y[i][j] == 1:
-                        flips_2_1 += 1
-        return (flips_0_1, flips_1_0, flips_2_0, flips_2_1)
 
     maxMutationsToEliminate = 0
     numCells, numMutations = I.shape
@@ -228,15 +229,11 @@ def PhISCS_I(I, beta, alpha):
 
 
 def PhISCS_B(matrix, beta, alpha, csp_solver_path):
-    par_const = 1000000
-    par_precisionFactor = 1000
     n,m = matrix.shape
     par_fnRate = beta
     par_fpRate = alpha
-    par_fnWeight     = str(np.round_(par_precisionFactor * np.log(par_const * par_fnRate)))[:-2]
-    par_fnWeight_neg = str(np.round_(par_precisionFactor * np.log(par_const * (1 - par_fnRate))))[:-2]
-    par_fpWeight     = str(np.round_(par_precisionFactor * np.log(par_const * par_fpRate)))[:-2]
-    par_fpWeight_neg = str(np.round_(par_precisionFactor * np.log(par_const * (1 - par_fpRate))))[:-2]
+    par_fnWeight = 1
+    par_fpWeight = 10
 
     Y = np.empty((n,m), dtype=np.int64)
     numVarY = 0
@@ -272,23 +269,19 @@ def PhISCS_B(matrix, beta, alpha, csp_solver_path):
         for j in range(m):
             if matrix[i,j] == 0:
                 numZero += 1
-                cnf = '{} {}'.format(par_fnWeight, X[i,j])
+                cnf = '{} {}'.format(par_fnWeight, -X[i,j])
                 clauseSoft.append(cnf)
-                cnf = '{} {}'.format(par_fnWeight_neg, -1*X[i,j])
-                clauseSoft.append(cnf)
-                cnf = '{} {}'.format(-1*X[i,j], Y[i,j])
+                cnf = '{} {}'.format(-X[i,j], Y[i,j])
                 clauseHard.append(cnf)
-                cnf = '{} {}'.format(X[i,j], -1*Y[i,j])
+                cnf = '{} {}'.format(X[i,j], -Y[i,j])
                 clauseHard.append(cnf)
             elif matrix[i,j] == 1:
                 numOne += 1
-                cnf = '{} {}'.format(par_fpWeight, X[i,j])
-                clauseSoft.append(cnf)
-                cnf = '{} {}'.format(par_fpWeight_neg, -1*X[i,j])
+                cnf = '{} {}'.format(par_fpWeight, -X[i,j])
                 clauseSoft.append(cnf)
                 cnf = '{} {}'.format(X[i,j], Y[i,j])
                 clauseHard.append(cnf)
-                cnf = '{} {}'.format(-1*X[i,j], -1*Y[i,j])
+                cnf = '{} {}'.format(-X[i,j], -Y[i,j])
                 clauseHard.append(cnf)
             elif matrix[i,j] == 2:
                 numTwo += 1
@@ -313,15 +306,7 @@ def PhISCS_B(matrix, beta, alpha, csp_solver_path):
                 cnf = '{} {} {}'.format(-B[p,q,0,1], -B[p,q,1,0], -B[p,q,1,1])
                 clauseHard.append(cnf)
 
-    par_fnWeight     = np.round_(par_precisionFactor * np.log(par_const * par_fnRate), decimals=1)
-    par_fnWeight_neg = np.round_(par_precisionFactor * np.log(par_const * (1 - par_fnRate)), decimals=1)
-    par_fpWeight     = np.round_(par_precisionFactor * np.log(par_const * par_fpRate), decimals=1)
-    par_fpWeight_neg = np.round_(par_precisionFactor * np.log(par_const * (1 - par_fpRate)), decimals=1)
-    hardWeight = numZero * np.ceil(par_fnWeight) + \
-                 numZero * np.ceil(par_fnWeight_neg) + \
-                 numOne  * np.ceil(par_fpWeight) + \
-                 numOne  * np.ceil(par_fpWeight_neg)
-    hardWeight = str(hardWeight)[:-2]
+    hardWeight = numZero * par_fnWeight + numOne * par_fpWeight + 1
 
     outfile = 'cnf.tmp'
     with open(outfile, 'w') as out:
@@ -330,13 +315,14 @@ def PhISCS_B(matrix, beta, alpha, csp_solver_path):
             out.write('{} 0\n'.format(cnf))
         for cnf in clauseHard:
             out.write('{} {} 0\n'.format(hardWeight, cnf))
-
     
+    a = time.time()
     command = '{} {}'.format(csp_solver_path, outfile)
     proc = subprocess.Popen(command.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output, error = proc.communicate()
+    b = time.time()
 
-    variables = output.decode().split('\n')[-2][2:-1].split(' ')
+    variables = output.decode().split('\n')[-2][2:].split(' ')
     O = np.empty((n,m), dtype=np.int8)
     numVar = 0
     for i in range(n):
@@ -357,26 +343,41 @@ def PhISCS_B(matrix, beta, alpha, csp_solver_path):
                 else:
                     O[i,j] = 1
             numVar += 1
+    return O, count_flips(matrix, matrix.shape[1]*[0], O), b-a
 
-    variables = output.decode().split('\n')[-2][2:-1].split(' ')
-    O = np.empty((n,m), dtype=np.int8)
-    numVar = 0
-    for i in range(n):
-        for j in range(m):
-            if matrix[i,j] == 0:
-                if '-' in variables[numVar]:
-                    O[i,j] = 0
-                else:
-                    O[i,j] = 1
-            elif matrix[i,j] == 1:
-                if '-' in variables[numVar]:
-                    O[i,j] = 0
-                else:
-                    O[i,j] = 1
-            elif matrix[i,j] == 2:
-                if '-' in variables[numVar]:
-                    O[i,j] = 0
-                else:
-                    O[i,j] = 1
-            numVar += 1
-    return O
+
+def top10_bad_entries_in_violations(D):
+    def calc_how_many_violations_are_in(D, i, j):
+        total = 0
+        for p in range(D.shape[1]):
+            if p == j:
+                continue
+            oneone = 0
+            zeroone = 0
+            onezero = 0
+            founded = False
+            for r in range(D.shape[0]):
+                if D[r,p] == 1 and D[r,j] == 1:
+                    oneone += 1
+                    if r == i:
+                        founded = True
+                if D[r,p] == 0 and D[r,j] == 1:
+                    zeroone += 1
+                    if r == i:
+                        founded = True
+                if D[r,p] == 1 and D[r,j] == 0:
+                    onezero += 1
+                    if r == i:
+                        founded = True
+            if founded:
+                total += oneone*zeroone*onezero
+        return total
+
+    violations = {}
+    for r in range(D.shape[0]):
+        for p in range(D.shape[1]):
+            if D[r,p] == 0:
+                violations[(r,p)] = calc_how_many_violations_are_in(D, r, p)
+
+    for x in sorted(violations.items(), key=operator.itemgetter(1), reverse=True)[:10]:
+        print(x[0], '(entry={}): how many gametes'.format(D[x[0]]), x[1])
