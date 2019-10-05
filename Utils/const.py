@@ -40,7 +40,7 @@ if True: # TODO: why this runs twice
   elif userName == "frashidi":
     output_folder_path = "./reports"
     sys.path.append('./Utils')
-    csp_solver_path = './openwbo'
+    openwbo_path = './openwbo'
     ms_path = '/home/frashidi/software/bin/ms'
   else:
     print("User const not found!")

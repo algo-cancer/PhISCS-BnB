@@ -4,14 +4,12 @@ if __name__ == '__main__':
   from const import *
 elif "constHasRun" not in globals():
   from Utils.const import *
-
 from ErfanFuncs import myPhISCS_I
 from interfaces import *
 
 class DynamicLPBounding(BoundingAlgAbstract):
   def __init__(self, ratio=None):
     raise NotImplementedError("The method not implemented")
-
 
 
 class SemiDynamicLPBounding(BoundingAlgAbstract):
