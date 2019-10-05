@@ -1,3 +1,6 @@
+assert __name__ == '__main__'
+
+
 from Utils.const import *
 
 from interfaces import *
@@ -8,8 +11,7 @@ from general_BnB import *
 from Boundings.CSP import *
 from phylogeny_bnb import Phylogeny_BnB
 from phylogeny_lb import *
-
-timeLimit = 90
+timeLimit = 20
 queue_strategy = "custom"
 
 def solveWith(name, bounding, x):
@@ -88,16 +90,19 @@ if __name__ == '__main__':
     # ("BnB", StaticLPBounding(ratio = None, continuous = True)),
     # ("BnB", RandomPartitioning(ascendingOrder=True)),
     # ("BnB", RandomPartitioning(ascendingOrder=False)),
-    ("OldBnB", lb_max_weight_matching),
+    # ("OldBnB", lb_max_weight_matching),
     # ("BnB", DynamicMWMBounding(ascendingOrder=True)),
-    ("BnB", DynamicMWMBounding(ascendingOrder=False)),
-    ("OldBnB", lb_max_weight_matching),
-    ("OldBnB", lb_lp),
+    # ("BnB", DynamicMWMBounding(ascendingOrder=False)),
+    # ("OldBnB", lb_max_weight_matching),
+    # ("OldBnB", lb_lp),
+    # ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True)),
     # ("OldBnB", lb_phiscs_b),
-    ("OldBnB", lb_openwbo),
-    ("OldBnB", lb_gurobi),
-    ("OldBnB", lb_greedy),
-    ("OldBnB", lb_random),
+    # ("OldBnB", lb_openwbo),
+    # ("OldBnB", lb_gurobi),
+    # ("OldBnB", lb_greedy),
+    # ("OldBnB", lb_random),
+    # ("BnB", RandomPartitioning(ascendingOrder=True)),
+    # ("BnB", RandomPartitioning(ascendingOrder=False)),
 
     # ("BnB", StaticMWMBounding(ascendingOrder=True)),
     # ("BnB", StaticMWMBounding(ascendingOrder=False)),
@@ -110,9 +115,9 @@ if __name__ == '__main__':
   df = pd.DataFrame(columns=["hash", "n", "m", "nf", "method", "runtime",])
   # n: number of Cells
   # m: number of Mutations
-  iterList = itertools.product([ 5, 6, ], # n
+  iterList = itertools.product([ 15 ], # n
                                # [ 6, 8, 10, 12, 14, 16, 18 ], # m
-                               list(range(3)), # i
+                               list(range(100)), # i
                                list(range(len(methods)))
                                )
   iterList = list(iterList)

@@ -1,8 +1,10 @@
 import sys
 if __name__ == '__main__':
   sys.path.append('../Utils')
+  from const import *
+elif "constHasRun" not in globals():
+  from Utils.const import *
 
-from const import *
 from ErfanFuncs import myPhISCS_I
 from interfaces import *
 
@@ -96,6 +98,7 @@ class StaticLPBounding(BoundingAlgAbstract):
 
     model = Model(f'LP_{time.time()}')
     model.Params.OutputFlag = 0
+    model.Params.Threads = 1
     Y = {}
     for c in range(numCells):
       for m in range(numMutations):

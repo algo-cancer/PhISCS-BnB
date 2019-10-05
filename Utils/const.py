@@ -29,7 +29,7 @@ if True: # TODO: why this runs twice
   # End of all users
 
   print(f"Running on {userName}@{platformName}")
-  gurobi_env = Env()
+  # gurobi_env = Env()
 
   if userName == "esadeqia":
     sys.path.append('/home/esadeqia/PhISCS_BnB/Utils')

@@ -1,7 +1,10 @@
 import sys
 if __name__ == '__main__':
   sys.path.append('../Utils')
-from const import *
+  from const import *
+elif "constHasRun" not in globals():
+  from Utils.const import *
+
 from interfaces import *
 from ErfanFuncs import *
 
