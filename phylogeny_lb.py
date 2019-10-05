@@ -1,6 +1,7 @@
 import multiprocessing
 from Utils.const import *
 from Utils.util import *
+from ortools.linear_solver import pywraplp
 
 
 def lb_phiscs_b(D, a, b):
@@ -131,7 +132,53 @@ def lb_gurobi(D, a, b):
     return flips_0_1, {}, best_pair_qp, icf
 
 
-def lb_lp(I, a, b):
+def lb_lp_ortools(I, a, b):
+    a = time.time()
+    model = pywraplp.Solver('LP_ORTOOLS', pywraplp.Solver.GLOP_LINEAR_PROGRAMMING)
+    numCells = I.shape[0]
+    numMutations = I.shape[1]
+    Y = {}
+    numOne = 0
+    for c in range(numCells):
+        for m in range(numMutations):
+            if I[c, m] == 0:
+                Y[c, m] = model.NumVar(0, 1, 'Y({0},{1})'.format(c, m))
+            elif I[c, m] == 1:
+                numOne += 1
+                Y[c, m] = 1
+    B = {}
+    for p in range(numMutations):
+        for q in range(numMutations):
+            B[p, q, 1, 1] = model.NumVar(0, 1, 'B[{0},{1},1,1]'.format(p, q))
+            B[p, q, 1, 0] = model.NumVar(0, 1, 'B[{0},{1},1,0]'.format(p, q))
+            B[p, q, 0, 1] = model.NumVar(0, 1, 'B[{0},{1},0,1]'.format(p, q))
+    for i in range(numCells):
+        for p in range(numMutations):
+            for q in range(numMutations):
+                model.Add(Y[i,p] + Y[i,q] - B[p,q,1,1] <= 1)
+                model.Add(-Y[i,p] + Y[i,q] - B[p,q,0,1] <= 0)
+                model.Add(Y[i,p] - Y[i,q] - B[p,q,1,0] <= 0)
+    for p in range(numMutations):
+        for q in range(numMutations):
+            model.Add(B[p,q,0,1] + B[p,q,1,0] + B[p,q,1,1] <= 2)
+
+    objective = sum([Y[c, m] for c in range(numCells) for m in range(numMutations)])
+    model.Minimize(objective)
+    b = time.time()
+    result_status = model.Solve()
+    c = time.time()
+    optimal_solution = model.Objective().Value()
+    lb = np.int(np.ceil(optimal_solution)) - numOne
+
+    icf, best_pair_qp = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(I)
+    d = time.time()
+    t1 = b-a
+    t2 = c-b
+    t3 = d-c
+    return lb, {}, best_pair_qp, icf, t1, t2, t3
+
+
+def lb_lp_gurobi(I, a, b):
     class HiddenPrints:
         def __enter__(self):
             self._original_stdout = sys.stdout
@@ -143,28 +190,25 @@ def lb_lp(I, a, b):
     
     with HiddenPrints():
         a = time.time()
-        model = Model('PhISCS_LP')
+        model = Model('LP_GUROBI')
         model.Params.LogFile = ''
         model.Params.Threads = 1
-        # model.setParam('TimeLimit', 10*60)
+        # model.setParam('TimeLimit', 0.005)
         numCells = I.shape[0]
         numMutations = I.shape[1]
         Y = {}
         for c in range(numCells):
             for m in range(numMutations):
                 if I[c, m] == 0:
-                    Y[c, m] = model.addVar(vtype=GRB.CONTINUOUS, obj=1, name='Y({0},{1})'.format(c, m))
+                    Y[c, m] = model.addVar(0, 1, vtype=GRB.CONTINUOUS, obj=1, name='Y({0},{1})'.format(c, m))
                 elif I[c, m] == 1:
                     Y[c, m] = 1
         B = {}
         for p in range(numMutations):
             for q in range(numMutations):
-                B[p, q, 1, 1] = model.addVar(vtype=GRB.CONTINUOUS, obj=0,
-                                                name='B[{0},{1},1,1]'.format(p, q))
-                B[p, q, 1, 0] = model.addVar(vtype=GRB.CONTINUOUS, obj=0,
-                                                name='B[{0},{1},1,0]'.format(p, q))
-                B[p, q, 0, 1] = model.addVar(vtype=GRB.CONTINUOUS, obj=0,
-                                                name='B[{0},{1},0,1]'.format(p, q))
+                B[p, q, 1, 1] = model.addVar(0, 1, vtype=GRB.CONTINUOUS, obj=0, name='B[{0},{1},1,1]'.format(p, q))
+                B[p, q, 1, 0] = model.addVar(0, 1, vtype=GRB.CONTINUOUS, obj=0, name='B[{0},{1},1,0]'.format(p, q))
+                B[p, q, 0, 1] = model.addVar(0, 1, vtype=GRB.CONTINUOUS, obj=0, name='B[{0},{1},0,1]'.format(p, q))
         for i in range(numCells):
             for p in range(numMutations):
                 for q in range(numMutations):

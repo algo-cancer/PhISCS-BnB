@@ -122,8 +122,9 @@ if __name__ == '__main__':
     solution, (f_0_1_i, f_1_0_i, f_2_0_i, f_2_1_i), ci_time = PhISCS_I(noisy, beta=0.98, alpha=0.00000001)
     solution, (f_0_1_b, f_1_0_b, f_2_0_b, f_2_1_b), cb_time = PhISCS_B(noisy)
 
-    # problem = Phylogeny_BnB(noisy, lb_lp)
-    problem = Phylogeny_BnB(noisy, lb_max_weight_matching)
+    # problem = Phylogeny_BnB(noisy, lb_lp_ortools)
+    problem = Phylogeny_BnB(noisy, lb_lp_gurobi)
+    # problem = Phylogeny_BnB(noisy, lb_max_weight_matching)
     # problem = Phylogeny_BnB(noisy, lb_phiscs_b)
     # problem = Phylogeny_BnB(noisy, lb_openwbo)
     # problem = Phylogeny_BnB(noisy, lb_gurobi)
