@@ -20,6 +20,10 @@ from tqdm import tqdm
 from pysat.examples.rc2 import RC2
 from pysat.formula import WCNF
 import inspect
+import matplotlib as mpl
+mpl.use('Agg')
+import matplotlib.pyplot as plt
+import pickle
 
 if True: # TODO: why this runs twice
   constHasRun = True

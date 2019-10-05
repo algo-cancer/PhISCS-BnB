@@ -1,0 +1,3 @@
+python BaysianAnalysis.py -f "report_compareExactAlgs_(1200, 10)_10-03-23-23-59.csv"
+
+python csvCoupler.py -f "report_compareExactAlgs_(1200, 10)_10-03-23-23-59.csv"
