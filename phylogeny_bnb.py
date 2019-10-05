@@ -31,13 +31,14 @@ def deapply_flips(I, F):
     return I
 
 class Phylogeny_BnB(pybnb.Problem):
-    def __init__(self, I, bounding_alg):
+    def __init__(self, I, bounding_alg, bounding_type):
         self.I = I
         self.bounding_alg = bounding_alg
         self.F = []
         self.nzero = len(np.where(self.I == 0)[0])
         self.lb, self.G, self.best_pair, self.icf, self.ttime1, self.ttime2, self.ttime3 = self.bounding_alg(self.I, None, None)
         self.nflip = 0
+        self.bounding_type = bounding_type
     
     def sense(self):
         return pybnb.minimize
@@ -60,9 +61,6 @@ class Phylogeny_BnB(pybnb.Problem):
     def branch(self):
         p, q = self.best_pair
         I = apply_flips(self.I, self.F)
-        # icf, _ = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(I)
-        # if icf:
-        #     return
         p,q,oneone,zeroone,onezero = get_a_coflict(I, p, q)
         
         node_l = pybnb.Node()
@@ -70,7 +68,10 @@ class Phylogeny_BnB(pybnb.Problem):
         F = self.F.copy()
         F.append((onezero,q))
         I[onezero,q] = 1
-        new_lb, new_G, new_best_pair, new_icf, ttime1, ttime2, ttime3 = self.bounding_alg(I, q, G)
+        if self.bounding_type == 'lb_lp_gurobi':
+            new_lb, new_G, new_best_pair, new_icf, ttime1, ttime2, ttime3 = self.bounding_alg(I, F, G)
+        else:
+            new_lb, new_G, new_best_pair, new_icf, ttime1, ttime2, ttime3 = self.bounding_alg(I, q, G)
         self.ttime1 += ttime1
         self.ttime2 += ttime2
         self.ttime3 += ttime3
@@ -83,7 +84,10 @@ class Phylogeny_BnB(pybnb.Problem):
         F = self.F.copy()
         F.append((zeroone,p))
         I[zeroone,p] = 1
-        new_lb, new_G, new_best_pair, new_icf, ttime1, ttime2, ttime3 = self.bounding_alg(I, p, G)
+        if self.bounding_type == 'lb_lp_gurobi':
+            new_lb, new_G, new_best_pair, new_icf, ttime1, ttime2, ttime3 = self.bounding_alg(I, F, G)
+        else:
+            new_lb, new_G, new_best_pair, new_icf, ttime1, ttime2, ttime3 = self.bounding_alg(I, p, G)
         self.ttime1 += ttime1
         self.ttime2 += ttime2
         self.ttime3 += ttime3
@@ -122,9 +126,10 @@ if __name__ == '__main__':
     solution, (f_0_1_i, f_1_0_i, f_2_0_i, f_2_1_i), ci_time = PhISCS_I(noisy, beta=0.98, alpha=0.00000001)
     solution, (f_0_1_b, f_1_0_b, f_2_0_b, f_2_1_b), cb_time = PhISCS_B(noisy)
 
+    problem = Phylogeny_BnB(noisy, lb_lp_gurobi, 'lb_lp_gurobi')
+    # problem = Phylogeny_BnB(noisy, lb_max_weight_matching, 'lb_max_weight_matching')
+    ## TODO: don't use the following bounding yet
     # problem = Phylogeny_BnB(noisy, lb_lp_ortools)
-    problem = Phylogeny_BnB(noisy, lb_lp_gurobi)
-    # problem = Phylogeny_BnB(noisy, lb_max_weight_matching)
     # problem = Phylogeny_BnB(noisy, lb_phiscs_b)
     # problem = Phylogeny_BnB(noisy, lb_openwbo)
     # problem = Phylogeny_BnB(noisy, lb_gurobi)
@@ -145,8 +150,8 @@ if __name__ == '__main__':
     # print(len(queue.nodes))
     # print(results.termination_condition)
     # print('Number of flips introduced in I: fn={}, fp={}, na={}'.format(countFN, countFP, countNA))
-    print('TIME Gurobi Preparation in seconds: {:.3f}'.format(results.best_node.state[1]))
-    print('TIME Gurobi Solvation in seconds: {:.3f}'.format(results.best_node.state[2]))
+    print('TIME Model Preparation in seconds: {:.3f}'.format(results.best_node.state[1]))
+    print('TIME Model Solvation in seconds: {:.3f}'.format(results.best_node.state[2]))
     print('TIME Gusfield in seconds: {:.3f}'.format(results.best_node.state[3]))
     print('PhISCS_I in seconds: {:.3f}'.format(ci_time))
     print('Number of flips reported by PhISCS_I:', f_0_1_i)

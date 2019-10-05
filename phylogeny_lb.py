@@ -178,7 +178,7 @@ def lb_lp_ortools(I, a, b):
     return lb, {}, best_pair_qp, icf, t1, t2, t3
 
 
-def lb_lp_gurobi(I, a, b):
+def lb_lp_gurobi(I, flips, previous_model):
     class HiddenPrints:
         def __enter__(self):
             self._original_stdout = sys.stdout
@@ -189,48 +189,60 @@ def lb_lp_gurobi(I, a, b):
             sys.stdout = self._original_stdout
     
     with HiddenPrints():
-        a = time.time()
-        model = Model('LP_GUROBI')
-        model.Params.LogFile = ''
-        model.Params.Threads = 1
-        # model.setParam('TimeLimit', 0.005)
-        numCells = I.shape[0]
-        numMutations = I.shape[1]
-        Y = {}
-        for c in range(numCells):
-            for m in range(numMutations):
-                if I[c, m] == 0:
-                    Y[c, m] = model.addVar(0, 1, vtype=GRB.CONTINUOUS, obj=1, name='Y({0},{1})'.format(c, m))
-                elif I[c, m] == 1:
-                    Y[c, m] = 1
-        B = {}
-        for p in range(numMutations):
-            for q in range(numMutations):
-                B[p, q, 1, 1] = model.addVar(0, 1, vtype=GRB.CONTINUOUS, obj=0, name='B[{0},{1},1,1]'.format(p, q))
-                B[p, q, 1, 0] = model.addVar(0, 1, vtype=GRB.CONTINUOUS, obj=0, name='B[{0},{1},1,0]'.format(p, q))
-                B[p, q, 0, 1] = model.addVar(0, 1, vtype=GRB.CONTINUOUS, obj=0, name='B[{0},{1},0,1]'.format(p, q))
-        for i in range(numCells):
+        ta = time.time()
+        if flips == None:
+            model = Model('LP_GUROBI')
+            model.Params.LogFile = ''
+            model.Params.Threads = 1
+            # model.setParam('TimeLimit', 0.005)
+            numCells = I.shape[0]
+            numMutations = I.shape[1]
+            Y = {}
+            for c in range(numCells):
+                for m in range(numMutations):
+                    if I[c, m] == 0:
+                        Y[c, m] = model.addVar(0, 1, vtype=GRB.CONTINUOUS, obj=1, name='Y({0},{1})'.format(c, m))
+                    elif I[c, m] == 1:
+                        Y[c, m] = 1
+            B = {}
             for p in range(numMutations):
                 for q in range(numMutations):
-                    model.addConstr(Y[i,p] + Y[i,q] - B[p,q,1,1] <= 1)
-                    model.addConstr(-Y[i,p] + Y[i,q] - B[p,q,0,1] <= 0)
-                    model.addConstr(Y[i,p] - Y[i,q] - B[p,q,1,0] <= 0)
-        for p in range(numMutations):
-            for q in range(numMutations):
-                model.addConstr(B[p,q,0,1] + B[p,q,1,0] + B[p,q,1,1] <= 2)
-
-        model.Params.ModelSense = GRB.MINIMIZE
-        b = time.time()
-        model.optimize()
-        lb = np.int(np.ceil(model.objVal))
-        c = time.time()
+                    B[p, q, 1, 1] = model.addVar(0, 1, vtype=GRB.CONTINUOUS, obj=0, name='B[{0},{1},1,1]'.format(p, q))
+                    B[p, q, 1, 0] = model.addVar(0, 1, vtype=GRB.CONTINUOUS, obj=0, name='B[{0},{1},1,0]'.format(p, q))
+                    B[p, q, 0, 1] = model.addVar(0, 1, vtype=GRB.CONTINUOUS, obj=0, name='B[{0},{1},0,1]'.format(p, q))
+            for i in range(numCells):
+                for p in range(numMutations):
+                    for q in range(numMutations):
+                        model.addConstr(Y[i,p] + Y[i,q] - B[p,q,1,1] <= 1)
+                        model.addConstr(-Y[i,p] + Y[i,q] - B[p,q,0,1] <= 0)
+                        model.addConstr(Y[i,p] - Y[i,q] - B[p,q,1,0] <= 0)
+            for p in range(numMutations):
+                for q in range(numMutations):
+                    model.addConstr(B[p,q,0,1] + B[p,q,1,0] + B[p,q,1,1] <= 2)
+            model.Params.ModelSense = GRB.MINIMIZE
+            tb = time.time()
+            model.optimize()
+            lb = np.int(np.ceil(model.objVal))
+            tc = time.time()
+        else:
+            model = previous_model
+            new_constrs = (model.getVarByName('Y({0},{1})'.format(i,j)) == 1 for i,j in [flips[-1]])
+            new_constrs_returned = model.addConstrs(new_constrs)
+            model.update()
+            tb = time.time()
+            model.optimize()
+            lb = np.int(np.ceil(model.objVal)) - len(flips)
+            # for cnstr in new_constrs_returned.values():
+            #     model.remove(cnstr)
+            # model.update()
+            tc = time.time()
         
-        icf, best_pair_qp = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(I)
-        d = time.time()
-        t1 = b-a
-        t2 = c-b
-        t3 = d-c
-        return lb, {}, best_pair_qp, icf, t1, t2, t3
+    icf, best_pair_qp = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(I)
+    td = time.time()
+    t1 = tb-ta
+    t2 = tc-tb
+    t3 = td-tc
+    return lb, model, best_pair_qp, icf, t1, t2, t3
 
 
 def lb_max_weight_matching(D, changed_column, previous_G):
