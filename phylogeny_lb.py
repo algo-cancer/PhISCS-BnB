@@ -1,8 +1,6 @@
-import numpy as np
-from util import *
-import networkx as nx
-from collections import defaultdict
 import multiprocessing
+from Utils.const import *
+from Utils.util import *
 
 
 def lb_phiscs_b(D, a, b):
@@ -144,6 +142,7 @@ def lb_lp(I, a, b):
             sys.stdout = self._original_stdout
     
     with HiddenPrints():
+        a = time.time()
         model = Model('PhISCS_LP')
         model.Params.LogFile = ''
         model.Params.Threads = 1
@@ -177,11 +176,17 @@ def lb_lp(I, a, b):
                 model.addConstr(B[p,q,0,1] + B[p,q,1,0] + B[p,q,1,1] <= 2)
 
         model.Params.ModelSense = GRB.MINIMIZE
+        b = time.time()
         model.optimize()
         lb = np.int(np.ceil(model.objVal))
-
+        c = time.time()
+        
         icf, best_pair_qp = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(I)
-        return lb, {}, best_pair_qp, icf
+        d = time.time()
+        t1 = b-a
+        t2 = c-b
+        t3 = d-c
+        return lb, {}, best_pair_qp, icf, t1, t2, t3
 
 
 def lb_max_weight_matching(D, changed_column, previous_G):
@@ -206,6 +211,7 @@ def lb_max_weight_matching(D, changed_column, previous_G):
         else:
             G.add_edge(p, q, weight=0)
 
+    ta = time.time()
     if changed_column == None:
         for p in range(D.shape[1]):
             for q in range(p + 1, D.shape[1]):
@@ -218,7 +224,9 @@ def lb_max_weight_matching(D, changed_column, previous_G):
             elif q < p:
                 calc_min0110_for_one_pair_of_columns(q, p, G)
 
+    tb = time.time()
     best_pairing = nx.max_weight_matching(G)
+    tc = time.time()
     # print(best_pairing)
     best_pair_qp, best_pair_w = (None, None), np.inf
     # for (u, v, wt) in G.edges.data('weight'):
@@ -237,4 +245,8 @@ def lb_max_weight_matching(D, changed_column, previous_G):
         icf = True
     else:
         icf = False
-    return lb, G, best_pair_qp, icf
+    td = time.time()
+    t1 = tb-ta
+    t2 = tc-tb
+    t3 = td-tc
+    return lb, G, best_pair_qp, icf, t1, t2, t3

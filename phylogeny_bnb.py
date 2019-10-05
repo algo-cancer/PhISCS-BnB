@@ -1,12 +1,7 @@
-from Utils.const import *
-
-import pybnb
-import numpy as np
-from Utils.util import *
-from phylogeny_lb import *
-import time
 from argparse import ArgumentParser
-
+from phylogeny_lb import *
+from Utils.const import *
+from Utils.util import *
 
 
 def get_a_coflict(D, p, q):
@@ -41,7 +36,7 @@ class Phylogeny_BnB(pybnb.Problem):
         self.bounding_alg = bounding_alg
         self.F = []
         self.nzero = len(np.where(self.I == 0)[0])
-        self.lb, self.G, self.best_pair, self.icf = self.bounding_alg(self.I, None, None)
+        self.lb, self.G, self.best_pair, self.icf, self.ttime1, self.ttime2, self.ttime3 = self.bounding_alg(self.I, None, None)
         self.nflip = 0
     
     def sense(self):
@@ -57,10 +52,10 @@ class Phylogeny_BnB(pybnb.Problem):
         return self.nflip+self.lb
 
     def save_state(self, node):
-        node.state = (self.F, self.G, self.icf, self.best_pair, self.lb, self.nflip)
+        node.state = (self.F, self.ttime1, self.ttime2, self.ttime3, self.G, self.icf, self.best_pair, self.lb, self.nflip)
 
     def load_state(self, node):
-        self.F, self.G, self.icf, self.best_pair, self.lb, self.nflip = node.state
+        self.F, self.ttime1, self.ttime2, self.ttime3, self.G, self.icf, self.best_pair, self.lb, self.nflip = node.state
 
     def branch(self):
         p, q = self.best_pair
@@ -75,8 +70,11 @@ class Phylogeny_BnB(pybnb.Problem):
         F = self.F.copy()
         F.append((onezero,q))
         I[onezero,q] = 1
-        new_lb, new_G, new_best_pair, new_icf = self.bounding_alg(I, q, G)
-        node_l.state = (F, new_G, new_icf, new_best_pair, new_lb, self.nflip+1)
+        new_lb, new_G, new_best_pair, new_icf, ttime1, ttime2, ttime3 = self.bounding_alg(I, q, G)
+        self.ttime1 += ttime1
+        self.ttime2 += ttime2
+        self.ttime3 += ttime3
+        node_l.state = (F, self.ttime1, self.ttime2, self.ttime3, new_G, new_icf, new_best_pair, new_lb, self.nflip+1)
         node_l.queue_priority = -new_lb
         I[onezero,q] = 0
         
@@ -85,8 +83,11 @@ class Phylogeny_BnB(pybnb.Problem):
         F = self.F.copy()
         F.append((zeroone,p))
         I[zeroone,p] = 1
-        new_lb, new_G, new_best_pair, new_icf = self.bounding_alg(I, p, G)
-        node_r.state = (F, new_G, new_icf, new_best_pair, new_lb, self.nflip+1)
+        new_lb, new_G, new_best_pair, new_icf, ttime1, ttime2, ttime3 = self.bounding_alg(I, p, G)
+        self.ttime1 += ttime1
+        self.ttime2 += ttime2
+        self.ttime3 += ttime3
+        node_r.state = (F, self.ttime1, self.ttime2, self.ttime3, new_G, new_icf, new_best_pair, new_lb, self.nflip+1)
         node_r.queue_priority = -new_lb
 
         self.I = deapply_flips(I, F)
@@ -104,18 +105,18 @@ if __name__ == '__main__':
     # ground, noisy, (countFN,countFP,countNA) = get_data(n=args.n, m=args.m, seed=10, fn=args.fn, fp=0, na=0)
 
     # (countFN,countFP,countNA) = (0,0,0)
-    # noisy = np.array([
-    #     [0,1,0,0,0,0,1,1,1,0],
-    #     [0,1,1,0,1,1,1,0,1,0],
-    #     [1,0,0,1,0,1,1,1,0,0],
-    #     [1,0,0,0,0,0,0,1,0,0],
-    #     [1,1,1,1,1,1,0,1,0,1],
-    #     [0,1,1,1,1,1,1,1,0,0],
-    #     [1,0,0,1,0,1,0,0,0,0],
-    #     [1,1,1,1,0,0,1,0,1,1],
-    #     [0,0,1,0,1,1,1,1,1,0],
-    #     [1,1,1,1,0,0,1,0,1,1],
-    # ])
+    noisy = np.array([
+        [0,1,0,0,0,0,1,1,1,0],
+        [0,1,1,0,1,1,1,0,1,0],
+        [1,0,0,1,0,1,1,1,0,0],
+        [1,0,0,0,0,0,0,1,0,0],
+        [1,1,1,1,1,1,0,1,0,1],
+        [0,1,1,1,1,1,1,1,0,0],
+        [1,0,0,1,0,1,0,0,0,0],
+        [1,1,1,1,0,0,1,0,1,1],
+        [0,0,1,0,1,1,1,1,1,0],
+        [1,1,1,1,0,0,1,0,1,1],
+    ])
     # print(repr(noisy))
 
     solution, (f_0_1_i, f_1_0_i, f_2_0_i, f_2_1_i), ci_time = PhISCS_I(noisy, beta=0.98, alpha=0.00000001)
@@ -143,6 +144,9 @@ if __name__ == '__main__':
     # print(len(queue.nodes))
     # print(results.termination_condition)
     # print('Number of flips introduced in I: fn={}, fp={}, na={}'.format(countFN, countFP, countNA))
+    print('TIME Gurobi Preparation in seconds: {:.3f}'.format(results.best_node.state[1]))
+    print('TIME Gurobi Solvation in seconds: {:.3f}'.format(results.best_node.state[2]))
+    print('TIME Gusfield in seconds: {:.3f}'.format(results.best_node.state[3]))
     print('PhISCS_I in seconds: {:.3f}'.format(ci_time))
     print('Number of flips reported by PhISCS_I:', f_0_1_i)
     print('PhISCS_B in seconds: {:.3f}'.format(cb_time))

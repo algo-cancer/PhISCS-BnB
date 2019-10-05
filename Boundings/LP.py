@@ -1,7 +1,6 @@
 import sys
 if __name__ == '__main__':
   sys.path.append('../Utils')
-
 from const import *
 from ErfanFuncs import myPhISCS_I
 from interfaces import *

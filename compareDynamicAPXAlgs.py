@@ -40,14 +40,14 @@ if __name__ == '__main__':
   scriptName = os.path.basename(__file__).split(".")[0]
   print(f"{scriptName} starts here")
   methods = [
-    RandomPartitioning(ascendingOrder=False),
-    RandomPartitioning(ascendingOrder=True),
-    NaiveBounding(),
+    # RandomPartitioning(ascendingOrder=False),
+    # RandomPartitioning(ascendingOrder=True),
+    # NaiveBounding(),
     StaticLPBounding(ratio = None, continuous = False),
     SemiDynamicLPBounding(ratio = None, continuous = False),
     SemiDynamicLPBounding(ratio = None, continuous = True),
     DynamicMWMBounding(),
-    StaticMWMBounding(),
+    # StaticMWMBounding(),
     StaticCSPBounding(splitInto = 2),
     StaticCSPBounding(splitInto = 3),
   ]
