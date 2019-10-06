@@ -3,7 +3,6 @@ from phylogeny_lb import *
 from Utils.const import *
 from Utils.util import *
 
-
 def get_a_coflict(D, p, q):
     oneone = None
     zeroone = None
@@ -19,7 +18,6 @@ def get_a_coflict(D, p, q):
             return (p,q,oneone,zeroone,onezero)
     return None
 
-
 def apply_flips(I, F):
     t1 = time.time()
     for i,j in F:
@@ -33,6 +31,7 @@ def deapply_flips(I, F):
         I[i,j] = 0
     t2 = time.time()
     return I, t2-t1
+
 
 class Phylogeny_BnB(pybnb.Problem):
     def __init__(self, I, bounding_alg, bounding_type):
