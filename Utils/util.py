@@ -1,4 +1,8 @@
-from const import *
+if __name__ == '__main__':
+  from const import *
+elif "constHasRun" not in globals():
+  from Utils.const import *
+
 
 def is_conflict_free_gusfield_and_get_two_columns_in_coflicts(I):
   def sort_bin(a):

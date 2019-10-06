@@ -1,6 +1,9 @@
-from const import *
-from util import *
+if __name__ == '__main__':
+  from const import *
+elif "constHasRun" not in globals():
+  from Utils.const import *
 
+from util import *
 from instances import *
 
 
