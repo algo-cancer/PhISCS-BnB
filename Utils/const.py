@@ -24,28 +24,29 @@ import matplotlib as mpl
 mpl.use('Agg')
 import matplotlib.pyplot as plt
 import pickle
+from ortools.linear_solver import pywraplp
 
-if True: # TODO: why this runs twice
-  constHasRun = True
-  # For users and platforms
-  userName = getpass.getuser()
-  platformName = platform.node()
-  # End of all users
 
-  print(f"Running on {userName}@{platformName}")
-  # gurobi_env = Env()
+constHasRun = True
+# For users and platforms
+userName = getpass.getuser()
+platformName = platform.node()
+# End of all users
 
-  if userName == "esadeqia":
-    sys.path.append('/home/esadeqia/PhISCS_BnB/Utils')
-    sys.path.append('/home/esadeqia/PhISCS_BnB')
-    openwbo_path = '/home/esadeqia/external/openwbo'
-    ms_path = '/home/esadeqia/external/ms'
-    output_folder_path = "/home/esadeqia/PhISCS_BnB/reports"
-  elif userName == "frashidi":
-    output_folder_path = "./reports"
-    sys.path.append('./Utils')
-    openwbo_path = './openwbo'
-    ms_path = '/home/frashidi/software/bin/ms'
-  else:
-    print("User const not found!")
-    exit(0)
+print(f"Running on {userName}@{platformName}")
+# gurobi_env = Env()
+
+if userName == "esadeqia":
+  sys.path.append('/home/esadeqia/PhISCS_BnB/Utils')
+  sys.path.append('/home/esadeqia/PhISCS_BnB')
+  openwbo_path = '/home/esadeqia/external/openwbo'
+  ms_path = '/home/esadeqia/external/ms'
+  output_folder_path = "/home/esadeqia/PhISCS_BnB/reports"
+elif userName == "frashidi":
+  output_folder_path = "./reports"
+  sys.path.append('./Utils')
+  openwbo_path = './openwbo'
+  ms_path = '/home/frashidi/software/bin/ms'
+else:
+  print("User const not found!")
+  exit(0)

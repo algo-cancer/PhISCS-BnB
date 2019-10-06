@@ -45,7 +45,10 @@ class SemiDynamicLPBounding(BoundingAlgAbstract):
     self.times["modelPreperationTime"] += modelTime
 
     optTime = time.time()
-    self.model.optimize()
+    if self.tool == "Gurobi":
+      self.model.optimize()
+    elif self.tool == "ORTools":
+      self.model.Solve()
     optTime = time.time() - optTime
     self.times["optimizationTime"] += optTime
 
@@ -57,24 +60,39 @@ class SemiDynamicLPBounding(BoundingAlgAbstract):
     self.model.remove(self.model.getConstrs()[-1])
 
   def getBound(self, delta):
+    # print(self.yVars[0,0].X)
+    # self._extraInfo = None
     flips = np.transpose(delta.nonzero())
 
     modelTime = time.time()
     newConstrs = (self.yVars[flips[i, 0], flips[i, 1]] == 1 for i in range(flips.shape[0]))
-    newConstrsReturned = self.model.addConstrs(newConstrs)
-    self.model.update()
+    if self.tool == "Gurobi":
+      newConstrsReturned = self.model.addConstrs(newConstrs)
+      self.model.update()
+    elif self.tool == "ORTools":
+      for constrant in newConstrs:
+        self.model.Add(constrant)
     modelTime = time.time() - modelTime
     self.times["modelPreperationTime"] += modelTime
 
+    objVal = None
+    # self.model.reset()
     optTime = time.time()
-    self.model.optimize()
+    if self.tool == "Gurobi":
+      self.model.optimize()
+      objVal = self.model.objVal
+    elif self.tool == "ORTools":
+      self.model.Solve()
+      objVal = self.model.Objective().Value()
     optTime = time.time() - optTime
     self.times["optimizationTime"] += optTime
 
+
+
     if self.ratio is not None:
-      bound = np.int(np.ceil(self.ratio * self.model.objVal))
+      bound = np.int(np.ceil(self.ratio * objVal))
     else:
-      bound = np.int(np.ceil(self.model.objVal))
+      bound = np.int(np.ceil(objVal))
 
     modelTime = time.time()
     for cnstr in newConstrsReturned.values():
