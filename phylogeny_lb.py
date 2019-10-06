@@ -132,7 +132,7 @@ def lb_gurobi(D, a, b):
     return flips_0_1, {}, best_pair_qp, icf
 
 
-def lb_lp_ortools(I, a, b):
+def lb_lp_ortools(I, flips, previous_model):
     a = time.time()
     model = pywraplp.Solver('LP_ORTOOLS', pywraplp.Solver.GLOP_LINEAR_PROGRAMMING)
     numCells = I.shape[0]

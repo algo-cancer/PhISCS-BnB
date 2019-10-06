@@ -51,7 +51,8 @@ class Phylogeny_BnB(pybnb.Problem):
         if self.icf:
             return self.nflip
         else:
-            return self.nzero - self.nflip
+            # return self.nzero - self.nflip
+            return pybnb.Problem.infeasible_objective(self)
 
     def bound(self):
         return self.nflip+self.lb
@@ -124,8 +125,8 @@ if __name__ == '__main__':
     st = time.time()
     problem = Phylogeny_BnB(noisy, lb_lp_gurobi, 'lb_lp_gurobi')
     # problem = Phylogeny_BnB(noisy, lb_max_weight_matching, 'lb_max_weight_matching')
+    # problem = Phylogeny_BnB(noisy, lb_lp_ortools, 'lb_lp_ortools')
     ## TODO: don't use the following bounding yet
-    # problem = Phylogeny_BnB(noisy, lb_lp_ortools)
     # problem = Phylogeny_BnB(noisy, lb_phiscs_b)
     # problem = Phylogeny_BnB(noisy, lb_openwbo)
     # problem = Phylogeny_BnB(noisy, lb_gurobi)
@@ -152,6 +153,7 @@ if __name__ == '__main__':
     print('PhISCS_I in seconds: {:.3f}'.format(ci_time))
     print('Phylogeny_BnB in seconds: {:.3f}'.format(et-st))
     print('Number of nodes processed by Phylogeny_BnB:', results.nodes)
+    print('TIME Remaining: {:.3f}'.format(et-st-(problem.time1+problem.time2+problem.time3+problem.time4)))
     print('––––––––––––––––')
     I, _ = apply_flips(noisy, results.best_node.state[0])
     icf, _ = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(I)
