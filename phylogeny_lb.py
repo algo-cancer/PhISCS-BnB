@@ -133,49 +133,58 @@ def lb_gurobi(D, a, b):
 
 
 def lb_lp_ortools(I, flips, previous_model):
-    a = time.time()
-    model = pywraplp.Solver('LP_ORTOOLS', pywraplp.Solver.GLOP_LINEAR_PROGRAMMING)
-    numCells = I.shape[0]
-    numMutations = I.shape[1]
-    Y = {}
-    numOne = 0
-    for c in range(numCells):
-        for m in range(numMutations):
-            if I[c, m] == 0:
-                Y[c, m] = model.NumVar(0, 1, 'Y({0},{1})'.format(c, m))
-            elif I[c, m] == 1:
-                numOne += 1
-                Y[c, m] = 1
-    B = {}
-    for p in range(numMutations):
-        for q in range(numMutations):
-            B[p, q, 1, 1] = model.NumVar(0, 1, 'B[{0},{1},1,1]'.format(p, q))
-            B[p, q, 1, 0] = model.NumVar(0, 1, 'B[{0},{1},1,0]'.format(p, q))
-            B[p, q, 0, 1] = model.NumVar(0, 1, 'B[{0},{1},0,1]'.format(p, q))
-    for i in range(numCells):
+    ta = time.time()
+    if flips == None:
+        model = pywraplp.Solver('LP_ORTOOLS', pywraplp.Solver.GLOP_LINEAR_PROGRAMMING)
+        numCells = I.shape[0]
+        numMutations = I.shape[1]
+        Y = {}
+        for c in range(numCells):
+            for m in range(numMutations):
+                if I[c, m] == 0:
+                    Y[c, m] = model.NumVar(0, 1, 'Y({0},{1})'.format(c, m))
+                elif I[c, m] == 1:
+                    Y[c, m] = 1
+        B = {}
         for p in range(numMutations):
             for q in range(numMutations):
-                model.Add(Y[i,p] + Y[i,q] - B[p,q,1,1] <= 1)
-                model.Add(-Y[i,p] + Y[i,q] - B[p,q,0,1] <= 0)
-                model.Add(Y[i,p] - Y[i,q] - B[p,q,1,0] <= 0)
-    for p in range(numMutations):
-        for q in range(numMutations):
-            model.Add(B[p,q,0,1] + B[p,q,1,0] + B[p,q,1,1] <= 2)
+                B[p, q, 1, 1] = model.NumVar(0, 1, 'B[{0},{1},1,1]'.format(p, q))
+                B[p, q, 1, 0] = model.NumVar(0, 1, 'B[{0},{1},1,0]'.format(p, q))
+                B[p, q, 0, 1] = model.NumVar(0, 1, 'B[{0},{1},0,1]'.format(p, q))
+        for i in range(numCells):
+            for p in range(numMutations):
+                for q in range(numMutations):
+                    model.Add(Y[i,p] + Y[i,q] - B[p,q,1,1] <= 1)
+                    model.Add(-Y[i,p] + Y[i,q] - B[p,q,0,1] <= 0)
+                    model.Add(Y[i,p] - Y[i,q] - B[p,q,1,0] <= 0)
+        for p in range(numMutations):
+            for q in range(numMutations):
+                model.Add(B[p,q,0,1] + B[p,q,1,0] + B[p,q,1,1] <= 2)
 
-    objective = sum([Y[c, m] for c in range(numCells) for m in range(numMutations)])
-    model.Minimize(objective)
-    b = time.time()
-    result_status = model.Solve()
-    c = time.time()
-    optimal_solution = model.Objective().Value()
-    lb = np.int(np.ceil(optimal_solution)) - numOne
+        objective = sum([Y[c, m] for c in range(numCells) for m in range(numMutations)])
+        model.Minimize(objective)
+        tb = time.time()
+        result_status = model.Solve()
+        tc = time.time()
+        lb = np.int(np.ceil(model.Objective().Value())) - len(np.where(I == 1)[0])
+    else:
+        model = previous_model
+        new_constrs = (model.LookupVariable('Y({0},{1})'.format(i,j)) == 1 for i,j in flips)
+        for cnstr in new_constrs:
+            model.Add(cnstr)
+        tb = time.time()
+        model.Solve()
+        lb = np.int(np.ceil(model.Objective().Value())) - len(np.where(I == 1)[0])
+        for cnstr in new_constrs:
+            model.remove(cnstr)
+        tc = time.time()
 
     icf, best_pair_qp = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(I)
-    d = time.time()
-    t1 = b-a
-    t2 = c-b
-    t3 = d-c
-    return lb, {}, best_pair_qp, icf, t1, t2, t3
+    td = time.time()
+    t1 = tb-ta
+    t2 = tc-tb
+    t3 = td-tc
+    return lb, model, best_pair_qp, icf, t1, t2, t3
 
 
 def lb_lp_gurobi(I, flips, previous_model):

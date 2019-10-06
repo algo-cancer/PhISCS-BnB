@@ -38,8 +38,8 @@ class Phylogeny_BnB(pybnb.Problem):
         self.I = I
         self.bounding_alg = bounding_alg
         self.F = []
-        self.nzero = len(np.where(self.I == 0)[0])
         self.lb, self.G, self.best_pair, self.icf, self.time1, self.time2, self.time3 = self.bounding_alg(self.I, None, None)
+        print(self.time2)
         self.nflip = 0
         self.bounding_type = bounding_type
         self.time4 = 0.0
@@ -51,7 +51,6 @@ class Phylogeny_BnB(pybnb.Problem):
         if self.icf:
             return self.nflip
         else:
-            # return self.nzero - self.nflip
             return pybnb.Problem.infeasible_objective(self)
 
     def bound(self):
@@ -75,8 +74,9 @@ class Phylogeny_BnB(pybnb.Problem):
             F = self.F.copy()
             F.append((r,c))
             I[r,c] = 1
-            if self.bounding_type == 'lb_lp_gurobi':
+            if self.bounding_type == 'lb_lp_gurobi' or self.bounding_type == 'lb_lp_ortools':
                 new_lb, new_G, new_best_pair, new_icf, time1, time2, time3 = self.bounding_alg(I, F, self.G)
+                # print(time2)
                 # print(new_G.getVarByName('B[{0},{1},1,1]'.format(0, 1)).X)
             else:
                 G = self.G.copy()
