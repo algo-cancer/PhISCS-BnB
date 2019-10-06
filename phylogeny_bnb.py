@@ -75,7 +75,7 @@ class Phylogeny_BnB(pybnb.Problem):
             F.append((r,c))
             I[r,c] = 1
             if self.bounding_type == 'lb_lp_gurobi':
-                new_lb, new_G, new_best_pair, new_icf, time1, time2, time3 = self.bounding_alg(I, None, self.G)
+                new_lb, new_G, new_best_pair, new_icf, time1, time2, time3 = self.bounding_alg(I, F, self.G)
                 # print(new_G.getVarByName('B[{0},{1},1,1]'.format(0, 1)).X)
             else:
                 G = self.G.copy()
