@@ -11,7 +11,7 @@ from general_BnB import *
 from Boundings.CSP import *
 from phylogeny_bnb import Phylogeny_BnB
 from phylogeny_lb import *
-timeLimit = 20
+timeLimit = 10
 queue_strategy = "custom"
 
 def solveWith(name, bounding, x):
@@ -34,9 +34,11 @@ def solveWith(name, bounding, x):
     retDict["nNodes"] = str(results1.nodes)
     retDict["internalTime"] = results1.wall_time
     retDict["avgNodeTime"] = retDict["internalTime"] / results1.nodes
+    if bounding is not None and hasattr(bounding, "times"):
+      retDict.update(bounding.times)
   elif name == "OldBnB":
     time1 = time.time()
-    problem1 = Phylogeny_BnB(x, bounding)
+    problem1 = Phylogeny_BnB(x, bounding, bounding.__name__)
     solver = pybnb.solver.Solver()
     results1 = solver.solve(problem1,  queue_strategy = queue_strategy, log = None, time_limit = timeLimit)
     retDict["runtime"] = time.time() - time1
@@ -82,7 +84,10 @@ if __name__ == '__main__':
     (PhISCS_B_external, None),
     (PhISCS_I, None),
     (PhISCS_B, None),
-    # ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True)),
+    ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True)),
+    ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True)),
+    ("OldBnB", lb_lp_gurobi),
+    ("OldBnB", lb_lp_ortools),
     # ("BnB", SemiDynamicLPBounding(ratio=0.8, continuous = True)),
     # ("BnB", SemiDynamicLPBounding(ratio=0.7, continuous = True)),
     # ("BnB", SemiDynamicLPBounding(ratio=0.5, continuous = True)),
@@ -94,7 +99,7 @@ if __name__ == '__main__':
     # ("BnB", DynamicMWMBounding(ascendingOrder=True)),
     # ("BnB", DynamicMWMBounding(ascendingOrder=False)),
     # ("OldBnB", lb_max_weight_matching),
-    # ("OldBnB", lb_lp),
+    # ("OldBnB", lb_lp_ortools),
     # ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True)),
     # ("OldBnB", lb_phiscs_b),
     # ("OldBnB", lb_openwbo),
@@ -103,7 +108,7 @@ if __name__ == '__main__':
     # ("OldBnB", lb_random),
     # ("BnB", RandomPartitioning(ascendingOrder=True)),
     # ("BnB", RandomPartitioning(ascendingOrder=False)),
-
+    #
     # ("BnB", StaticMWMBounding(ascendingOrder=True)),
     # ("BnB", StaticMWMBounding(ascendingOrder=False)),
     # ("BnB", NaiveBounding()),
@@ -115,9 +120,9 @@ if __name__ == '__main__':
   df = pd.DataFrame(columns=["hash", "n", "m", "nf", "method", "runtime",])
   # n: number of Cells
   # m: number of Mutations
-  iterList = itertools.product([ 15 ], # n
+  iterList = itertools.product([ 10 ], # n
                                # [ 6, 8, 10, 12, 14, 16, 18 ], # m
-                               list(range(100)), # i
+                               list(range(5)), # i
                                list(range(len(methods)))
                                )
   iterList = list(iterList)
@@ -127,7 +132,19 @@ if __name__ == '__main__':
     m = n
     # print(n, m, i, methodInd)
     if methodInd == 0: # make new Input
-      x = np.random.randint(2, size=(n, m))
+      # x = np.random.randint(2, size=(n, m))
+      x = np.array([
+        [0, 1, 0, 0, 0, 0, 1, 1, 1, 0],
+        [0, 1, 1, 0, 1, 1, 1, 0, 1, 0],
+        [1, 0, 0, 1, 0, 1, 1, 1, 0, 0],
+        [1, 0, 0, 0, 0, 0, 0, 1, 0, 0],
+        [1, 1, 1, 1, 1, 1, 0, 1, 0, 1],
+        [0, 1, 1, 1, 1, 1, 1, 1, 0, 0],
+        [1, 0, 0, 1, 0, 1, 0, 0, 0, 0],
+        [1, 1, 1, 1, 0, 0, 1, 0, 1, 1],
+        [0, 0, 1, 0, 1, 1, 1, 1, 1, 0],
+        [1, 1, 1, 1, 0, 0, 1, 0, 1, 1],
+      ])
       xhash = hash(x.tostring())
       # print(repr(x))
     method, bounding = methods[methodInd]

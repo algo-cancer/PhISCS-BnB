@@ -13,20 +13,41 @@ class DynamicLPBounding(BoundingAlgAbstract):
 
 
 class SemiDynamicLPBounding(BoundingAlgAbstract):
-  def __init__(self, ratio = None, continuous = True, nThreads = 1):
+  def __init__(self, ratio = None, continuous = True, nThreads = 1, tool = "Gurobi"):
+    """
+    :param ratio:
+    :param continuous:
+    :param nThreads:
+    :param tool: in ["Gurobi", "ORTools"]
+    """
     self.ratio = ratio
     self.matrix = None
     self.model = None
     self.yVars = None
     self.continuous = continuous
+    self.nThreads = nThreads
+    self.tool = tool
+    self.times = None
 
   def getName(self):
     return type(self).__name__+f"_{self.ratio}_{self.continuous}"
 
   def reset(self, matrix):
+    self.times = {"modelPreperationTime": 0, "optimizationTime": 0,}
     self.matrix = matrix
-    self.model, self.yVars = StaticLPBounding.makeGurobiModel(self.matrix, continuous=self.continuous)
+
+    modelTime = time.time()
+    if self.tool == "Gurobi":
+      self.model, self.yVars = StaticLPBounding.makeGurobiModel(self.matrix, continuous=self.continuous)
+    elif self.tool == "ORTools":
+      self.model, self.yVars = StaticLPBounding.makeORToolsModel(self.matrix, continuous=self.continuous)
+    modelTime = time.time() - modelTime
+    self.times["modelPreperationTime"] += modelTime
+
+    optTime = time.time()
     self.model.optimize()
+    optTime = time.time() - optTime
+    self.times["optimizationTime"] += optTime
 
 
   def _flip(self, c, m):
@@ -37,17 +58,31 @@ class SemiDynamicLPBounding(BoundingAlgAbstract):
 
   def getBound(self, delta):
     flips = np.transpose(delta.nonzero())
+
+    modelTime = time.time()
     newConstrs = (self.yVars[flips[i, 0], flips[i, 1]] == 1 for i in range(flips.shape[0]))
     newConstrsReturned = self.model.addConstrs(newConstrs)
     self.model.update()
+    modelTime = time.time() - modelTime
+    self.times["modelPreperationTime"] += modelTime
+
+    optTime = time.time()
     self.model.optimize()
+    optTime = time.time() - optTime
+    self.times["optimizationTime"] += optTime
+
     if self.ratio is not None:
       bound = np.int(np.ceil(self.ratio * self.model.objVal))
     else:
       bound = np.int(np.ceil(self.model.objVal))
+
+    modelTime = time.time()
     for cnstr in newConstrsReturned.values():
       self.model.remove(cnstr)
     self.model.update()
+    modelTime = time.time() - modelTime
+    self.times["modelPreperationTime"] += modelTime
+
     return bound
 
 
@@ -84,6 +119,50 @@ class StaticLPBounding(BoundingAlgAbstract):
     model.optimize()
     return np.int(np.ceil(model.objVal))
 
+  @staticmethod
+  def makeORToolsModel(I, continuous = True):
+    model = pywraplp.Solver(f'LP_ORTools_{time.time()}', pywraplp.Solver.GLOP_LINEAR_PROGRAMMING)
+    numCells = I.shape[0]
+    numMutations = I.shape[1]
+    Y = {}
+    numOne = 0
+    for c in range(numCells):
+        for m in range(numMutations):
+            if I[c, m] == 0:
+                Y[c, m] = model.NumVar(0, 1, 'Y({0},{1})'.format(c, m))
+            elif I[c, m] == 1:
+                numOne += 1
+                Y[c, m] = 1
+    B = {}
+    for p in range(numMutations):
+        for q in range(numMutations):
+            B[p, q, 1, 1] = model.NumVar(0, 1, 'B[{0},{1},1,1]'.format(p, q))
+            B[p, q, 1, 0] = model.NumVar(0, 1, 'B[{0},{1},1,0]'.format(p, q))
+            B[p, q, 0, 1] = model.NumVar(0, 1, 'B[{0},{1},0,1]'.format(p, q))
+    for i in range(numCells):
+        for p in range(numMutations):
+            for q in range(numMutations):
+                model.Add(Y[i,p] + Y[i,q] - B[p,q,1,1] <= 1)
+                model.Add(-Y[i,p] + Y[i,q] - B[p,q,0,1] <= 0)
+                model.Add(Y[i,p] - Y[i,q] - B[p,q,1,0] <= 0)
+    for p in range(numMutations):
+        for q in range(numMutations):
+            model.Add(B[p,q,0,1] + B[p,q,1,0] + B[p,q,1,1] <= 2)
+
+    objective = sum([Y[c, m] for c in range(numCells) for m in range(numMutations)])
+    model.Minimize(objective)
+    return model, Y
+    # b = time.time()
+    # result_status = model.Solve()
+    # c = time.time()
+    # optimal_solution = model.Objective().Value()
+    # lb = np.int(np.ceil(optimal_solution)) - numOne
+    #
+    # icf, best_pair_qp = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(I)
+    # d = time.time()
+    # t1 = b-a
+    # t2 = c-b
+    # t3 = d-c
 
   @staticmethod
   def makeGurobiModel(I, continuous = True):
@@ -94,7 +173,7 @@ class StaticLPBounding(BoundingAlgAbstract):
 
     numCells, numMutations = I.shape
 
-    model = Model(f'LP_{time.time()}')
+    model = Model(f'LP_Gurobi_{time.time()}')
     model.Params.OutputFlag = 0
     model.Params.Threads = 1
     Y = {}

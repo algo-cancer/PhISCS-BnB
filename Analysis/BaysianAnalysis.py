@@ -62,9 +62,9 @@ if __name__ == '__main__':
     # n = x["n"].values
     # m = x["m"].values
     # k = x["k"].values
-    n = 5
-    m = 4
-    k = 2
+    n = 1
+    m = 1
+    k = 1
     # mu = a1 * b1k**k * n**e1n * m**e1m + a2 * n**e2n * m**e2m  + a3
     mu = a1  * n**e1n * m**e1m + a2 * n**e2n * m**e2m  + a3
     # * n**e2n * m**e2m
@@ -78,7 +78,7 @@ if __name__ == '__main__':
     # mu = beta0 + pm.math.dot(beta1, x.values.T)
     # define the likelihood
     # mu = beta0 + beta1[0] * x.values[:,0] + beta1[1] * x.values[:,1]
-    yl = pm.Normal('yl', mu=mu, tau=eps,) # observed=[40,] * 60) #  y.values)
+    yl = pm.Normal('yl', mu=mu, tau=eps, observed=[avgY/3,] * 100) #  y.values)
     # Generate a MCMC chain
     trace = pm.sample(5000, chains=4, cores=1)
   # print(trace["mu"])
