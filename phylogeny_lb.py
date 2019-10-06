@@ -231,7 +231,7 @@ def lb_lp_gurobi(I, flips, previous_model):
             model.update()
             tb = time.time()
             model.optimize()
-            lb = np.int(np.ceil(model.objVal)) - len(flips)
+            lb = np.int(np.ceil(model.objVal)) - len(flips) - 1
             for cnstr in new_constrs_returned.values():
                 model.remove(cnstr)
             model.update()
