@@ -226,15 +226,15 @@ def lb_lp_gurobi(I, flips, previous_model):
             tc = time.time()
         else:
             model = previous_model
-            new_constrs = (model.getVarByName('Y({0},{1})'.format(i,j)) == 1 for i,j in [flips[-1]])
+            new_constrs = (model.getVarByName('Y({0},{1})'.format(i,j)) == 1 for i,j in flips)
             new_constrs_returned = model.addConstrs(new_constrs)
             model.update()
             tb = time.time()
             model.optimize()
             lb = np.int(np.ceil(model.objVal)) - len(flips)
-            # for cnstr in new_constrs_returned.values():
-            #     model.remove(cnstr)
-            # model.update()
+            for cnstr in new_constrs_returned.values():
+                model.remove(cnstr)
+            model.update()
             tc = time.time()
         
     icf, best_pair_qp = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(I)

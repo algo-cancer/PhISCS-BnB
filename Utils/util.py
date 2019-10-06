@@ -48,7 +48,7 @@ def is_conflict_free_farid(D):
   return conflict_free
 
 
-def get_data(n, m, seed, fn, fp, na, ms_path):
+def get_data(n, m, seed, fn, fp, na, ms_path=ms_path):
   def make_noisy(data, fn, fp, na):
     n, m = data.shape
     data2 = -1*np.ones(shape=(n, m)).astype(int)
