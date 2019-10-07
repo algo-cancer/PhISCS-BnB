@@ -39,7 +39,7 @@ class Phylogeny_BnB(pybnb.Problem):
         self.bounding_alg = bounding_alg
         self.F = []
         self.lb, self.G, self.best_pair, self.icf, self.time1, self.time2, self.time3 = self.bounding_alg(self.I, None, None)
-        print(self.time2)
+        # print(self.time2)
         self.nflip = 0
         self.bounding_type = bounding_type
         self.time4 = 0.0
@@ -119,7 +119,7 @@ if __name__ == '__main__':
     ])
     # print(repr(noisy))
 
-    solution, (f_0_1_i, f_1_0_i, f_2_0_i, f_2_1_i), ci_time = PhISCS_I(noisy, beta=0.98, alpha=0.00000001)
+    solution, (f_0_1_i, f_1_0_i, f_2_0_i, f_2_1_i), ci_time = PhISCS_I(noisy, beta=0.90, alpha=0.00000001)
     solution, (f_0_1_b, f_1_0_b, f_2_0_b, f_2_1_b), cb_time = PhISCS_B(noisy)
 
     st = time.time()
@@ -149,7 +149,7 @@ if __name__ == '__main__':
     print('TIME Model Preparation in seconds: {:.3f}'.format(problem.time1))
     print('TIME Model Solvation in seconds: {:.3f}'.format(problem.time2))
     print('TIME Gusfield in seconds: {:.3f}'.format(problem.time3))
-    print('TIME Preparing I Each Time in seconds: {:.3f}'.format(problem.time4))
+    print('TIME Preparing I everytime in seconds: {:.3f}'.format(problem.time4))
     print('PhISCS_I in seconds: {:.3f}'.format(ci_time))
     print('Phylogeny_BnB in seconds: {:.3f}'.format(et-st))
     print('Number of nodes processed by Phylogeny_BnB:', results.nodes)
