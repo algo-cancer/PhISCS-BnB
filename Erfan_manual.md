@@ -1,38 +1,50 @@
 ## Installation
-
-1. You need to install pybnb.
-
-2. If you can install gurobi it would be great because in the script we are comparing the running time with gurobi as well. If you don't want to, simply get rid of the following lines:
-
+1. Make sure you have a working version of Gurobi in your system by following the steps explained here: https://www.gurobi.com/documentation/8.1/quickstart_linux/installing_the_anaconda_py.html
+2. Download the project from gitHub with
+```bash
+git clone https://github.com/faridrashidi/Phylogeny_BnB.git
 ```
-from util import *
-solution, (flips_0_1, flips_1_0, flips_2_0, flips_2_1) = PhISCS_I(noisy, beta=0.9, alpha=0.00000001)
+3. Install all python requirments via:
+```bash
+pip install -r requirments.txt
 ```
-
-## Guideline
-
-The script creates a random matrix sized by n and m. Then it runs PhISCS_I (Gurobi) and reports the minimum number of flips solved by Gurobi in addition to the time needed. Finally, the script runs Phylogeny BnB (based on pybnb) and reports how much time is needed in addition to the number of flips.
-
-## Usage
-
-For running you can use the following commands:
-
-```
-python phylogeny_bnb.py -n 5 -m 5 -w c -r
+4. Check everything works by running:
+```bash
+python compare_algorithms.py
 ```
 
--n is the number of cells  
--m is the number of mutations  
--w indicates which heuristic algorithm is being used (a single character in {a,b,c,d})  
--r shows whether a random partitioning should be used or not.
+## Preparing compare_algorithms.py
+There are a few parameters you would want to set to run the experiment.
 
-I would recommend using -w either b or c.
-
-You may use the following commands:
-
+### At the top we have:
 ```
-python phylogeny_bnb.py -n 10 -m 10 -w c -r
-python phylogeny_bnb.py -n 7 -m 5 -w c
-python phylogeny_bnb.py -n 10 -m 7 -w b -r
-python phylogeny_bnb.py -n 15 -m 8 -w b
+timeLimit = 300
+queue_strategy = "custom"
+sourceType = ["RND",
+              "MS",
+              "FIXED"][1]
 ```
+The last one indicates if simulated matrices should be used or totally random matrices. Also you can feed in a specific matrix with the last option.
+
+### Inside main script:
+A list of methods need to be indicated for ''methods''. E.g., 
+```
+ methods = [
+    (PhISCS_I, None),
+    (PhISCS_B, None),
+    ("OldBnB", lb_lp_gurobi),
+    ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True, tool = "Gurobi", prioritySign = -1)),
+]
+```
+
+In the iterList, the lists of different values for n, m, number of repetitions need to be entered:
+```
+  iterList = itertools.product([ 70, 80, 90, 100, 120], # n
+                               [ 80], # m
+                               list(range(3)), # i
+                               list(range(len(methods)))
+                               )
+```
+The above example will try 70, 80, 90, 100, 120 for n when m is fixed at 80 and each one will be run 3 times.
+
+### Done!
