@@ -107,12 +107,12 @@ if __name__ == '__main__':
     (PhISCS_B, None),
     # ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True)),
     # ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True, tool = "Gurobi", prioritySign = 1)),
-    ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True, tool = "Gurobi", prioritySign = -1)),
     ("OldBnB", lb_lp_gurobi),
     ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True, tool = "Gurobi", prioritySign = -1)),
-    ("OldBnB", lb_lp_gurobi),
-    ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True, tool = "Gurobi", prioritySign = -1)),
-    ("OldBnB", lb_lp_gurobi),
+    # ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True, tool = "Gurobi", prioritySign = -1)),
+    # ("OldBnB", lb_lp_gurobi),
+    # ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True, tool = "Gurobi", prioritySign = -1)),
+    # ("OldBnB", lb_lp_gurobi),
     # ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True, tool = "Gurobi", prioritySign = 1)),
     # ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True, tool = "Gurobi", prioritySign = -1)),
     # ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True, tool = "ORTools")),
@@ -150,17 +150,17 @@ if __name__ == '__main__':
   # n: number of Cells
   # m: number of Mutations
   #20, 30 , 40, 50, 60, 70, 80, 90, 40, 80, 100, 120, 160
-  iterList = itertools.product([20, 30,  40,  ], # n
-                               # [ 6, 8, 10, 12, 14, 16, 18 ], # m
-                               list(range(5)), # i
+  iterList = itertools.product([ 80], # n
+                               [ 80], # m
+                               list(range(1)), # i
                                list(range(len(methods)))
                                )
   iterList = list(iterList)
   x, xhash = None, None
-  k = 20
+  k = 40
   # for n, m, i in tqdm(iterList):
-  for n, i, methodInd in tqdm(iterList):
-    m = n
+  for n, m, i, methodInd in tqdm(iterList):
+    # m = n
     # print(n, m, i, methodInd)
     if methodInd == 0: # make new Input
       if sourceType == "RND":
@@ -175,29 +175,36 @@ if __name__ == '__main__':
       xhash = getMatrixHash(x)
       # print(repr(x))
     method, bounding = methods[methodInd]
-    # print(bounding.getName())
-    ans, info = solveWith(method, bounding, x)
     methodName = method if isinstance(method, str) else method.__name__
-    boundingName = None
-    if bounding is None:
-      boundingName = ""
-    elif hasattr(bounding, "getName"):
-      boundingName = bounding.getName()
-    elif hasattr(bounding, "__name__"):
-      boundingName = bounding.__name__
-    else:
-      boundingName = "NoNameBounding"
+    try:
+      ans, info = solveWith(method, bounding, x)
+      boundingName = None
+      if bounding is None:
+        boundingName = ""
+      elif hasattr(bounding, "getName"):
+        boundingName = bounding.getName()
+      elif hasattr(bounding, "__name__"):
+        boundingName = bounding.__name__
+      else:
+        boundingName = "NoNameBounding"
 
-    row = {
-      "n": str(n),
-      "m": str(m),
-      "hash": xhash,
-      "method": f"{methodName}_{boundingName}",
-      "cf": is_conflict_free_gusfield_and_get_two_columns_in_coflicts(ans)[0]
-    }
-    row.update(info)
-    # print(row)
-    df = df.append(row, ignore_index=True)
+      row = {
+        "n": str(n),
+        "m": str(m),
+        "hash": xhash,
+        "method": f"{methodName}_{boundingName}",
+        "cf": is_conflict_free_gusfield_and_get_two_columns_in_coflicts(ans)[0]
+      }
+      row.update(info)
+      # print(row)
+      df = df.append(row, ignore_index=True)
+    except Exception as e:
+      print("********** Error {{{{{{{{{{")
+      print(e)
+      print(repr(x))
+      print(methodName)
+      print("}}}}}}}}}} Error **********")
+
   # print(df[["method", "cf", "nf", "runtime", "nNodes"] ])
   nowTime = time.strftime("%m-%d-%H-%M-%S", time.gmtime())
   csvFileName = f"report_{scriptName}_{df.shape}_{nowTime}.csv"
