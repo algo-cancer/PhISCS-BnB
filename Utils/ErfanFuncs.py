@@ -8,13 +8,13 @@ from instances import *
 
 
 def myPhISCS_B(x):
-  solution, (f_0_1_b, f_1_0_b, f_2_0_b, f_2_1_b), cb_time = PhISCS_B(x, beta=0.98, alpha=0.00000001)
+  solution, (f_0_1_b, f_1_0_b, f_2_0_b, f_2_1_b), cb_time = PhISCS_B(x, beta=0.90, alpha=0.00000001)
   nf = len(np.where(solution != x)[0])
   return nf
 
 
 def myPhISCS_I(x):
-  solution, (flips_0_1, flips_1_0, flips_2_0, flips_2_1), ci_time = PhISCS_I(x, beta=0.98, alpha=0.00000001)
+  solution, (flips_0_1, flips_1_0, flips_2_0, flips_2_1), ci_time = PhISCS_I(x, beta=0.90, alpha=0.00000001)
   nf = len(np.where(solution != x)[0])
   return nf
 
