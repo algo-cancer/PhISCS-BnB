@@ -43,20 +43,20 @@ if __name__ == '__main__':
     # RandomPartitioning(ascendingOrder=False),
     # RandomPartitioning(ascendingOrder=True),
     # NaiveBounding(),
-    StaticLPBounding(ratio = None, continuous = False),
-    SemiDynamicLPBounding(ratio = None, continuous = False),
+    # StaticLPBounding(ratio = None, continuous = False),
     SemiDynamicLPBounding(ratio = None, continuous = True),
-    DynamicMWMBounding(),
-    # StaticMWMBounding(),
-    StaticCSPBounding(splitInto = 2),
-    StaticCSPBounding(splitInto = 3),
+    # SemiDynamicLPBounding(ratio = None, continuous = True),
+    # DynamicMWMBounding(),
+    # # StaticMWMBounding(),
+    # StaticCSPBounding(splitInto = 2),
+    # StaticCSPBounding(splitInto = 3),
   ]
   dfInd = pd.DataFrame(columns=["index", "n",	"m", "nf",	"method", "runtime"])
   missingCols = ["meanUpdateTime", "sdUpdateTime", "medianUpdateTime", "mxUpdateTime", "mnUpdateTime"]
   dfTotal = pd.DataFrame(columns=["method", "resetTime", ] + missingCols)
   n = 12 # n: number of Cells
   m = 12 # m: number of Mutations
-  k = 10  # k: number extra edits to introduce
+  k = 3  # k: number extra edits to introduce
   x = np.random.randint(2, size=(n, m))
   delta = sp.lil_matrix((n, m))
   methodNames = []
@@ -65,6 +65,7 @@ if __name__ == '__main__':
     resetTime = time.time()
     method.reset(x)
     resetTime = time.time() - resetTime
+    print("68:", method.hasState())
     row = {
       "method": f"{method.getName()}",
       "resetTime": str(resetTime),
@@ -79,9 +80,11 @@ if __name__ == '__main__':
     delta[a, b] = 1
     ############################################
     for method in methods:
+      print("83:", method.hasState())
       runTime = time.time()
       nf = method.getBound(delta)
       runTime = time.time() - runTime
+      print("87:", method.hasState())
       row = {
         "index": str(index),
         "n": str(n),
@@ -91,6 +94,9 @@ if __name__ == '__main__':
         "nf": str(nf),
       }
       dfInd = dfInd.append(row, ignore_index=True)
+      # print(row)
+  print(dfInd)
+  exit(0)
   for methodName in methodNames:
     times = dfInd.loc[dfInd["method"] == methodName]["runtime"].to_numpy()
     dfTotal.loc[dfTotal["method"] == methodName, missingCols] =\

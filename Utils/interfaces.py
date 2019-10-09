@@ -35,6 +35,9 @@ class BoundingAlgAbstract:
     """
     return set()
 
+  def getPriority(self, newBound, icf = False):
+    return -newBound
+
 
 class NaiveBounding(BoundingAlgAbstract):
   def __init__(self):

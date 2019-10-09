@@ -8,18 +8,18 @@ from Boundings.MWM import *
 
 class BnB(pybnb.Problem):
   """
-  Bounding algorithm:
-  - uses gusfield
-  - accepts any boundingAlg with the interface
-  - I is getting copied
+  - Accept Bounding algorithm with the interface
+  - uses gusfield if the bounding does not provide next p,q
+  - only delta is getting copied
   """
   def __init__(self, I, boundingAlg : BoundingAlgAbstract, checkBounding = False):
     self.I = I
     self.delta = sp.lil_matrix(I.shape, dtype = np.int8) # this can be coo_matrix too
     self.icf, self.colPair = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(self.I)
-    self.boundVal = 0
     self.boundingAlg = boundingAlg
     self.boundingAlg.reset(I)
+    self.boundVal = self.boundingAlg.getBound(self.delta)
+    # print(hasattr(self.boundingAlg.yVars[0, 1], "X"))
     self.checkBounding = checkBounding
 
   def getNFlips(self):
@@ -29,11 +29,13 @@ class BnB(pybnb.Problem):
     return pybnb.minimize
 
   def objective(self):
+    # print(self.delta.nonzero(), self.boundVal, self.getNFlips())
     # print(f"OBJ: {self.icf}, {self.getNFlips()}")
     if self.icf:
       return self.getNFlips()
     else:
       return pybnb.Problem.infeasible_objective(self)
+      # return 1000
 
   def bound(self):
     if self.checkBounding: # Debugging here
@@ -75,14 +77,17 @@ class BnB(pybnb.Problem):
       return
     p, q = self.colPair
     p, q, oneone, zeroone, onezero = get_a_coflict(self.getCurrentMatrix(), p, q)
-
+    # nodes = []
+    nf = self.getNFlips() + 1
     for a, b in [(onezero, q), (zeroone, p)]:
       # print(f"{(a,b)} is made!")
       node = pybnb.Node()
       nodedelta =  copy.deepcopy(self.delta)
       nodedelta[a, b] = 1
-      newBound = self.boundingAlg.getBound(nodedelta)
 
+      # print("line 84:", hasattr(self.boundingAlg.yVars[0, 1], "X"))
+      newBound = self.boundingAlg.getBound(nodedelta)
+      # print("line 86:", hasattr(self.boundingAlg.yVars[0, 1], "X"))
 
       nodeicf, nodecolPair = None, None
       extraInfo = self.boundingAlg.getExtraInfo()
@@ -99,10 +104,15 @@ class BnB(pybnb.Problem):
         nodeicf, nodecolPair = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(self.I + nodedelta )
 
 
-      nodeboundVal = max(self.boundVal, newBound)
+      # nodeboundVal = max(self.boundVal, newBound)
+      nodeboundVal = newBound
       node.state = (nodedelta, nodeicf, nodecolPair, nodeboundVal, self.boundingAlg.getState())
-      node.queue_priority = - newBound
+      # node.queue_priority = - ( newBound - nf)
+      node.queue_priority =  self.boundingAlg.getPriority(newBound - nf, nodeicf)
+      # node.queue_priority =  self.boundingAlg.getPriority(nodeboundVal)
       yield node
+    #   nodes.append(node)
+    # return nodes
 
 # def ErfanBnBSolver(x):
 #   problem = BnB(x, EmptyBoundingAlg())

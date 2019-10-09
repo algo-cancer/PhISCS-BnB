@@ -225,6 +225,9 @@ def get_lower_bound(noisy, partition_randomly=False):
   return sum(LB)
 
 
+def getMatrixHash(x):
+  return hash(x.tostring()) % 10000000
+
 
 if __name__ == '__main__':
   I1 = np.array( [[0,1,1,0]

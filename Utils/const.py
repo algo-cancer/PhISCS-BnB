@@ -26,15 +26,22 @@ import matplotlib.pyplot as plt
 import pickle
 from ortools.linear_solver import pywraplp
 
+def printLine(depth = 1):
+  """A debugging tool!  """
+  for i in range(1, depth+1):
+    info = inspect.stack()[i]
+    for j in range(i-1):
+      print("\t", end="")
+    print(f"Line {info.lineno} in {info.filename}, Function: {info.function}")
 
 constHasRun = True
+gurobi_env = Env()
 # For users and platforms
 userName = getpass.getuser()
 platformName = platform.node()
 # End of all users
 
 print(f"Running on {userName}@{platformName}")
-# gurobi_env = Env()
 
 if userName == "esadeqia":
   sys.path.append('/home/esadeqia/PhISCS_BnB/Utils')

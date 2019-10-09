@@ -13,7 +13,7 @@ class DynamicLPBounding(BoundingAlgAbstract):
 
 
 class SemiDynamicLPBounding(BoundingAlgAbstract):
-  def __init__(self, ratio = None, continuous = True, nThreads = 1, tool = "Gurobi"):
+  def __init__(self, ratio = None, continuous = True, nThreads = 1, tool = "Gurobi", prioritySign = -1):
     """
     :param ratio:
     :param continuous:
@@ -28,9 +28,10 @@ class SemiDynamicLPBounding(BoundingAlgAbstract):
     self.nThreads = nThreads
     self.tool = tool
     self.times = None
+    self.prioritySign = prioritySign
 
   def getName(self):
-    return type(self).__name__+f"_{self.ratio}_{self.continuous}"
+    return type(self).__name__+f"_{self.ratio}_{self.continuous}_{self.tool}_{self.prioritySign}"
 
   def reset(self, matrix):
     self.times = {"modelPreperationTime": 0, "optimizationTime": 0,}
@@ -51,6 +52,7 @@ class SemiDynamicLPBounding(BoundingAlgAbstract):
       self.model.Solve()
     optTime = time.time() - optTime
     self.times["optimizationTime"] += optTime
+    # print("First Optimize:", optTime)
 
 
   def _flip(self, c, m):
@@ -68,7 +70,7 @@ class SemiDynamicLPBounding(BoundingAlgAbstract):
     newConstrs = (self.yVars[flips[i, 0], flips[i, 1]] == 1 for i in range(flips.shape[0]))
     if self.tool == "Gurobi":
       newConstrsReturned = self.model.addConstrs(newConstrs)
-      self.model.update()
+      # self.model.update()
     elif self.tool == "ORTools":
       for constrant in newConstrs:
         self.model.Add(constrant)
@@ -80,12 +82,13 @@ class SemiDynamicLPBounding(BoundingAlgAbstract):
     optTime = time.time()
     if self.tool == "Gurobi":
       self.model.optimize()
-      objVal = self.model.objVal
+      objVal = np.int(np.ceil(self.model.objVal))
     elif self.tool == "ORTools":
       self.model.Solve()
       objVal = self.model.Objective().Value()
     optTime = time.time() - optTime
     self.times["optimizationTime"] += optTime
+    # print("otptime in getBound:", optTime)
 
 
 
@@ -97,11 +100,23 @@ class SemiDynamicLPBounding(BoundingAlgAbstract):
     modelTime = time.time()
     for cnstr in newConstrsReturned.values():
       self.model.remove(cnstr)
-    self.model.update()
+    # self.model.update()
     modelTime = time.time() - modelTime
     self.times["modelPreperationTime"] += modelTime
 
     return bound
+
+  def hasState(self):
+    for i in range(self.matrix.shape[0]):
+      for j in range(self.matrix.shape[1]):
+        if not isinstance(self.yVars[i, j], np.int):
+          return hasattr(self.yVars[i, j], "X")
+
+  def getPriority(self, newBound, icf = False):
+    if icf:
+      return 1000
+    else:
+      return newBound * self.prioritySign
 
 
 class StaticLPBounding(BoundingAlgAbstract):
@@ -211,7 +226,7 @@ class StaticLPBounding(BoundingAlgAbstract):
                                      name='B[{0},{1},1,0]'.format(p, q))
         B[p, q, 0, 1] = model.addVar(0, 1, vtype=varType, obj=0,
                                      name='B[{0},{1},0,1]'.format(p, q))
-    model.update()
+    # model.update()
 
     for i in range(numCells):
       for p in range(numMutations):
@@ -225,7 +240,7 @@ class StaticLPBounding(BoundingAlgAbstract):
         model.addConstr(B[p, q, 0, 1] + B[p, q, 1, 0] + B[p, q, 1, 1] <= 2)
 
     model.Params.ModelSense = GRB.MINIMIZE
-    model.update()
+    # model.update()
     return model, Y
 
 
@@ -250,14 +265,16 @@ class StaticILPBounding(BoundingAlgAbstract):
 
 if __name__ == '__main__':
 
-  n, m = 10, 10
+  n, m = 15, 15
   x = np.random.randint(2, size=(n, m))
   delta = sp.lil_matrix((n, m ))
+
 
   staticLPBounding = StaticLPBounding()
   staticLPBounding.reset(x)
 
-  algo = SemiDynamicLPBounding()
+
+  algo = SemiDynamicLPBounding(ratio=None, continuous=True, nThreads=1, tool="Gurobi", prioritySign=-1)
   resetTime = time.time()
   algo.reset(x)
   resetTime = time.time() - resetTime
@@ -267,18 +284,26 @@ if __name__ == '__main__':
   optim = myPhISCS_I(xp)
 
   print("Optimal answer:", optim)
-  print(StaticLPBounding.LP_brief(xp), algo.getBound(delta), staticLPBounding.getBound(delta))
+  print(StaticLPBounding.LP_brief(xp), algo.getBound(delta))
+  print(algo.hasState())
+  # algo.model.reset()
+  algoPrim = algo.model.copy()
+
+  print(algo.hasState(), algoPrim.hasState())
+  print(StaticLPBounding.LP_brief(xp), algo.getBound(delta))
 
   for t in range(5):
     ind = np.nonzero(1 - (x+delta))
     a, b = ind[0][0], ind[1][0]
     delta[a, b] = 1
-
+    print(algo.hasState())
+    # algo.model.reset()
     calcTime = time.time()
     bndAdapt = algo.getBound(delta)
     calcTime = time.time() - calcTime
-    print(calcTime)
+    # print(calcTime)
+    algo.getBound(delta)
     bndFull = StaticLPBounding.LP_brief(x+delta) + t + 1
-    print(bndFull == bndAdapt, bndFull, bndAdapt)
+    # print(bndFull == bndAdapt, bndFull, bndAdapt)
     staticLPBoundingBnd = staticLPBounding.getBound(delta)
-    print(bndFull == staticLPBoundingBnd, staticLPBoundingBnd)
+    # print(bndFull == staticLPBoundingBnd, staticLPBoundingBnd)
