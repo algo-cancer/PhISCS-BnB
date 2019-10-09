@@ -13,7 +13,7 @@ from phylogeny_bnb import Phylogeny_BnB
 from phylogeny_lb import *
 
 ########
-timeLimit = 120
+timeLimit = 300
 queue_strategy = "custom"
 sourceType = ["RND",
               "MS",
@@ -125,7 +125,7 @@ if __name__ == '__main__':
     # ("BnB", RandomPartitioning(ascendingOrder=True)),
     # ("BnB", RandomPartitioning(ascendingOrder=False)),
     # ("OldBnB", lb_max_weight_matching),
-    ("BnB", DynamicMWMBounding(ascendingOrder=True)),
+    # ("BnB", DynamicMWMBounding(ascendingOrder=True)),
     ("BnB", DynamicMWMBounding(ascendingOrder=False)),
     ("OldBnB", lb_max_weight_matching),
     # ("OldBnB", lb_lp_ortools),
@@ -150,9 +150,9 @@ if __name__ == '__main__':
   # n: number of Cells
   # m: number of Mutations
   #20, 30 , 40, 50, 60, 70, 80, 90, 40, 80, 100, 120, 160
-  iterList = itertools.product([ 80], # n
+  iterList = itertools.product([ 70, 80, 90, 100, 120], # n
                                [ 80], # m
-                               list(range(1)), # i
+                               list(range(3)), # i
                                list(range(len(methods)))
                                )
   iterList = list(iterList)

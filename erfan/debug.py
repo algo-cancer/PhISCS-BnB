@@ -99,15 +99,19 @@ if __name__ == '__main__':
   t = time.time() -t
   print("optimization time:", t)
 
-  #######  Change one random coordinate ######
-  nnzind = np.nonzero(1 - (x + delta))
-  a, b = nnzind[0][0], nnzind[1][0]
-  delta[a, b] = 1
-  ############################################
-  cns = (Y[a, b] == 1)
-  model.addConstr(cns)
-  cns2 = model.getConstrs()[-1]
-  print("add constr")
+  constsIn = []
+  constsOut = []
+  for i in range(3):
+    #######  Change one random coordinate ######
+    nnzind = np.nonzero(1 - (x + delta))
+    a, b = nnzind[0][0], nnzind[1][0]
+    delta[a, b] = 1
+    ############################################
+    constsOut.append(model.addConstr(Y[a, b] == 1))
+    # constsOut.append(constsIn.append(Y[a, b] == 1))
+
+  # constsOut = model.addConstrs(constsIn)
+  print("add constrs")
 
   t = time.time()
   model.optimize()
@@ -119,7 +123,8 @@ if __name__ == '__main__':
   t = time.time() -t
   print("optimization time:", t)
 
-  model.remove(cns2)
+  for cns in constsOut:
+    model.remove(cns)
   print("remove")
 
   t = time.time()
