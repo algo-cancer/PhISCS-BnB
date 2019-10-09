@@ -384,7 +384,7 @@ def top10_bad_entries_in_violations(D):
     print(x[0], '(entry={}): how many gametes'.format(D[x[0]]), x[1])
 
 
-def PhISCS_B(matrix, procnum=0, return_dict={}):
+def PhISCS_B(matrix, beta=None, alpha=None):
   rc2 = RC2(WCNF())
   n, m = matrix.shape
   par_fnWeight = 1
@@ -462,6 +462,5 @@ def PhISCS_B(matrix, procnum=0, return_dict={}):
           O[i, j] = 1
       numVar += 1
 
-  return_dict[procnum] = count_flips(matrix, matrix.shape[1] * [0], O)[0]
   return O, count_flips(matrix, matrix.shape[1] * [0], O), b - a
 
