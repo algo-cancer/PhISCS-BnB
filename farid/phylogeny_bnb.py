@@ -167,4 +167,4 @@ if __name__ == '__main__':
     # print('Number of flips reported by‌ PhISCS_B:', f_0_1_b)
     # print('Number of flips reported by Phylogeny_BnB:', results.best_node.state[-1])
     # print('PhISCS_B in seconds: {:.3f}'.format(cb_time))
-    print(f"{args.n},{args.m},{args.fn:.1f},{countFN},{countFP},{countNA},{f_0_1_i},{f_0_1_b},{results.best_node.state[-1]},{problem.time1:.3f},{problem.time2:.3f},{problem.time3:.3f},{problem.time4:.3f},{et-st-(problem.time1+problem.time2+problem.time3+problem.time4):.3f},{et-st:.3f},{ci_time:.3f},{cb_time:.3f},{results.nodes},{icf}")
+    print(f"{args.n},{args.m},{args.fn:.3f},{countFN},{countFP},{countNA},{f_0_1_i},{f_0_1_b},{results.best_node.state[-1]},{problem.time1:.3f},{problem.time2:.3f},{problem.time3:.3f},{problem.time4:.3f},{et-st-(problem.time1+problem.time2+problem.time3+problem.time4):.3f},{et-st:.3f},{ci_time:.3f},{cb_time:.3f},{results.nodes},{icf}")
