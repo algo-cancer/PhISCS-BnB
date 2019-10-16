@@ -1,23 +1,25 @@
 assert __name__ == '__main__'
-
-
 from Utils.const import *
-
 from interfaces import *
 from ErfanFuncs import *
 from Boundings.LP import *
 from Boundings.MWM import *
 from general_BnB import *
 from Boundings.CSP import *
-from phylogeny_bnb import Phylogeny_BnB
-from phylogeny_lb import *
+from argparse import ArgumentParser
+# from phylogeny_bnb import Phylogeny_BnB
+# from phylogeny_lb import *
+
+parser = ArgumentParser()
+parser.add_argument('-n', dest='n', type=int)
+parser.add_argument('-m', dest='m', type=int)
+parser.add_argument('-i', dest='i', type=int)
+args = parser.parse_args()
 
 ########
-timeLimit = 300
+timeLimit = 60
 queue_strategy = "custom"
-sourceType = ["RND",
-              "MS",
-              "FIXED"][1]
+sourceType = ["RND", "MS", "FIXED"][0]
 
 noisy = np.array([[1, 0, 0, 1, 0, 0, 0, 0],
                   [0, 1, 1, 1, 0, 1, 0, 1],
@@ -107,8 +109,8 @@ if __name__ == '__main__':
     (PhISCS_B, None),
     # ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True)),
     # ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True, tool = "Gurobi", prioritySign = 1)),
-    ("OldBnB", lb_lp_gurobi),
-    ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True, tool = "Gurobi", prioritySign = -1)),
+    # ("OldBnB", lb_lp_gurobi),
+    ("BnB", SemiDynamicLPBounding(ratio=None, continuous=True, tool="Gurobi", prioritySign=-1)),
     # ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True, tool = "Gurobi", prioritySign = -1)),
     # ("OldBnB", lb_lp_gurobi),
     # ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True, tool = "Gurobi", prioritySign = -1)),
@@ -127,7 +129,7 @@ if __name__ == '__main__':
     # ("OldBnB", lb_max_weight_matching),
     # ("BnB", DynamicMWMBounding(ascendingOrder=True)),
     ("BnB", DynamicMWMBounding(ascendingOrder=False)),
-    ("OldBnB", lb_max_weight_matching),
+    # ("OldBnB", lb_max_weight_matching),
     # ("OldBnB", lb_lp_ortools),
     # ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True)),
     # ("OldBnB", lb_phiscs_b),
@@ -150,30 +152,28 @@ if __name__ == '__main__':
   # n: number of Cells
   # m: number of Mutations
   #20, 30 , 40, 50, 60, 70, 80, 90, 40, 80, 100, 120, 160
-  iterList = itertools.product([ 70, 80, 90, 100, 120], # n
-                               [ 80], # m
-                               list(range(3)), # i
+  iterList = itertools.product([ args.n], # n
+                               [ args.m], # m
+                               list(range(args.i)), # i
                                list(range(len(methods)))
                                )
   iterList = list(iterList)
   x, xhash = None, None
-  k = 40
+  k = 0.1
   # for n, m, i in tqdm(iterList):
   for n, m, i, methodInd in tqdm(iterList):
-    # m = n
-    # print(n, m, i, methodInd)
     if methodInd == 0: # make new Input
       if sourceType == "RND":
         x = np.random.randint(2, size=(n, m))
       elif sourceType == "MS":
-        ground, noisy, (countFN, countFP, countNA) = get_data(n=n, m=m, seed=int(100*time.time())%10000, fn=k, fp=0, na=0, ms_path = ms_path)
+        ground,noisy,(countFN,countFP,countNA) = get_data(n=n, m=m, seed=int(100*time.time())%10000, fn=k, fp=0, na=0, ms_path=ms_path)
         x = noisy
       elif sourceType == "FIXED":
         x = noisy
       else:
         raise NotImplementedError("The method not implemented")
       xhash = getMatrixHash(x)
-      # print(repr(x))
+
     method, bounding = methods[methodInd]
     methodName = method if isinstance(method, str) else method.__name__
     try:
@@ -196,7 +196,6 @@ if __name__ == '__main__':
         "cf": is_conflict_free_gusfield_and_get_two_columns_in_coflicts(ans)[0]
       }
       row.update(info)
-      # print(row)
       df = df.append(row, ignore_index=True)
     except Exception as e:
       print("********** Error {{{{{{{{{{")
@@ -205,9 +204,9 @@ if __name__ == '__main__':
       print(methodName)
       print("}}}}}}}}}} Error **********")
 
-  # print(df[["method", "cf", "nf", "runtime", "nNodes"] ])
   nowTime = time.strftime("%m-%d-%H-%M-%S", time.gmtime())
-  csvFileName = f"report_{scriptName}_{df.shape}_{nowTime}.csv"
+  # csvFileName = f"{scriptName}_{nowTime}.csv"
+  csvFileName = f"{args.n},{args.m}_{nowTime}.csv"
   csvPath = os.path.join(output_folder_path, csvFileName)
   df.to_csv(csvPath)
   print(f"CSV file stored at {csvPath}")
