@@ -50,9 +50,9 @@ if userName == "esadeqia":
   ms_path = '/home/esadeqia/external/ms'
   output_folder_path = "/home/esadeqia/PhISCS_BnB/reports"
 elif userName == "frashidi":
-  output_folder_path = "./reports"
-  sys.path.append('./Utils')
-  openwbo_path = './openwbo'
+  output_folder_path = "/data/frashidi/Phylogeny_BnB/reports"
+  sys.path.append('/data/frashidi/Phylogeny_BnB/Utils')
+  openwbo_path = '/data/frashidi/Phylogeny_BnB/openwbo'
   ms_path = '/home/frashidi/software/bin/ms'
 else:
   print("User const not found!")

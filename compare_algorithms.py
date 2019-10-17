@@ -1,24 +1,28 @@
 assert __name__ == '__main__'
-
-
 from Utils.const import *
-
 from interfaces import *
 from ErfanFuncs import *
 from Boundings.LP import *
 from Boundings.MWM import *
 from general_BnB import *
 from Boundings.CSP import *
-# from phylogeny_bnb import Phylogeny_BnB
-# from phylogeny_lb import *
+from Boundings.Hybrid import *
+from argparse import ArgumentParser
 
-########
-timeLimit = 600
+
+parser = ArgumentParser()
+parser.add_argument('-n', dest='n', type=int, default=20)
+parser.add_argument('-m', dest='m', type=int, default=20)
+parser.add_argument('-i', dest='i', type=int, default=1)
+parser.add_argument('-s', "--source_type", dest='source_type', type=int, default=0)
+parser.add_argument('-k', dest='k', type=float)
+parser.add_argument('--print_rows', action="store_true", default=False)
+parser.add_argument('--print_results', action="store_true", default=False)
+parser.add_argument("-t", "--time_limit", dest='time_limit', type=float, default=60)
+args = parser.parse_args()
+
 queue_strategy = "custom"
-sourceType = ["RND",
-              "MS",
-              "FIXED"][1]
-
+sourceType = ["RND", "MS", "FIXED"][args.source_type]
 noisy = np.array([[1, 0, 0, 1, 0, 0, 0, 0],
                   [0, 1, 1, 1, 0, 1, 0, 1],
                   [1, 1, 0, 1, 1, 1, 1, 0],
@@ -42,7 +46,7 @@ def solveWith(name, bounding, x):
     time1 = time.time()
     problem1 = BnB(x, bounding, False)
     solver = pybnb.solver.Solver()
-    results1 = solver.solve(problem1,  queue_strategy = queue_strategy, log = None, time_limit = timeLimit)
+    results1 = solver.solve(problem1,  queue_strategy = queue_strategy, log = None, time_limit = args.time_limit)
     retDict["runtime"] = time.time() - time1
     # print(results1.solution_status, results1.termination_condition, results1.objective, results1.nodes, results1.wall_time)
     if results1.solution_status != "unknown":
@@ -59,7 +63,7 @@ def solveWith(name, bounding, x):
     time1 = time.time()
     problem1 = Phylogeny_BnB(x, bounding, bounding.__name__)
     solver = pybnb.solver.Solver()
-    results1 = solver.solve(problem1,  queue_strategy = queue_strategy, log = None, time_limit = timeLimit)
+    results1 = solver.solve(problem1,  queue_strategy = queue_strategy, log = None, time_limit = args.time_limit)
     retDict["runtime"] = time.time() - time1
     # print(results1.solution_status, results1.termination_condition, results1.objective, results1.nodes, results1.wall_time)
     if results1.solution_status != "unknown":
@@ -96,11 +100,10 @@ def solveWith(name, bounding, x):
   return ans, retDict
 
 
-
-
 if __name__ == '__main__':
   scriptName = os.path.basename(__file__).split(".")[0]
   print(f"{scriptName} starts here")
+  print(args)
   methods = [
     # (PhISCS_B_external, None),
     (PhISCS_I, None),
@@ -117,6 +120,7 @@ if __name__ == '__main__':
 
     # ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True, tool = "Gurobi", prioritySign = -1)),
     # ("BnB", SemiDynamicLPBoundingBoundChange(ratio=None, continuous = True, tool = "Gurobi", prioritySign = -1)),
+    ("BnB", SemiDynamicLPBounding(ratio=None, continuous=True, tool="Gurobi", prioritySign=-1)),
     # ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True, tool = "Gurobi", prioritySign = -1)),
     # ("OldBnB", lb_lp_gurobi),
     # ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True, tool = "Gurobi", prioritySign = -1)),
@@ -153,35 +157,41 @@ if __name__ == '__main__':
     # ("BnB", StaticCSPBounding(splitInto = 3)),
     # ("BnB", StaticCSPBounding(splitInto = 4)),
     # ("BnB", StaticCSPBounding(splitInto = 5)),
+    ("BnB", HybridBounding(firstBounding=SemiDynamicLPBounding(ratio=None, continuous=True, tool="Gurobi", prioritySign=-1),
+                           secondBounding=DynamicMWMBounding(ascendingOrder=False),
+                           ratioNFlips=10)),
   ]
   df = pd.DataFrame(columns=["hash", "n", "m", "nf", "method", "runtime",])
   # n: number of Cells
   # m: number of Mutations
   #20, 30 , 40, 50, 60, 70, 80, 90, 40, 80, 100, 120, 160
-  iterList = itertools.product([ 100], # n
-                               [ 100], # m
-                               list(range(3)), # i
+  # iterList = itertools.product([ 100], # n
+  #                              [ 100], # m
+  #                              list(range(3)), # i
+  iterList = itertools.product([args.n],
+                               [args.m],
+                               list(range(args.i)), # i
                                list(range(len(methods)))
                                )
   iterList = list(iterList)
   x, xhash = None, None
   k = 0.017
-  # for n, m, i in tqdm(iterList):
+  k = 0.1
+  k = args.k
   for n, m, i, methodInd in tqdm(iterList):
-    # m = n
-    # print(n, m, i, methodInd)
-    if methodInd == 0: # make new Input
+    if methodInd == 0:  # make new Input
       if sourceType == "RND":
         x = np.random.randint(2, size=(n, m))
       elif sourceType == "MS":
-        ground, noisy, (countFN, countFP, countNA) = get_data(n=n, m=m, seed=int(100*time.time())%10000, fn=k, fp=0, na=0, ms_path = ms_path)
+        ground, noisy, (countFN, countFP, countNA) = \
+          get_data(n=n, m=m, seed=int(100*time.time())%10000, fn=k, fp=0, na=0, ms_path=ms_path)
         x = noisy
       elif sourceType == "FIXED":
         x = noisy
       else:
         raise NotImplementedError("The method not implemented")
       xhash = getMatrixHash(x)
-      # print(repr(x))
+
     method, bounding = methods[methodInd]
     methodName = method if isinstance(method, str) else method.__name__
     try:
@@ -204,7 +214,8 @@ if __name__ == '__main__':
         "cf": is_conflict_free_gusfield_and_get_two_columns_in_coflicts(ans)[0]
       }
       row.update(info)
-      print(row)
+      if args.print_rows:
+        print(row)
       df = df.append(row, ignore_index=True)
     except Exception as e:
       print("********** Error {{{{{{{{{{")
@@ -212,14 +223,11 @@ if __name__ == '__main__':
       print(repr(x))
       print(methodName)
       print("}}}}}}}}}} Error **********")
-
-  print(df[["method", "cf", "nf", "runtime", "nNodes"] ])
+  if args.print_results:
+    print(df[["method", "cf", "nf", "runtime", "nNodes"] ])
   nowTime = time.strftime("%m-%d-%H-%M-%S", time.gmtime())
-  csvFileName = f"report_{scriptName}_{df.shape}_{nowTime}.csv"
+  # csvFileName = f"{scriptName}_{nowTime}.csv"
+  csvFileName = f"{scriptName}_{args.n},{args.m},{len(methods)}_{nowTime}.csv"
   csvPath = os.path.join(output_folder_path, csvFileName)
   df.to_csv(csvPath)
   print(f"CSV file stored at {csvPath}")
-
-
-
-
