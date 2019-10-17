@@ -19,6 +19,7 @@ parser.add_argument('-s', "--source_type", dest='source_type', type=int, default
 parser.add_argument('-k', dest='k', type=float, default=0.1)
 parser.add_argument('--print_rows', action="store_true", default=False)
 parser.add_argument('--print_results', action="store_true", default=False)
+parser.add_argument('--save_results', action="store_true", default=False)
 parser.add_argument("-t", "--time_limit", dest='time_limit', type=float, default=60)
 args = parser.parse_args()
 
@@ -95,22 +96,22 @@ if __name__ == '__main__':
   print(f"{script_name} starts here")
   print(args)
   methods = [
-    # (PhISCS_B_external, None),
+    (PhISCS_B_external, None),
     (PhISCS_I, None),
     (PhISCS_B, None),
     # ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True)),
     # ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True, tool = "Gurobi", prioritySign = 1)),
     # ("OldBnB", lb_lp_gurobi),
-    ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True, tool = "Gurobi", priority_sign= -1,
-                                  change_bound_method = True, for_loop_constrs = True)),
-    ("BnB", SemiDynamicLPBounding(ratio=None, continuous=True, tool="Gurobi", priority_sign=-1,
-                                  change_bound_method=False, for_loop_constrs=True)),
-    ("BnB", SemiDynamicLPBounding(ratio=None, continuous=True, tool="Gurobi", priority_sign=-1,
-                                  change_bound_method=False, for_loop_constrs=False)),
+    # ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True, tool = "Gurobi", priority_sign= -1,
+    #                               change_bound_method = True, for_loop_constrs = True)),
+    # ("BnB", SemiDynamicLPBounding(ratio=None, continuous=True, tool="Gurobi", priority_sign=-1,
+    #                               change_bound_method=False, for_loop_constrs=True)),
+    # ("BnB", SemiDynamicLPBounding(ratio=None, continuous=True, tool="Gurobi", priority_sign=-1,
+    #                               change_bound_method=False, for_loop_constrs=False)),
 
     # ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True, tool = "Gurobi", prioritySign = -1)),
     # ("BnB", SemiDynamicLPBoundingBoundChange(ratio=None, continuous = True, tool = "Gurobi", prioritySign = -1)),
-    ("BnB", SemiDynamicLPBounding(ratio=None, continuous=True, tool="Gurobi", priority_sign=-1)),
+    # ("BnB", SemiDynamicLPBounding(ratio=None, continuous=True, tool="Gurobi", priority_sign=-1)),
     # ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True, tool = "Gurobi", prioritySign = -1)),
     # ("OldBnB", lb_lp_gurobi),
     # ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True, tool = "Gurobi", prioritySign = -1)),
@@ -155,19 +156,20 @@ if __name__ == '__main__':
   # n: number of Cells
   # m: number of Mutations
 
-  if args.n is None or args.m is None:
-    iterList = itertools.product([args.n],
-                                 [args.m],
-                                 list(range(args.i)),
-                                 list(range(len(methods)))
-                                 )
-  else:
+  if args.n is None or args.m is None:  # if n and m not given use our looping
     # 20, 30 , 40, 50, 60, 70, 80, 90, 40, 80, 100, 120, 160
     iterList = itertools.product([100],  # n
                                  [None],  # m
                                  list(range(3)),  # i
                                  list(range(len(methods)))
                                  )
+  else:
+    iterList = itertools.product([args.n],
+                                 [args.m],
+                                 list(range(args.i)),
+                                 list(range(len(methods)))
+                                 )
+
 
   iterList = list(iterList)
   x, x_hash = None, None
@@ -220,10 +222,13 @@ if __name__ == '__main__':
       print(method_name)
       print("}}}}}}}}}} Error **********")
   if args.print_results:
-    print(df[["method", "cf", "nf", "runtime", "nNodes"] ])
-  now_time = time.strftime("%m-%d-%H-%M-%S", time.gmtime())
-  # csvFileName = f"{scriptName}_{nowTime}.csv"
-  csv_file_name = f"{script_name}_{args.n},{args.m},{len(methods)}_{now_time}.csv"
-  csv_path = os.path.join(output_folder_path, csv_file_name)
-  df.to_csv(csv_path)
-  print(f"CSV file stored at {csv_path}")
+    summary_columns = ["method", "cf", "n_flips", "runtime", "n_nodes"]
+    summary_columns = (column for column in summary_columns if column in df.columns)
+    print(df[summary_columns])
+  if args.save_results:
+    now_time = time.strftime("%m-%d-%H-%M-%S", time.gmtime())
+    # csvFileName = f"{scriptName}_{nowTime}.csv"
+    csv_file_name = f"{script_name}_{args.n},{args.m},{len(methods)}_{now_time}.csv"
+    csv_path = os.path.join(output_folder_path, csv_file_name)
+    df.to_csv(csv_path)
+    print(f"CSV file stored at {csv_path}")

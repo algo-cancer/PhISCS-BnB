@@ -1,5 +1,8 @@
 from Utils.const import *
 
+def get_matrix_hash(x):
+  return hash(x.tostring()) % 10000000
+
 
 def myPhISCS_B(x):
   solution, (f_0_1_b, f_1_0_b, f_2_0_b, f_2_1_b), cb_time = PhISCS_B(x, beta=0.90, alpha=0.00000001)
