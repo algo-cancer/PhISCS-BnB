@@ -5,7 +5,12 @@ from ErfanFuncs import *
 from Boundings.LP import *
 from Boundings.MWM import *
 
-CHANGE_BOUNDING = 18
+from argparse import ArgumentParser
+parser = ArgumentParser()
+parser.add_argument('-i', dest='i', type=int)
+args = parser.parse_args()
+
+CHANGE_BOUNDING = args.i
 
 class BnB(pybnb.Problem):
   """
@@ -106,24 +111,24 @@ if __name__ == '__main__':
     [1,1,1,1,0,0,1,0,1,1],
   ])
 
-  print(repr(x))
-  optimTime_I = time.time()
-  optim = myPhISCS_I(x)
-  optimTime_I = time.time() - optimTime_I
-  print("Optimal answer (I):", optim)
-  print("Optimal time   (I):", optimTime_I)
-  optimTime_B = time.time()
-  optim = myPhISCS_B(x)
-  optimTime_B = time.time() - optimTime_B
-  print("Optimal answer (B):", optim)
-  print("Optimal time   (B):", optimTime_B)
+  # print(repr(x))
+  # optimTime_I = time.time()
+  # optim = myPhISCS_I(x)
+  # optimTime_I = time.time() - optimTime_I
+  # print("Optimal answer (I):", optim)
+  # print("Optimal time   (I):", optimTime_I)
+  # optimTime_B = time.time()
+  # optim = myPhISCS_B(x)
+  # optimTime_B = time.time() - optimTime_B
+  # print("Optimal answer (B):", optim)
+  # print("Optimal time   (B):", optimTime_B)
 
   time1 = time.time()
-  b1 = SemiDynamicLPBounding(ratio=None, continuous = True)
+  b1 = SemiDynamicLPBounding(ratio=None, continuous=True)
   b2 = DynamicMWMBounding()
   problem1 = BnB(x, b1, b2)
   solver = pybnb.solver.Solver()
-  results1 = solver.solve(problem1, queue_strategy='custom', log = None)
+  results1 = solver.solve(problem1, queue_strategy='custom', log=None)
   time1 = time.time() - time1
   delta = results1.best_node.state[0]
   nf1 = delta.count_nonzero()

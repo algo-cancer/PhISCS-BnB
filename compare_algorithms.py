@@ -6,9 +6,8 @@ from Boundings.LP import *
 from Boundings.MWM import *
 from general_BnB import *
 from Boundings.CSP import *
+from Boundings.Hybrid import *
 from argparse import ArgumentParser
-# from phylogeny_bnb import Phylogeny_BnB
-# from phylogeny_lb import *
 
 parser = ArgumentParser()
 parser.add_argument('-n', dest='n', type=int)
@@ -147,6 +146,9 @@ if __name__ == '__main__':
     # ("BnB", StaticCSPBounding(splitInto = 3)),
     # ("BnB", StaticCSPBounding(splitInto = 4)),
     # ("BnB", StaticCSPBounding(splitInto = 5)),
+    ("BnB", HybridBounding(firstBounding=SemiDynamicLPBounding(ratio=None, continuous=True, tool="Gurobi", prioritySign=-1),
+                           secondBounding=DynamicMWMBounding(ascendingOrder=False),
+                           ratioNFlips=10)),
   ]
   df = pd.DataFrame(columns=["hash", "n", "m", "nf", "method", "runtime",])
   # n: number of Cells
@@ -210,7 +212,3 @@ if __name__ == '__main__':
   csvPath = os.path.join(output_folder_path, csvFileName)
   df.to_csv(csvPath)
   print(f"CSV file stored at {csvPath}")
-
-
-
-
