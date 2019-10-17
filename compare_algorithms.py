@@ -16,9 +16,9 @@ parser.add_argument('-i', dest='i', type=int)
 args = parser.parse_args()
 
 ########
-timeLimit = 60
+timeLimit = 600
 queue_strategy = "custom"
-sourceType = ["RND", "MS", "FIXED"][0]
+sourceType = ["RND", "MS", "FIXED"][1]
 
 noisy = np.array([[1, 0, 0, 1, 0, 0, 0, 0],
                   [0, 1, 1, 1, 0, 1, 0, 1],
@@ -127,7 +127,7 @@ if __name__ == '__main__':
     # ("BnB", RandomPartitioning(ascendingOrder=False)),
     # ("OldBnB", lb_max_weight_matching),
     # ("BnB", DynamicMWMBounding(ascendingOrder=True)),
-    ("BnB", DynamicMWMBounding(ascendingOrder=False)),
+    # ("BnB", DynamicMWMBounding(ascendingOrder=False)),
     # ("OldBnB", lb_max_weight_matching),
     # ("OldBnB", lb_lp_ortools),
     # ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True)),
@@ -146,9 +146,9 @@ if __name__ == '__main__':
     # ("BnB", StaticCSPBounding(splitInto = 3)),
     # ("BnB", StaticCSPBounding(splitInto = 4)),
     # ("BnB", StaticCSPBounding(splitInto = 5)),
-    ("BnB", HybridBounding(firstBounding=SemiDynamicLPBounding(ratio=None, continuous=True, tool="Gurobi", prioritySign=-1),
-                           secondBounding=DynamicMWMBounding(ascendingOrder=False),
-                           ratioNFlips=10)),
+    # ("BnB", HybridBounding(firstBounding=SemiDynamicLPBounding(ratio=None, continuous=True, tool="Gurobi", prioritySign=-1),
+    #                        secondBounding=DynamicMWMBounding(ascendingOrder=False),
+    #                        ratioNFlips=10)),
   ]
   df = pd.DataFrame(columns=["hash", "n", "m", "nf", "method", "runtime",])
   # n: number of Cells
@@ -161,7 +161,7 @@ if __name__ == '__main__':
                                )
   iterList = list(iterList)
   x, xhash = None, None
-  k = 0.1
+  k = 0.01
   # for n, m, i in tqdm(iterList):
   for n, m, i, methodInd in tqdm(iterList):
     if methodInd == 0: # make new Input
