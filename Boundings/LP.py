@@ -52,7 +52,7 @@ class SemiDynamicLPBounding(BoundingAlgAbstract):
     elif self.tool == "ORTools":
       self.model.Solve()
     optTime = time.time() - optTime
-    self.times["optimizationTime"] += optTime
+    self.times["optimization_time"] += optTime
 
   def _flip(self, c, m):
     self.model.addConstr(self.y_vars[c, m] == 1)
@@ -87,11 +87,11 @@ class SemiDynamicLPBounding(BoundingAlgAbstract):
     if self.tool == "Gurobi":
       self.model.optimize()
       obj_val = np.int(np.ceil(self.model.objVal))
-    elif self.tool == "ORTools":
+    elif self.tool == "OR_tools":
       self.model.Solve()
       obj_val = self.model.Objective().Value()
     opt_time = time.time() - opt_time
-    self.times["optimizationTime"] += opt_time
+    self.times["optimization_time"] += opt_time
 
     if self.ratio is not None:
       bound = np.int(np.ceil(self.ratio * obj_val))

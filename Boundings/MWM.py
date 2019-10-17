@@ -30,10 +30,10 @@ class RandomPartitioning(BoundingAlgAbstract):
         self.dist[i, j] = self.cost_of_col_pair(i, j, self.matrix)
         self.dist[j, i] = self.dist[i, j]
 
-  def getBound(self, delta):
+  def get_bound(self, delta):
     self._extra_info = None
 
-    currentMatrix = self.matrix + delta
+    current_matrix = self.matrix + delta
     flips_mat = np.transpose(delta.nonzero())
     flipped_cols_set = set(flips_mat[:, 1])
 
@@ -50,7 +50,7 @@ class RandomPartitioning(BoundingAlgAbstract):
       if partition[0] not in flipped_cols_set and partition[1] not in flipped_cols_set:
         cost_of_x = self.dist[partition[0], partition[1]]
       else:
-        cost_of_x = RandomPartitioning.cost_of_col_pair(partition[0], partition[1], currentMatrix)
+        cost_of_x = RandomPartitioning.cost_of_col_pair(partition[0], partition[1], current_matrix)
       lb += cost_of_x
       if cost_of_x * sign > opt_pair_value * sign and cost_of_x > 0:
         opt_pair_value = cost_of_x
@@ -61,19 +61,19 @@ class RandomPartitioning(BoundingAlgAbstract):
 
   @staticmethod
   def cost_of_col_pair(p, q, mat):
-    foundOneOne = False
-    numberOfZeroOne = 0
-    numberOfOneZero = 0
+    found_one_one = False
+    number_of_zero_one = 0
+    number_of_one_zero = 0
     for r in range(mat.shape[0]):
       if mat[r, p] == 1 and mat[r, q] == 1:
-        foundOneOne = True
+        found_one_one = True
       if mat[r, p] == 0 and mat[r, q] == 1:
-        numberOfZeroOne += 1
+        number_of_zero_one += 1
       if mat[r, p] == 1 and mat[r, q] == 0:
-        numberOfOneZero += 1
-    if foundOneOne:
-      if numberOfZeroOne * numberOfOneZero > 0:
-        return min(numberOfZeroOne, numberOfOneZero)
+        number_of_one_zero += 1
+    if found_one_one:
+      if number_of_zero_one * number_of_one_zero > 0:
+        return min(number_of_zero_one, number_of_one_zero)
     return 0
 
 

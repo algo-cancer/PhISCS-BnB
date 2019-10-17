@@ -1,5 +1,4 @@
 from Utils.const import *
-from Utils.ErfanFuncs import *
 from Utils.util import *
 from Utils.interfaces import *
 
@@ -25,8 +24,8 @@ if __name__ == '__main__':
   df = pd.DataFrame(columns=["hash", "n",	"m", "n_flips",	"method", "runtime"])
   # n: number of Cells
   # m: number of Mutations
-  iterList = itertools.product([100, ],  # n
-                               [100, ],  # m
+  iterList = itertools.product([13, ],  # n
+                               [13, ],  # m
                                list(range(3))  # i
                                )
   iterList = list(iterList)
@@ -39,7 +38,7 @@ if __name__ == '__main__':
       row = {
         "n": str(n),
         "m": str(m),
-        "hash": hash(x.tostring()),
+        "hash": get_matrix_hash(x),
         "method": f"{method.__name__ }",
         "runtime": str(runtime)[:6],
         "n_flips": str(nf),

@@ -17,8 +17,8 @@ import networkx as nx
 import copy
 import pandas as pd
 from tqdm import tqdm
-# from pysat.examples.rc2 import RC2
-# from pysat.formula import WCNF
+from pysat.examples.rc2 import RC2
+from pysat.formula import WCNF
 import inspect
 import matplotlib as mpl
 mpl.use('Agg')
