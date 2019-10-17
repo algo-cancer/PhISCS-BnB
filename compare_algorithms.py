@@ -17,6 +17,7 @@ parser.add_argument('-m', dest='m', type=int, default=None)
 parser.add_argument('-i', dest='i', type=int, default=1)
 parser.add_argument('-s', "--source_type", dest='source_type', type=int, default=0)
 parser.add_argument('-k', dest='k', type=float, default=0.1)
+parser.add_argument('--instance_index', type=int, default=0)
 parser.add_argument('--print_rows', action="store_true", default=False)
 parser.add_argument('--print_results', action="store_true", default=False)
 parser.add_argument('--save_results', action="store_true", default=False)
@@ -27,7 +28,7 @@ args = parser.parse_args()
 #########
 queue_strategy = "custom"
 source_type = ["RND", "MS", "FIXED"][args.source_type]
-# noisy = instances[args.instance_index]
+noisy = instances[args.instance_index]
 
 
 def solve_with(name, bounding_algorithm, input_matrix):
@@ -102,12 +103,12 @@ if __name__ == '__main__':
     # ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True)),
     # ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True, tool = "Gurobi", prioritySign = 1)),
     # ("OldBnB", lb_lp_gurobi),
-    # ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True, tool = "Gurobi", priority_sign= -1,
-    #                               change_bound_method = True, for_loop_constrs = True)),
-    # ("BnB", SemiDynamicLPBounding(ratio=None, continuous=True, tool="Gurobi", priority_sign=-1,
-    #                               change_bound_method=False, for_loop_constrs=True)),
-    # ("BnB", SemiDynamicLPBounding(ratio=None, continuous=True, tool="Gurobi", priority_sign=-1,
-    #                               change_bound_method=False, for_loop_constrs=False)),
+    ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True, tool = "Gurobi", priority_sign= -1,
+                                  change_bound_method = True, for_loop_constrs = True)),
+    ("BnB", SemiDynamicLPBounding(ratio=None, continuous=True, tool="Gurobi", priority_sign=-1,
+                                  change_bound_method=False, for_loop_constrs=True)),
+    ("BnB", SemiDynamicLPBounding(ratio=None, continuous=True, tool="Gurobi", priority_sign=-1,
+                                  change_bound_method=False, for_loop_constrs=False)),
 
     # ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True, tool = "Gurobi", prioritySign = -1)),
     # ("BnB", SemiDynamicLPBoundingBoundChange(ratio=None, continuous = True, tool = "Gurobi", prioritySign = -1)),
@@ -128,8 +129,10 @@ if __name__ == '__main__':
     # ("BnB", RandomPartitioning(ascendingOrder=True)),
     # ("BnB", RandomPartitioning(ascendingOrder=False)),
     # ("OldBnB", lb_max_weight_matching),
-    # ("BnB", DynamicMWMBounding(ascendingOrder=True)),
-    # ("BnB", DynamicMWMBounding(ascendingOrder=False)),
+    ("BnB", DynamicMWMBounding(ascending_order=True)),
+    ("BnB", DynamicMWMBounding(ascending_order=False)),
+    ("BnB", StaticMWMBounding(ascending_order=True)),
+    ("BnB", StaticMWMBounding(ascending_order=False)),
     # ("OldBnB", lb_max_weight_matching),
     # ("OldBnB", lb_lp_ortools),
     # ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True)),
@@ -138,8 +141,8 @@ if __name__ == '__main__':
     # ("OldBnB", lb_gurobi),
     # ("OldBnB", lb_greedy),
     # ("OldBnB", lb_random),
-    # ("BnB", RandomPartitioning(ascendingOrder=True)),
-    # ("BnB", RandomPartitioning(ascendingOrder=False)),
+    ("BnB", RandomPartitioning(ascending_order=True)),
+    ("BnB", RandomPartitioning(ascending_order=False)),
     #
     # ("BnB", StaticMWMBounding(ascendingOrder=True)),
     # ("BnB", StaticMWMBounding(ascendingOrder=False)),
@@ -197,7 +200,7 @@ if __name__ == '__main__':
       bounding_name = None
       if bounding is None:
         bounding_name = ""
-      elif hasattr(bounding, "getName"):
+      elif hasattr(bounding, "get_name"):
         bounding_name = bounding.get_name()
       elif hasattr(bounding, "__name__"):
         bounding_name = bounding.__name__
