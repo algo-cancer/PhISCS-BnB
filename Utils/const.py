@@ -17,8 +17,8 @@ import networkx as nx
 import copy
 import pandas as pd
 from tqdm import tqdm
-from pysat.examples.rc2 import RC2
-from pysat.formula import WCNF
+# from pysat.examples.rc2 import RC2
+# from pysat.formula import WCNF
 import inspect
 import matplotlib as mpl
 mpl.use('Agg')
@@ -27,7 +27,7 @@ import pickle
 from ortools.linear_solver import pywraplp
 
 
-def printLine(depth = 1):
+def print_line(depth = 1):
   """A debugging tool!  """
   for i in range(1, depth+1):
     info = inspect.stack()[i]
@@ -35,22 +35,28 @@ def printLine(depth = 1):
       print("\t", end="")
     print(f"Line {info.lineno} in {info.filename}, Function: {info.function}")
 
-constHasRun = True
+
+# This line is here to make sure the line "Academic license - for non-commercial use only" prints at the top
 gurobi_env = Env()
 # For users and platforms
-userName = getpass.getuser()
-platformName = platform.node()
+user_name = getpass.getuser()
+platform_name = platform.node()
 # End of all users
 
-print(f"Running on {userName}@{platformName}")
+print(f"Running on {user_name}@{platform_name}")
 
-if userName == "esadeqia":
+if user_name == "esadeqia":
   sys.path.append('/home/esadeqia/PhISCS_BnB/Utils')
   sys.path.append('/home/esadeqia/PhISCS_BnB')
   openwbo_path = '/home/esadeqia/external/openwbo'
   ms_path = '/home/esadeqia/external/ms'
   output_folder_path = "/home/esadeqia/PhISCS_BnB/reports/Erfan"
-elif userName == "frashidi":
+elif user_name == "school":
+  sys.path.append('./Utils')
+  openwbo_path = None
+  ms_path = None
+  output_folder_path = "./reports/Erfan"
+elif user_name == "frashidi":
   output_folder_path = "/data/frashidi/Phylogeny_BnB/reports"
   sys.path.append('/data/frashidi/Phylogeny_BnB/Utils')
   openwbo_path = '/data/frashidi/Phylogeny_BnB/openwbo'

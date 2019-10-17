@@ -1,7 +1,16 @@
-if __name__ == '__main__':
-  from const import *
-elif "constHasRun" not in globals():
-  from Utils.const import *
+from .const import *
+
+
+def myPhISCS_B(x):
+  solution, (f_0_1_b, f_1_0_b, f_2_0_b, f_2_1_b), cb_time = PhISCS_B(x, beta=0.90, alpha=0.00000001)
+  nf = len(np.where(solution != x)[0])
+  return nf
+
+
+def myPhISCS_I(x):
+  solution, (flips_0_1, flips_1_0, flips_2_0, flips_2_1), ci_time = PhISCS_I(x, beta=0.90, alpha=0.00000001)
+  nf = len(np.where(solution != x)[0])
+  return nf
 
 
 def is_conflict_free_gusfield_and_get_two_columns_in_coflicts(I):
@@ -464,3 +473,29 @@ def PhISCS_B(matrix, beta=None, alpha=None):
 
   return O, count_flips(matrix, matrix.shape[1] * [0], O), b - a
 
+
+def rename(new_name):
+  def decorator(f):
+    f.__name__ = new_name
+    return f
+  return decorator
+
+
+def get_k_partitioned_PhISCS(k):
+  @rename(f'partitionedPhISCS_{k}')
+  def partitioned_PhISCS(x):
+    ans = 0
+    for i in range(x.shape[1]//k):
+      ans += myPhISCS_I(x[:, i * k: (i+1) * k])
+    if x.shape[1] % k >= 2:
+      ans += myPhISCS_I(x[:, ((x.shape[1]//k) * k): ])
+    return ans
+  return partitioned_PhISCS
+
+
+def from_interface_to_method(bounding_alg):
+  def run_func(x):
+    bounding_alg.reset(x)
+    return bounding_alg.get_bound(sp.lil_matrix(x.shape, dtype = np.int8))
+  run_func.__name__ = bounding_alg.get_name() # include arguments in the name
+  return run_func

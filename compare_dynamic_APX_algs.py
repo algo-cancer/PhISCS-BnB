@@ -1,9 +1,9 @@
 from Utils.const import *
 
-from ErfanFuncs import *
-from util import *
+from Utils.ErfanFuncs import *
+from Utils.util import *
 import operator
-from interfaces import *
+from Utils.interfaces import *
 
 from Boundings.LP import *
 from Boundings.MWM import *
@@ -11,30 +11,11 @@ from Boundings.CSP import *
 from Boundings.Hybrid import *
 
 
-def rename(newname):
-  def decorator(f):
-    f.__name__ = newname
-    return f
-  return decorator
-
-
-def getKPartitionedPhISCS(k):
-  @rename(f'partitionedPhISCS_{k}')
-  def partitionedPhISCS(x):
-    ans = 0
-    for i in range(x.shape[1]//k):
-      ans += myPhISCS_I(x[:, i * k: (i+1) * k])
-    if x.shape[1] % k >= 2:
-      ans += myPhISCS_I(x[:, ((x.shape[1]//k) * k): ])
-    return ans
-  return partitionedPhISCS
-
-
 def fromInterfaceToMethod(boundingAlg):
   def run_func(x):
     boundingAlg.reset(x)
-    return boundingAlg.getBound(sp.lil_matrix(x.shape, dtype = np.int8))
-  run_func.__name__ = boundingAlg.getName() # include arguments in the name
+    return boundingAlg.get_bound(sp.lil_matrix(x.shape, dtype = np.int8))
+  run_func.__name__ = boundingAlg.get_name() # include arguments in the name
   return run_func
 
 
@@ -65,13 +46,13 @@ if __name__ == '__main__':
   delta = sp.lil_matrix((n, m))
   methodNames = []
   for method in methods:
-    methodNames.append(method.getName())
+    methodNames.append(method.get_name())
     resetTime = time.time()
     method.reset(x)
     resetTime = time.time() - resetTime
     # print("68:", method.hasState())
     row = {
-      "method": f"{method.getName()}",
+      "method": f"{method.get_name()}",
       "resetTime": str(resetTime),
     }
     dfTotal = dfTotal.append(row, ignore_index=True)
@@ -86,14 +67,14 @@ if __name__ == '__main__':
     for method in methods:
       # print("83:", method.hasState())
       runTime = time.time()
-      nf = method.getBound(delta)
+      nf = method.get_bound(delta)
       runTime = time.time() - runTime
       # print("87:", method.hasState())
       row = {
         "index": str(index),
         "n": str(n),
         "m": str(m),
-        "method": method.getName(),
+        "method": method.get_name(),
         "runtime": runTime,
         "nf": str(nf),
       }

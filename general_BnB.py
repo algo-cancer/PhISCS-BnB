@@ -18,7 +18,7 @@ class BnB(pybnb.Problem):
     self.icf, self.colPair = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(self.I)
     self.boundingAlg = boundingAlg
     self.boundingAlg.reset(I)
-    self.boundVal = self.boundingAlg.getBound(self.delta)
+    self.boundVal = self.boundingAlg.get_bound(self.delta)
     # print(hasattr(self.boundingAlg.yVars[0, 1], "X"))
     self.checkBounding = checkBounding
 
@@ -51,23 +51,23 @@ class BnB(pybnb.Problem):
         print(f"np.allclose(self.boundingAlg.matrix, self.I)={np.allclose(self.boundingAlg.matrix, self.I)}")
         print(f"len(self.boundingAlg.model.getConstrs()) = {len(self.boundingAlg.model.getConstrs())}")
         print(f"len(ss.model.getConstrs()) = {len(ss.model.getConstrs())}")
-        thisAnswer = ss.getBound(self.delta)
+        thisAnswer = ss.get_bound(self.delta)
         print(f"np.allclose(self.boundingAlg.matrix, self.I)={np.allclose(self.boundingAlg.matrix, self.I)}")
         print(f"len(self.boundingAlg.model.getConstrs()) = {len(self.boundingAlg.model.getConstrs())}")
         print(f"len(ss.model.getConstrs()) = {len(ss.model.getConstrs())}")
 
-        print(f"{thisAnswer} vs {self.boundingAlg.getBound(self.delta)} vs {self.boundVal}")
-        print(f"{thisAnswer} vs {self.boundingAlg.getBound(self.delta)} vs {self.boundVal}")
+        print(f"{thisAnswer} vs {self.boundingAlg.get_bound(self.delta)} vs {self.boundVal}")
+        print(f"{thisAnswer} vs {self.boundingAlg.get_bound(self.delta)} vs {self.boundVal}")
 
         exit(0)
     return self.boundVal
 
   def save_state(self, node):
-    node.state = (self.delta, self.icf, self.colPair, self.boundVal, self.boundingAlg.getState())
+    node.state = (self.delta, self.icf, self.colPair, self.boundVal, self.boundingAlg.get_state())
 
   def load_state(self, node):
     self.delta, self.icf, self.colPair, self.boundVal, boundingAlgState = node.state
-    self.boundingAlg.setState(boundingAlgState)
+    self.boundingAlg.set_state(boundingAlgState)
 
   def getCurrentMatrix(self):
     return self.I + self.delta
@@ -86,11 +86,11 @@ class BnB(pybnb.Problem):
       nodedelta[a, b] = 1
 
       # print("line 84:", hasattr(self.boundingAlg.yVars[0, 1], "X"))
-      newBound = self.boundingAlg.getBound(nodedelta)
+      newBound = self.boundingAlg.get_bound(nodedelta)
       # print("line 86:", hasattr(self.boundingAlg.yVars[0, 1], "X"))
 
       nodeicf, nodecolPair = None, None
-      extraInfo = self.boundingAlg.getExtraInfo()
+      extraInfo = self.boundingAlg.get_extra_info()
       # print(extraInfo)
       if extraInfo is not None:
         if "icf" in extraInfo:
@@ -106,9 +106,9 @@ class BnB(pybnb.Problem):
 
       # nodeboundVal = max(self.boundVal, newBound)
       nodeboundVal = newBound
-      node.state = (nodedelta, nodeicf, nodecolPair, nodeboundVal, self.boundingAlg.getState())
+      node.state = (nodedelta, nodeicf, nodecolPair, nodeboundVal, self.boundingAlg.get_state())
       # node.queue_priority = - ( newBound - nf)
-      node.queue_priority =  self.boundingAlg.getPriority(newBound - nf, nodeicf)
+      node.queue_priority =  self.boundingAlg.get_priority(newBound - nf, nodeicf)
       # node.queue_priority =  self.boundingAlg.getPriority(nodeboundVal)
       yield node
     #   nodes.append(node)
@@ -196,5 +196,5 @@ if __name__ == '__main__':
     time1 = time.time() - time1
     delta = results1.best_node.state[0]
     nf1 = delta.count_nonzero()
-    print(nf1, str(time1)[:5], results1.nodes, boundFunc.getName(), queue_strategy , flush=True)
+    print(nf1, str(time1)[:5], results1.nodes, boundFunc.get_name(), queue_strategy, flush=True)
 

@@ -39,8 +39,8 @@ def getKPartitionedPhISCS(k):
 def fromInterfaceToMethod(boundingAlg):
   def run_func(x):
     boundingAlg.reset(x)
-    return boundingAlg.getBound(sp.lil_matrix(x.shape, dtype = np.int8))
-  run_func.__name__ = boundingAlg.getName() # include arguments in the name
+    return boundingAlg.get_bound(sp.lil_matrix(x.shape, dtype = np.int8))
+  run_func.__name__ = boundingAlg.get_name() # include arguments in the name
   return run_func
 
 

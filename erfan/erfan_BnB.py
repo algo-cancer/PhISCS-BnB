@@ -60,23 +60,23 @@ class ErfanBnB(pybnb.Problem):
         print(f"np.allclose(self.boundingAlg.matrix, self.I)={np.allclose(self.boundingAlg.matrix, self.I)}")
         print(f"len(self.boundingAlg.model.getConstrs()) = {len(self.boundingAlg.model.getConstrs())}")
         print(f"len(ss.model.getConstrs()) = {len(ss.model.getConstrs())}")
-        thisAnswer = ss.getBound(self.delta)
+        thisAnswer = ss.get_bound(self.delta)
         print(f"np.allclose(self.boundingAlg.matrix, self.I)={np.allclose(self.boundingAlg.matrix, self.I)}")
         print(f"len(self.boundingAlg.model.getConstrs()) = {len(self.boundingAlg.model.getConstrs())}")
         print(f"len(ss.model.getConstrs()) = {len(ss.model.getConstrs())}")
 
-        print(f"{thisAnswer} vs {self.boundingAlg.getBound(self.delta)} vs {self.boundVal}")
-        print(f"{thisAnswer} vs {self.boundingAlg.getBound(self.delta)} vs {self.boundVal}")
+        print(f"{thisAnswer} vs {self.boundingAlg.get_bound(self.delta)} vs {self.boundVal}")
+        print(f"{thisAnswer} vs {self.boundingAlg.get_bound(self.delta)} vs {self.boundVal}")
 
         exit(0)
     return self.boundVal
 
   def save_state(self, node):
-    node.state = (self.delta, self.icf, self.colPair, self.boundVal, self.boundingAlg.getState())
+    node.state = (self.delta, self.icf, self.colPair, self.boundVal, self.boundingAlg.get_state())
 
   def load_state(self, node):
     self.delta, self.icf, self.colPair, self.boundVal, boundingAlgState = node.state
-    self.boundingAlg.setState(boundingAlgState)
+    self.boundingAlg.set_state(boundingAlgState)
 
   def getCurrentMatrix(self):
     return self.I + self.delta
@@ -96,7 +96,7 @@ class ErfanBnB(pybnb.Problem):
 
       # print("--------------", nodedelta.todense())
 
-      newBound = self.boundingAlg.getBound(nodedelta)
+      newBound = self.boundingAlg.get_bound(nodedelta)
       # pat = np.array([[0, 0, 0, 0, 0],
       #   [0, 0, 0, 0, 0],
       #   [0, 0, 1, 0, 0],
@@ -111,7 +111,7 @@ class ErfanBnB(pybnb.Problem):
 
 
       nodeboundVal = max(self.boundVal, newBound)
-      node.state = (nodedelta, nodeicf, nodecolPair, nodeboundVal, self.boundingAlg.getState())
+      node.state = (nodedelta, nodeicf, nodecolPair, nodeboundVal, self.boundingAlg.get_state())
       node.queue_priority = - newBound
       yield node
 
@@ -203,7 +203,7 @@ if __name__ == '__main__':
     delta = results1.best_node.state[0]
     nf1 = delta.count_nonzero()
     # print(repr(delta.todense()))
-    print(nf1, str(time1)[:5], results1.nodes, boundFunc.getName(), queue_strategy , flush=True)
+    print(nf1, str(time1)[:5], results1.nodes, boundFunc.get_name(), queue_strategy, flush=True)
 
 
   if False:

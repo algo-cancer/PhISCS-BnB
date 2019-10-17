@@ -1,53 +1,50 @@
-import sys
-if __name__ == '__main__':
-  sys.path.append('../Utils')
-  from const import *
-elif "constHasRun" not in globals():
-  from Utils.const import *
-from ErfanFuncs import myPhISCS_I
-from interfaces import *
+from Utils.const import *
+from Utils.interfaces import *
+from Utils.util import *
 
-class DynamicLPBounding(BoundingAlgAbstract):
-  def __init__(self, ratio=None):
-    raise NotImplementedError("The method not implemented")
+
+# class DynamicLPBounding(BoundingAlgAbstract):
+#   def __init__(self, ratio=None):
+#     raise NotImplementedError("The method not implemented")
 
 
 class SemiDynamicLPBounding(BoundingAlgAbstract):
-  def __init__(self, ratio = None, continuous = True, nThreads: int = 1, tool = "Gurobi",
-               prioritySign = -1, change_bound_method = True, for_loop_constrs = True ):
+  def __init__(self, ratio=None, continuous=True, n_threads: int = 1, tool="Gurobi", priority_sign=-1,
+               change_bound_method=True, for_loop_constrs=True):
     """
     :param ratio:
     :param continuous:
-    :param nThreads:
+    :param n_threads:
     :param tool: in ["Gurobi", "ORTools"]
     """
+    super().__init__()
     self.ratio = ratio
     self.matrix = None
     self.model = None
-    self.yVars = None
+    self.y_vars = None
     self.continuous = continuous
-    self.nThreads = nThreads
+    self.n_threads = n_threads
     self.tool = tool
     self.times = None
-    self.prioritySign = prioritySign
+    self.priority_sign = priority_sign
     self.change_bound_method = change_bound_method
     self.for_loop_constrs = for_loop_constrs
 
-  def getName(self):
+  def get_name(self):
     return f"{type(self).__name__}_{self.ratio}_{self.continuous}" \
-           f"_{self.tool}_{self.prioritySign}_{self.change_bound_method}_{self.for_loop_constrs}"
+           f"_{self.tool}_{self.priority_sign}_{self.change_bound_method}_{self.for_loop_constrs}"
 
   def reset(self, matrix):
-    self.times = {"modelPreperationTime": 0, "optimizationTime": 0,}
+    self.times = {"model_preparation_time": 0, "optimization_time": 0, }
     self.matrix = matrix
 
-    modelTime = time.time()
+    model_time = time.time()
     if self.tool == "Gurobi":
-      self.model, self.yVars = StaticLPBounding.makeGurobiModel(self.matrix, continuous=self.continuous)
+      self.model, self.y_vars = StaticLPBounding.make_Gurobi_model(self.matrix, continuous=self.continuous)
     elif self.tool == "ORTools":
-      self.model, self.yVars = StaticLPBounding.makeORToolsModel(self.matrix, continuous=self.continuous)
-    modelTime = time.time() - modelTime
-    self.times["modelPreperationTime"] += modelTime
+      self.model, self.y_vars = StaticLPBounding.make_OR_tools_model(self.matrix, continuous=self.continuous)
+    model_time = time.time() - model_time
+    self.times["model_preparation_time"] += model_time
 
     optTime = time.time()
     if self.tool == "Gurobi":
@@ -56,97 +53,89 @@ class SemiDynamicLPBounding(BoundingAlgAbstract):
       self.model.Solve()
     optTime = time.time() - optTime
     self.times["optimizationTime"] += optTime
-    # print("First Optimize:", optTime)
-
 
   def _flip(self, c, m):
-    self.model.addConstr(self.yVars[c, m] == 1)
+    self.model.addConstr(self.y_vars[c, m] == 1)
 
   def _unFlipLast(self):
     self.model.remove(self.model.getConstrs()[-1])
 
-  def getBound(self, delta):
-    # print(self.yVars[0,0].X)
-    # self._extraInfo = None
+  def get_bound(self, delta):
+    self._extraInfo = None
     flips = np.transpose(delta.nonzero())
 
-    modelTime = time.time()
-    newConstrs = (self.yVars[flips[i, 0], flips[i, 1]] == 1 for i in range(flips.shape[0]))
-    newConstrsReturned = []
+    model_time = time.time()
+    new_constrs = (self.y_vars[flips[i, 0], flips[i, 1]] == 1 for i in range(flips.shape[0]))
+    new_constrs_returned = []
     if self.tool == "Gurobi":
       if self.change_bound_method:
         for i in range(flips.shape[0]):
-          self.yVars[flips[i, 0], flips[i, 1]].lb = 1
+          self.y_vars[flips[i, 0], flips[i, 1]].lb = 1
       elif self.for_loop_constrs:
-        for cns in newConstrs:
-          newConstrsReturned.append(self.model.addConstr(cns))
+        for cns in new_constrs:
+          new_constrs_returned.append(self.model.addConstr(cns))
       else:
-        newConstrsReturned = self.model.addConstrs(newConstrs)
-      # self.model.update()
-    elif self.tool == "ORTools":
-      for constrant in newConstrs:
-        self.model.Add(constrant)
-    modelTime = time.time() - modelTime
-    self.times["modelPreperationTime"] += modelTime
+        new_constrs_returned = self.model.addConstrs(new_constrs)
+    elif self.tool == "OR_tools":
+      for constraint in new_constrs:
+        self.model.Add(constraint)
+    model_time = time.time() - model_time
+    self.times["model_preparation_time"] += model_time
 
-    objVal = None
-    # self.model.reset()
-    optTime = time.time()
+    obj_val = None
+    opt_time = time.time()
     if self.tool == "Gurobi":
       self.model.optimize()
-      objVal = np.int(np.ceil(self.model.objVal))
+      obj_val = np.int(np.ceil(self.model.objVal))
     elif self.tool == "ORTools":
       self.model.Solve()
-      objVal = self.model.Objective().Value()
-    optTime = time.time() - optTime
-    self.times["optimizationTime"] += optTime
-    # print("otptime in getBound:", optTime)
-
-
+      obj_val = self.model.Objective().Value()
+    opt_time = time.time() - opt_time
+    self.times["optimizationTime"] += opt_time
 
     if self.ratio is not None:
-      bound = np.int(np.ceil(self.ratio * objVal))
+      bound = np.int(np.ceil(self.ratio * obj_val))
     else:
-      bound = np.int(np.ceil(objVal))
+      bound = np.int(np.ceil(obj_val))
 
-    modelTime = time.time()
+    model_time = time.time()
     if self.tool == "Gurobi":
       if self.change_bound_method:
         for i in range(flips.shape[0]):
-          self.yVars[flips[i, 0], flips[i, 1]].lb = 0
+          self.y_vars[flips[i, 0], flips[i, 1]].lb = 0
       else:
         if self.for_loop_constrs:
-          for cnstr in newConstrsReturned:
-              self.model.remove(cnstr)
+          for constraint in new_constrs_returned:
+              self.model.remove(constraint)
         else:
-          for cnstr in newConstrsReturned.values():
-              self.model.remove(cnstr)
-    modelTime = time.time() - modelTime
-    self.times["modelPreperationTime"] += modelTime
+          for constraint in new_constrs_returned.values():
+              self.model.remove(constraint)
+    model_time = time.time() - model_time
+    self.times["model_preparation_time"] += model_time
 
     return bound
 
-  def hasState(self):
+  def has_state(self):
     for i in range(self.matrix.shape[0]):
       for j in range(self.matrix.shape[1]):
-        if not isinstance(self.yVars[i, j], np.int):
-          return hasattr(self.yVars[i, j], "X")
+        if not isinstance(self.y_vars[i, j], np.int):
+          return hasattr(self.y_vars[i, j], "X")
 
-  def getPriority(self, newBound, icf = False):
+  def get_priority(self, new_bound, icf=False):
     if icf:
       return 1000
     else:
-      return newBound * self.prioritySign
+      return new_bound * self.priority_sign
 
 
 class StaticLPBounding(BoundingAlgAbstract):
-  def __init__(self, ratio = None, continuous = True):
+  def __init__(self, ratio=None, continuous=True):
+    super().__init__()
     self.ratio = ratio
     self.matrix = None
     self.continuous = continuous
 
-
-  def getName(self):
+  def get_name(self):
     return type(self).__name__+f"_{self.ratio}_{self.continuous}"
 
 
@@ -163,8 +152,8 @@ class StaticLPBounding(BoundingAlgAbstract):
     return bound + delta.count_nonzero()
 
   @staticmethod
-  def LP_brief(I, continuous= True):
-    model, Y = StaticLPBounding.makeGurobiModel(I, continuous = continuous)
+  def LP_brief(matrix, continuous= True):
+    model, Y = StaticLPBounding.make_Gurobi_model(matrix, continuous = continuous)
     return StaticLPBounding.LP_Bounding_From_Model(model)
 
   @staticmethod
@@ -173,108 +162,95 @@ class StaticLPBounding(BoundingAlgAbstract):
     return np.int(np.ceil(model.objVal))
 
   @staticmethod
-  def makeORToolsModel(I, continuous = True):
+  def make_OR_tools_model(matrix, continuous = True):
     model = pywraplp.Solver(f'LP_ORTools_{time.time()}', pywraplp.Solver.GLOP_LINEAR_PROGRAMMING)
-    numCells = I.shape[0]
-    numMutations = I.shape[1]
+    num_cells = matrix.shape[0]
+    num_mutations = matrix.shape[1]
     Y = {}
     numOne = 0
-    for c in range(numCells):
-        for m in range(numMutations):
-            if I[c, m] == 0:
+    for c in range(num_cells):
+        for m in range(num_mutations):
+            if matrix[c, m] == 0:
                 Y[c, m] = model.NumVar(0, 1, 'Y({0},{1})'.format(c, m))
-            elif I[c, m] == 1:
+            elif matrix[c, m] == 1:
                 numOne += 1
                 Y[c, m] = 1
     B = {}
-    for p in range(numMutations):
-        for q in range(numMutations):
+    for p in range(num_mutations):
+        for q in range(num_mutations):
             B[p, q, 1, 1] = model.NumVar(0, 1, 'B[{0},{1},1,1]'.format(p, q))
             B[p, q, 1, 0] = model.NumVar(0, 1, 'B[{0},{1},1,0]'.format(p, q))
             B[p, q, 0, 1] = model.NumVar(0, 1, 'B[{0},{1},0,1]'.format(p, q))
-    for i in range(numCells):
-        for p in range(numMutations):
-            for q in range(numMutations):
-                model.Add(Y[i,p] + Y[i,q] - B[p,q,1,1] <= 1)
-                model.Add(-Y[i,p] + Y[i,q] - B[p,q,0,1] <= 0)
-                model.Add(Y[i,p] - Y[i,q] - B[p,q,1,0] <= 0)
-    for p in range(numMutations):
-        for q in range(numMutations):
-            model.Add(B[p,q,0,1] + B[p,q,1,0] + B[p,q,1,1] <= 2)
+    for i in range(num_cells):
+        for p in range(num_mutations):
+            for q in range(num_mutations):
+                model.Add(Y[i, p] + Y[i, q] - B[p, q, 1, 1] <= 1)
+                model.Add(-Y[i, p] + Y[i, q] - B[p, q, 0, 1] <= 0)
+                model.Add(Y[i, p] - Y[i, q] - B[p, q, 1, 0] <= 0)
+    for p in range(num_mutations):
+        for q in range(num_mutations):
+            model.Add(B[p, q, 0, 1] + B[p, q, 1, 0] + B[p, q, 1, 1] <= 2)
 
-    objective = sum([Y[c, m] for c in range(numCells) for m in range(numMutations)])
+    objective = sum([Y[c, m] for c in range(num_cells) for m in range(num_mutations)])
     model.Minimize(objective)
     return model, Y
-    # b = time.time()
-    # result_status = model.Solve()
-    # c = time.time()
-    # optimal_solution = model.Objective().Value()
-    # lb = np.int(np.ceil(optimal_solution)) - numOne
-    #
-    # icf, best_pair_qp = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(I)
-    # d = time.time()
-    # t1 = b-a
-    # t2 = c-b
-    # t3 = d-c
 
   @staticmethod
-  def makeGurobiModel(I, continuous = True):
+  def make_Gurobi_model(I, continuous=True):
     if continuous:
       varType = GRB.CONTINUOUS
     else:
       varType = GRB.BINARY
 
-    numCells, numMutations = I.shape
+    num_cells, num_mutations = I.shape
 
     model = Model(f'LP_Gurobi_{time.time()}')
     model.Params.OutputFlag = 0
     model.Params.Threads = 1
     Y = {}
-    for c in range(numCells):
-      for m in range(numMutations):
+    for c in range(num_cells):
+      for m in range(num_mutations):
         if I[c, m] == 0:
           Y[c, m] = model.addVar(0, 1, obj=1, vtype=varType, name='Y({0},{1})'.format(c, m))
         elif I[c, m] == 1:
           Y[c, m] = 1
 
     B = {}
-    for p in range(numMutations):
-      for q in range(numMutations):
+    for p in range(num_mutations):
+      for q in range(num_mutations):
         B[p, q, 1, 1] = model.addVar(0, 1, vtype=varType, obj=0,
                                      name='B[{0},{1},1,1]'.format(p, q))
         B[p, q, 1, 0] = model.addVar(0, 1, vtype=varType, obj=0,
                                      name='B[{0},{1},1,0]'.format(p, q))
         B[p, q, 0, 1] = model.addVar(0, 1, vtype=varType, obj=0,
                                      name='B[{0},{1},0,1]'.format(p, q))
-    # model.update()
 
-    for i in range(numCells):
-      for p in range(numMutations):
-        for q in range(numMutations):
+    for i in range(num_cells):
+      for p in range(num_mutations):
+        for q in range(num_mutations):
           model.addConstr(Y[i, p] + Y[i, q] - B[p, q, 1, 1] <= 1)
           model.addConstr(-Y[i, p] + Y[i, q] - B[p, q, 0, 1] <= 0)
           model.addConstr(Y[i, p] - Y[i, q] - B[p, q, 1, 0] <= 0)
 
-    for p in range(numMutations):
-      for q in range(numMutations):
+    for p in range(num_mutations):
+      for q in range(num_mutations):
         model.addConstr(B[p, q, 0, 1] + B[p, q, 1, 0] + B[p, q, 1, 1] <= 2)
 
     model.Params.ModelSense = GRB.MINIMIZE
-    # model.update()
     return model, Y
 
 
 class StaticILPBounding(BoundingAlgAbstract):
-  def __init__(self, ratio = None):
+  def __init__(self, ratio=None):
+    super().__init__()
     self.ratio = ratio
     self.matrix = None
-
 
   def reset(self, matrix):
     self.matrix = matrix
 
   def getBound(self, delta):
-    model, Y = StaticLPBounding.makeGurobiModel(self.matrix + delta, continuous= False)
+    model, Y = StaticLPBounding.make_Gurobi_model(self.matrix + delta, continuous=False)
     optim = StaticLPBounding.LP_Bounding_From_Model(model)
     if self.ratio is not None:
       bound = np.int(np.ceil(self.ratio * optim))
@@ -289,41 +265,39 @@ if __name__ == '__main__':
   x = np.random.randint(2, size=(n, m))
   delta = sp.lil_matrix((n, m ))
 
+  static_LP_bounding = StaticLPBounding()
+  static_LP_bounding.reset(x)
 
-  staticLPBounding = StaticLPBounding()
-  staticLPBounding.reset(x)
-
-
-  algo = SemiDynamicLPBounding(ratio=None, continuous=True, nThreads=1, tool="Gurobi", prioritySign=-1)
-  resetTime = time.time()
+  algo = SemiDynamicLPBounding(ratio=None, continuous=True, n_threads=1, tool="Gurobi", priority_sign=-1)
+  reset_time = time.time()
   algo.reset(x)
-  resetTime = time.time() - resetTime
-  print(resetTime)
+  reset_time = time.time() - reset_time
+  print(reset_time)
 
   xp = np.asarray(x + delta)
   optim = myPhISCS_I(xp)
 
   print("Optimal answer:", optim)
-  print(StaticLPBounding.LP_brief(xp), algo.getBound(delta))
-  print(algo.hasState())
+  print(StaticLPBounding.LP_brief(xp), algo.get_bound(delta))
+  print(algo.has_state())
   # algo.model.reset()
   algoPrim = algo.model.copy()
 
-  print(algo.hasState(), algoPrim.hasState())
-  print(StaticLPBounding.LP_brief(xp), algo.getBound(delta))
+  print(algo.has_state(), algoPrim.has_state())
+  print(StaticLPBounding.LP_brief(xp), algo.get_bound(delta))
 
   for t in range(5):
     ind = np.nonzero(1 - (x+delta))
     a, b = ind[0][0], ind[1][0]
     delta[a, b] = 1
-    print(algo.hasState())
+    print(algo.has_state())
     # algo.model.reset()
-    calcTime = time.time()
-    bndAdapt = algo.getBound(delta)
-    calcTime = time.time() - calcTime
+    calc_time = time.time()
+    bnd_adapt = algo.get_bound(delta)
+    calc_time = time.time() - calc_time
     # print(calcTime)
-    algo.getBound(delta)
-    bndFull = StaticLPBounding.LP_brief(x+delta) + t + 1
+    algo.get_bound(delta)
+    bnd_full = StaticLPBounding.LP_brief(x + delta) + t + 1
     # print(bndFull == bndAdapt, bndFull, bndAdapt)
-    staticLPBoundingBnd = staticLPBounding.getBound(delta)
+    static_LP_bounding_bnd = static_LP_bounding.getBound(delta)
     # print(bndFull == staticLPBoundingBnd, staticLPBoundingBnd)

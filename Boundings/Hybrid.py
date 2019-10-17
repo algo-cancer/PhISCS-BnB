@@ -18,18 +18,18 @@ class HybridBounding(BoundingAlgAbstract):
     self.secondBounding = secondBounding
     self.times = None
 
-  def getName(self):
-    return type(self).__name__+f"_{self.firstBounding.getName()}_{self.secondBounding.getName()}_{self.ratioNFlips}"
+  def get_name(self):
+    return type(self).__name__+f"_{self.firstBounding.get_name()}_{self.secondBounding.getName()}_{self.ratioNFlips}"
 
   def reset(self, matrix):
     self.times = {"modelPreperationTime": 0, "optimizationTime": 0,}
     self.firstBounding.reset(matrix)
     self.secondBounding.reset(matrix)
 
-  def getBound(self, delta):
+  def get_bound(self, delta):
     flips = delta.count_nonzero()
     if flips < self.ratioNFlips:
-      bound = self.firstBounding.getBound(delta)
+      bound = self.firstBounding.get_bound(delta)
     else:
       bound = self.secondBounding.getBound(delta)
     return bound
@@ -46,8 +46,8 @@ if __name__ == '__main__':
   b2 = MWM.DynamicMWMBounding()
   hybridBounding = HybridBounding(firstBounding=b1, secondBounding=b2, ratioNFlips=5)
   hybridBounding.reset(x)
-  print(hybridBounding.getBound(delta))
+  print(hybridBounding.get_bound(delta))
 
-  print(b1.getBound(delta))
-  print(b2.getBound(delta))
+  print(b1.get_bound(delta))
+  print(b2.get_bound(delta))
 

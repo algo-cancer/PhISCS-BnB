@@ -9,25 +9,25 @@ class BoundingAlgAbstract:
   def reset(self, matrix):
     raise NotImplementedError("The method not implemented")
 
-  def getBound(self, delta):
+  def get_bound(self, delta):
     """
     This bound should include the flips done so far too
     delta: a sparse matrix with fliped ones
     """
     raise NotImplementedError("The method not implemented")
 
-  def getName(self):
+  def get_name(self):
     return type(self).__name__
 
-  def getState(self):
+  def get_state(self):
     return None
 
-  def setState(self, state):
+  def set_state(self, state):
     assert state is None
     pass
 
 
-  def getExtraInfo(self):
+  def get_extra_info(self):
     """
     Some bounding algorithms can provide extra information after calling bounding.
     E.g.,
@@ -35,30 +35,29 @@ class BoundingAlgAbstract:
     """
     return set()
 
-  def getPriority(self, newBound, icf = False):
-    return -newBound
+  def get_priority(self, new_bound, icf=False):
+    return -new_bound
 
 
 class NaiveBounding(BoundingAlgAbstract):
   def __init__(self):
-    pass
+    super().__init__()
 
   def reset(self, matrix):
     pass
 
-  def getBound(self, delta):
+  def get_bound(self, delta):
     return delta.count_nonzero()
-
 
 
 if __name__ == '__main__':
   a = BoundingAlgAbstract()
-  print(a.getName())
+  print(a.get_name())
 
   a = NaiveBounding()
-  print(a.getName())
+  print(a.get_name())
 
-  sparseZero = sp.lil_matrix((10, 10), dtype = np.int8)
-  sparseZero[2, 2] = 1
-  sparseZero[2, 3] = 1
-  print(a.getBound(sparseZero))
+  sparse_zero = sp.lil_matrix((10, 10), dtype=np.int8)
+  sparse_zero[2, 2] = 1
+  sparse_zero[2, 3] = 1
+  print(a.get_bound(sparse_zero))
