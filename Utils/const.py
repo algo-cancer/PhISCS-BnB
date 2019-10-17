@@ -26,6 +26,7 @@ import matplotlib.pyplot as plt
 import pickle
 from ortools.linear_solver import pywraplp
 
+
 def printLine(depth = 1):
   """A debugging tool!  """
   for i in range(1, depth+1):
@@ -48,7 +49,7 @@ if userName == "esadeqia":
   sys.path.append('/home/esadeqia/PhISCS_BnB')
   openwbo_path = '/home/esadeqia/external/openwbo'
   ms_path = '/home/esadeqia/external/ms'
-  output_folder_path = "/home/esadeqia/PhISCS_BnB/reports"
+  output_folder_path = "/home/esadeqia/PhISCS_BnB/reports/Erfan"
 elif userName == "frashidi":
   output_folder_path = "/data/frashidi/Phylogeny_BnB/reports"
   sys.path.append('/data/frashidi/Phylogeny_BnB/Utils')

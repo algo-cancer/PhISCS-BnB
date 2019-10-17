@@ -8,6 +8,8 @@ from interfaces import *
 from Boundings.LP import *
 from Boundings.MWM import *
 from Boundings.CSP import *
+from Boundings.Hybrid import *
+
 
 def rename(newname):
   def decorator(f):
@@ -45,8 +47,8 @@ if __name__ == '__main__':
     # NaiveBounding(),
     # StaticLPBounding(ratio = None, continuous = False),
     SemiDynamicLPBounding(),
-    SemiDynamicLPBoundingBoundChange(),
     StaticLPBounding(),
+    HybridBounding(firstBounding=SemiDynamicLPBounding(), secondBounding=SemiDynamicLPBounding(), ratioNFlips=5),
     # SemiDynamicLPBounding(ratio = None, continuous = True),
     # DynamicMWMBounding(),
     # # StaticMWMBounding(),
