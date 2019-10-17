@@ -46,21 +46,17 @@ platform_name = platform.node()
 print(f"Running on {user_name}@{platform_name}")
 
 if user_name == "esadeqia":
-  sys.path.append('/home/esadeqia/PhISCS_BnB/Utils')
-  sys.path.append('/home/esadeqia/PhISCS_BnB')
   openwbo_path = '/home/esadeqia/external/openwbo'
   ms_path = '/home/esadeqia/external/ms'
   output_folder_path = "/home/esadeqia/PhISCS_BnB/reports/Erfan"
 elif user_name == "school":
-  sys.path.append('./Utils')
   openwbo_path = None
   ms_path = None
   output_folder_path = "./reports/Erfan"
 elif user_name == "frashidi":
-  output_folder_path = "/data/frashidi/Phylogeny_BnB/reports"
-  sys.path.append('/data/frashidi/Phylogeny_BnB/Utils')
-  openwbo_path = '/data/frashidi/Phylogeny_BnB/openwbo'
+  openwbo_path = '/data/frashidi/Phylogeny_BnB/farid/archived/openwbo'
   ms_path = '/home/frashidi/software/bin/ms'
+  output_folder_path = "/data/frashidi/Phylogeny_BnB/reports"
 else:
   print("User const not found!")
   exit(0)

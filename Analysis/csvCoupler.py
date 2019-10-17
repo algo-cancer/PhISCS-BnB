@@ -1,11 +1,6 @@
-import sys
-if __name__ == '__main__':
-  sys.path.append('../Utils')
-  from const import *
-elif "constHasRun" not in globals():
-  from Utils.const import *
-
+from Utils.const import *
 from argparse import ArgumentParser
+
 parser = ArgumentParser()
 parser.add_argument('-f', '--filename', dest='filename', help=f'csvFileName in {output_folder_path}', type=str)
 args = parser.parse_args()

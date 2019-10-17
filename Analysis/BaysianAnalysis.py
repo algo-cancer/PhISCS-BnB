@@ -1,9 +1,4 @@
-import sys
-if __name__ == '__main__':
-  sys.path.append('../Utils')
-  from const import *
-elif "constHasRun" not in globals():
-  from Utils.const import *
+from Utils.const import *
 
 import numpy as np
 import pymc3 as pm

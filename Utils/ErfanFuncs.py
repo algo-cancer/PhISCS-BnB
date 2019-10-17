@@ -1,10 +1,6 @@
-if __name__ == '__main__':
-  from const import *
-elif "constHasRun" not in globals():
-  from Utils.const import *
-
-from util import *
-from instances import *
+from Utils.const import *
+from Utils.util import *
+from Utils.instances import *
 
 
 def myPhISCS_B(x):
