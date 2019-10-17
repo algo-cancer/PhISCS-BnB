@@ -13,7 +13,8 @@ class DynamicLPBounding(BoundingAlgAbstract):
 
 
 class SemiDynamicLPBounding(BoundingAlgAbstract):
-  def __init__(self, ratio = None, continuous = True, nThreads = 1, tool = "Gurobi", prioritySign = -1):
+  def __init__(self, ratio = None, continuous = True, nThreads: int = 1, tool = "Gurobi",
+               prioritySign = -1, change_bound_method = True, for_loop_constrs = True ):
     """
     :param ratio:
     :param continuous:
@@ -29,9 +30,12 @@ class SemiDynamicLPBounding(BoundingAlgAbstract):
     self.tool = tool
     self.times = None
     self.prioritySign = prioritySign
+    self.change_bound_method = change_bound_method
+    self.for_loop_constrs = for_loop_constrs
 
   def getName(self):
-    return type(self).__name__+f"_{self.ratio}_{self.continuous}_{self.tool}_{self.prioritySign}"
+    return f"{type(self).__name__}_{self.ratio}_{self.continuous}" \
+           f"_{self.tool}_{self.prioritySign}_{self.change_bound_method}_{self.for_loop_constrs}"
 
   def reset(self, matrix):
     self.times = {"modelPreperationTime": 0, "optimizationTime": 0,}
@@ -68,8 +72,16 @@ class SemiDynamicLPBounding(BoundingAlgAbstract):
 
     modelTime = time.time()
     newConstrs = (self.yVars[flips[i, 0], flips[i, 1]] == 1 for i in range(flips.shape[0]))
+    newConstrsReturned = []
     if self.tool == "Gurobi":
-      newConstrsReturned = self.model.addConstrs(newConstrs)
+      if self.change_bound_method:
+        for i in range(flips.shape[0]):
+          self.yVars[flips[i, 0], flips[i, 1]].lb = 1
+      elif self.for_loop_constrs:
+        for cns in newConstrs:
+          newConstrsReturned.append(self.model.addConstr(cns))
+      else:
+        newConstrsReturned = self.model.addConstrs(newConstrs)
       # self.model.update()
     elif self.tool == "ORTools":
       for constrant in newConstrs:
@@ -98,9 +110,17 @@ class SemiDynamicLPBounding(BoundingAlgAbstract):
       bound = np.int(np.ceil(objVal))
 
     modelTime = time.time()
-    for cnstr in newConstrsReturned.values():
-      self.model.remove(cnstr)
-    # self.model.update()
+    if self.tool == "Gurobi":
+      if self.change_bound_method:
+        for i in range(flips.shape[0]):
+          self.yVars[flips[i, 0], flips[i, 1]].lb = 0
+      else:
+        if self.for_loop_constrs:
+          for cnstr in newConstrsReturned:
+              self.model.remove(cnstr)
+        else:
+          for cnstr in newConstrsReturned.values():
+              self.model.remove(cnstr)
     modelTime = time.time() - modelTime
     self.times["modelPreperationTime"] += modelTime
 
