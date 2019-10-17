@@ -68,10 +68,10 @@ class StaticCSPBounding(BoundingAlgAbstract):
         self.n = self.matrix.shape[0]
         self.m = self.matrix.shape[1]
 
-    def getName(self):
+    def get_name(self):
         return type(self).__name__ + "_" + str(self.splitInto)
 
-    def getBound(self, delta):
+    def get_bound(self, delta):
         # https://stackoverflow.com/questions/16856788/slice-2d-array-into-smaller-2d-arrays
         bound = 0
         I = np.array(self.matrix + delta)
@@ -99,8 +99,8 @@ class SemiDynamicCSPBounding(BoundingAlgAbstract):
         self.m = self.matrix.shape[1]
         self.blockIndices = [list(x) for x in np.array_split(range(self.m), self.splitInto)]
         modelTime = time.time()
-        for block in self._getBlocks(self.matrix):
-            model, yVar = self._makeModel(block)
+        for block in self._get_blocks(self.matrix):
+            model, yVar = self._make_model(block)
             self.models.append(model)
             self.yVars.append(yVar)
         modelTime = time.time() - modelTime
@@ -111,10 +111,10 @@ class SemiDynamicCSPBounding(BoundingAlgAbstract):
         # optTime = time.time() - optTime
         # self.times["optimizationTime"] += optTime
 
-    def _getBlocks(self, I):
+    def _get_blocks(self, I):
         return [I[:, i] for i in self.blockIndices]
 
-    def _makeModel(self, subMatrix):
+    def _make_model(self, subMatrix):
         rc2 = RC2(WCNF())
         n = subMatrix.shape[0]
         m = subMatrix.shape[1]
@@ -164,15 +164,18 @@ class SemiDynamicCSPBounding(BoundingAlgAbstract):
                     rc2.add_clause([-B[p, q, 0, 1], -B[p, q, 1, 0], -B[p, q, 1, 1]])
         return rc2, Y
 
-    def getName(self):
+    def get_name(self):
         return type(self).__name__ + "_" + str(self.splitInto)
 
-    def getBound(self, delta):
+    def get_bound(self, delta):
         modelTime = time.time()
         cx = delta.tocoo()
+        print('-------------', cx.row, cx.col, cx.data)
         models = []
         for model in self.models:
-            models.append(copy.copy(model))
+            new_model = copy.copy(model)
+            models.append(new_model)
+            print(new_model)
         for i, j, v in zip(cx.row, cx.col, cx.data):
             whichBlock = -1
             indexInBlock = -1
@@ -189,12 +192,12 @@ class SemiDynamicCSPBounding(BoundingAlgAbstract):
         optTime = time.time()
         for j in range(self.splitInto):
             model = models[j]
+            print(model)
             variables = model.compute()
             m = len(self.blockIndices[j])
             bound += sum(i > 0 for i in variables[self.n * m : 2 * self.n * m])
         optTime = time.time() - optTime
         self.times["optimizationTime"] += optTime
-
         return bound
 
 
@@ -216,15 +219,19 @@ if __name__ == "__main__":
         dtype=np.int8,
     )
     delta = sp.lil_matrix((noisy.shape), dtype=int)
-    delta[0, 0] = 1
-    delta[0, 5] = 1
-    delta[0, 9] = 1
 
     algo = StaticCSPBounding(4)
     algo.reset(noisy)
-    print(algo.getBound(delta))
+    print(algo.get_bound(delta))
 
     algo = SemiDynamicCSPBounding(4)
     algo.reset(noisy)
-    print(algo.getBound(delta))
+    print(algo.get_bound(delta))
     print(algo.times)
+
+    delta[0, 0] = 1
+    print(algo.get_bound(delta))
+    delta[0, 5] = 1
+    print(algo.get_bound(delta))
+    delta[0, 9] = 1
+    print(algo.get_bound(delta))
