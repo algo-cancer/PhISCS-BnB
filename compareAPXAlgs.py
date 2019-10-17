@@ -57,7 +57,10 @@ if __name__ == '__main__':
     # fromInterfaceToMethod(NaiveBounding()),
     # fromInterfaceToMethod(SemiDynamicLPBounding(ratio = None, continuous  = False)),
     # fromInterfaceToMethod(SemiDynamicLPBounding(ratio = 0.7, continuous  = False)),
-    fromInterfaceToMethod(SemiDynamicLPBounding(ratio = None, continuous  = True)),
+    fromInterfaceToMethod(SemiDynamicLPBounding(ratio=None, continuous=True, prioritySign=-1,
+                                  change_bound_method=True, for_loop_constrs=True)),
+    fromInterfaceToMethod(SemiDynamicLPBounding(ratio = None, continuous  = True, prioritySign=-1,
+                                  change_bound_method=False, for_loop_constrs=True)),
     # fromInterfaceToMethod(SemiDynamicLPBounding(ratio = 0.7, continuous  = True)),
     fromInterfaceToMethod(DynamicMWMBounding()),
     fromInterfaceToMethod(StaticMWMBounding()),
@@ -74,9 +77,9 @@ if __name__ == '__main__':
   df = pd.DataFrame(columns=["hash", "n",	"m", "nf",	"method", "runtime"])
   # n: number of Cells
   # m: number of Mutations
-  iterList = itertools.product([14, 10], # n
-                               [14, 10], # m
-                               list(range(1)) # i
+  iterList = itertools.product([100, ], # n
+                               [100, ], # m
+                               list(range(3))  # i
                                )
   iterList = list(iterList)
   for n, m, ind in tqdm(iterList):

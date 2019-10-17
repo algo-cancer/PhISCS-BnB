@@ -9,11 +9,11 @@ from Boundings.LP import *
 from Boundings.MWM import *
 from general_BnB import *
 from Boundings.CSP import *
-from phylogeny_bnb import Phylogeny_BnB
-from phylogeny_lb import *
+# from phylogeny_bnb import Phylogeny_BnB
+# from phylogeny_lb import *
 
 ########
-timeLimit = 300
+timeLimit = 600
 queue_strategy = "custom"
 sourceType = ["RND",
               "MS",
@@ -107,8 +107,16 @@ if __name__ == '__main__':
     (PhISCS_B, None),
     # ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True)),
     # ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True, tool = "Gurobi", prioritySign = 1)),
-    ("OldBnB", lb_lp_gurobi),
-    ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True, tool = "Gurobi", prioritySign = -1)),
+    # ("OldBnB", lb_lp_gurobi),
+    ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True, tool = "Gurobi", prioritySign = -1,
+                                  change_bound_method = True, for_loop_constrs = True)),
+    ("BnB", SemiDynamicLPBounding(ratio=None, continuous=True, tool="Gurobi", prioritySign=-1,
+                                  change_bound_method=False, for_loop_constrs=True)),
+    ("BnB", SemiDynamicLPBounding(ratio=None, continuous=True, tool="Gurobi", prioritySign=-1,
+                                  change_bound_method=False, for_loop_constrs=False)),
+
+    # ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True, tool = "Gurobi", prioritySign = -1)),
+    # ("BnB", SemiDynamicLPBoundingBoundChange(ratio=None, continuous = True, tool = "Gurobi", prioritySign = -1)),
     # ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True, tool = "Gurobi", prioritySign = -1)),
     # ("OldBnB", lb_lp_gurobi),
     # ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True, tool = "Gurobi", prioritySign = -1)),
@@ -127,7 +135,7 @@ if __name__ == '__main__':
     # ("OldBnB", lb_max_weight_matching),
     # ("BnB", DynamicMWMBounding(ascendingOrder=True)),
     ("BnB", DynamicMWMBounding(ascendingOrder=False)),
-    ("OldBnB", lb_max_weight_matching),
+    # ("OldBnB", lb_max_weight_matching),
     # ("OldBnB", lb_lp_ortools),
     # ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True)),
     # ("OldBnB", lb_phiscs_b),
@@ -150,14 +158,14 @@ if __name__ == '__main__':
   # n: number of Cells
   # m: number of Mutations
   #20, 30 , 40, 50, 60, 70, 80, 90, 40, 80, 100, 120, 160
-  iterList = itertools.product([ 70, 80, 90, 100, 120], # n
-                               [ 80], # m
+  iterList = itertools.product([ 100], # n
+                               [ 100], # m
                                list(range(3)), # i
                                list(range(len(methods)))
                                )
   iterList = list(iterList)
   x, xhash = None, None
-  k = 40
+  k = 0.017
   # for n, m, i in tqdm(iterList):
   for n, m, i, methodInd in tqdm(iterList):
     # m = n
@@ -196,7 +204,7 @@ if __name__ == '__main__':
         "cf": is_conflict_free_gusfield_and_get_two_columns_in_coflicts(ans)[0]
       }
       row.update(info)
-      # print(row)
+      print(row)
       df = df.append(row, ignore_index=True)
     except Exception as e:
       print("********** Error {{{{{{{{{{")
@@ -205,7 +213,7 @@ if __name__ == '__main__':
       print(methodName)
       print("}}}}}}}}}} Error **********")
 
-  # print(df[["method", "cf", "nf", "runtime", "nNodes"] ])
+  print(df[["method", "cf", "nf", "runtime", "nNodes"] ])
   nowTime = time.strftime("%m-%d-%H-%M-%S", time.gmtime())
   csvFileName = f"report_{scriptName}_{df.shape}_{nowTime}.csv"
   csvPath = os.path.join(output_folder_path, csvFileName)
