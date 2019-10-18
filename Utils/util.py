@@ -121,8 +121,10 @@ def get_data(n, m, seed, fn, fp, na, ms_path=ms_path):
 
     ground = build_ground_by_ms(n, m, seed)
     if is_conflict_free_farid(ground):
-        if isinstance(fn, np.int):
+        if fn > 1:
             fn = fn / np.count_nonzero(ground == 0)
+        if fn > 1:
+            fn = 0.999
         noisy, (countFN, countFP, countNA) = make_noisy(ground, fn, fp, na)
         if not is_conflict_free_farid(noisy):
             return ground, noisy, (countFN, countFP, countNA)

@@ -98,7 +98,7 @@ if __name__ == "__main__":
     print(f"{script_name} starts here")
     print(args)
     methods = [
-        # (PhISCS_B_external, None),
+        # # (PhISCS_B_external, None),
         (PhISCS_I, None),
         (PhISCS_B, None),
         # ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True)),
@@ -112,31 +112,30 @@ if __name__ == "__main__":
                 tool="Gurobi",
                 priority_sign=-1,
                 change_bound_method=True,
-                for_loop_constrs=True,
             ),
         ),
-        (
-            "BnB",
-            SemiDynamicLPBounding(
-                ratio=None,
-                continuous=True,
-                tool="Gurobi",
-                priority_sign=-1,
-                change_bound_method=False,
-                for_loop_constrs=True,
-            ),
-        ),
-        (
-            "BnB",
-            SemiDynamicLPBounding(
-                ratio=None,
-                continuous=True,
-                tool="Gurobi",
-                priority_sign=-1,
-                change_bound_method=False,
-                for_loop_constrs=False,
-            ),
-        ),
+        # (
+        #     "BnB",
+        #     SemiDynamicLPBounding(
+        #         ratio=None,
+        #         continuous=True,
+        #         tool="Gurobi",
+        #         priority_sign=-1,
+        #         change_bound_method=False,
+        #         for_loop_constrs=True,
+        #     ),
+        # ),
+        # (
+        #     "BnB",
+        #     SemiDynamicLPBounding(
+        #         ratio=None,
+        #         continuous=True,
+        #         tool="Gurobi",
+        #         priority_sign=-1,
+        #         change_bound_method=False,
+        #         for_loop_constrs=False,
+        #     ),
+        # ),
         # ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True, tool = "Gurobi", prioritySign = -1)),
         # ("BnB", SemiDynamicLPBoundingBoundChange(ratio=None, continuous = True, tool = "Gurobi", prioritySign = -1)),
         # ("BnB", SemiDynamicLPBounding(ratio=None, continuous=True, tool="Gurobi", priority_sign=-1)),
@@ -157,10 +156,10 @@ if __name__ == "__main__":
         # ("BnB", RandomPartitioning(ascendingOrder=False)),
         # ("OldBnB", lb_max_weight_matching),
         # ("BnB", SemiDynamicCSPBounding(splitInto=2)),
-        ("BnB", DynamicMWMBounding(ascending_order=True)),
+        # ("BnB", DynamicMWMBounding(ascending_order=True)),
         ("BnB", DynamicMWMBounding(ascending_order=False)),
         # ("BnB", StaticMWMBounding(ascending_order=True)),
-        # ("BnB", StaticMWMBounding(ascending_order=False)),
+        ("BnB", StaticMWMBounding(ascending_order=False)),
         # ("OldBnB", lb_max_weight_matching),
         # ("OldBnB", lb_lp_ortools),
         # ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True)),
@@ -188,7 +187,7 @@ if __name__ == "__main__":
 
     if args.n is None or args.m is None:  # if n and m not given use our looping
         # 20, 30 , 40, 50, 60, 70, 80, 90, 40, 80, 100, 120, 160
-        iterList = itertools.product([100], [None], list(range(3)), list(range(len(methods))))  # n  # m  # i
+        iterList = itertools.product(range(5, 21), range(5, 21), list(range(10)), list(range(len(methods))))  # n  # m  # i
     else:
         iterList = itertools.product([args.n], [args.m], list(range(args.i)), list(range(len(methods))))
 
