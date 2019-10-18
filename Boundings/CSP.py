@@ -115,27 +115,27 @@ class SemiDynamicCSPBounding(BoundingAlgAbstract):
         return [I[:, i] for i in self.blockIndices]
 
     def _make_model(self, subMatrix):
-        rc2 = RC2(WCNF())
+        wcnf = WCNF()
         n = subMatrix.shape[0]
         m = subMatrix.shape[1]
         fnWeight = 1
         fpWeight = 10
 
-        Y = np.empty((n, m), dtype=np.int64)
+        Y = np.empty((n, m), dtype=int)
         numVarY = 0
         for i in range(n):
             for j in range(m):
                 numVarY += 1
                 Y[i, j] = numVarY
 
-        X = np.empty((n, m), dtype=np.int64)
+        X = np.empty((n, m), dtype=int)
         numVarX = 0
         for i in range(n):
             for j in range(m):
                 numVarX += 1
                 X[i, j] = numVarY + numVarX
 
-        B = np.empty((m, m, 2, 2), dtype=np.int64)
+        B = np.empty((m, m, 2, 2), dtype=int)
         numVarB = 0
         for p in range(m):
             for q in range(m):
@@ -147,22 +147,22 @@ class SemiDynamicCSPBounding(BoundingAlgAbstract):
         for i in range(n):
             for j in range(m):
                 if subMatrix[i, j] == 0:
-                    rc2.add_clause([-X[i, j]], weight=fnWeight)
-                    rc2.add_clause([-X[i, j], Y[i, j]])
-                    rc2.add_clause([X[i, j], -Y[i, j]])
+                    wcnf.append([-X[i, j].item()], weight=fnWeight)
+                    wcnf.append([-X[i, j].item(), Y[i, j].item()])
+                    wcnf.append([X[i, j].item(), -Y[i, j].item()])
                 elif subMatrix[i, j] == 1:
-                    rc2.add_clause([-X[i, j]], weight=fpWeight)
-                    rc2.add_clause([X[i, j], Y[i, j]])
-                    rc2.add_clause([-X[i, j], -Y[i, j]])
+                    wcnf.append([-X[i, j].item()], weight=fpWeight)
+                    wcnf.append([X[i, j].item(), Y[i, j].item()])
+                    wcnf.append([-X[i, j].item(), -Y[i, j].item()])
 
         for i in range(n):
             for p in range(m):
                 for q in range(p, m):
-                    rc2.add_clause([-Y[i, p], -Y[i, q], B[p, q, 1, 1]])
-                    rc2.add_clause([Y[i, p], -Y[i, q], B[p, q, 0, 1]])
-                    rc2.add_clause([-Y[i, p], Y[i, q], B[p, q, 1, 0]])
-                    rc2.add_clause([-B[p, q, 0, 1], -B[p, q, 1, 0], -B[p, q, 1, 1]])
-        return rc2, Y
+                    wcnf.append([-Y[i, p].item(), -Y[i, q].item(), B[p, q, 1, 1].item()])
+                    wcnf.append([Y[i, p].item(), -Y[i, q].item(), B[p, q, 0, 1].item()])
+                    wcnf.append([-Y[i, p].item(), Y[i, q].item(), B[p, q, 1, 0].item()])
+                    wcnf.append([-B[p, q, 0, 1].item(), -B[p, q, 1, 0].item(), -B[p, q, 1, 1].item()])
+        return wcnf, Y
 
     def get_name(self):
         return type(self).__name__ + "_" + str(self.splitInto)
@@ -170,12 +170,11 @@ class SemiDynamicCSPBounding(BoundingAlgAbstract):
     def get_bound(self, delta):
         modelTime = time.time()
         cx = delta.tocoo()
-        print('-------------', cx.row, cx.col, cx.data)
+        # print('-------------', cx.row, cx.col, cx.data)
         models = []
         for model in self.models:
-            new_model = copy.copy(model)
+            new_model = model.copy()
             models.append(new_model)
-            print(new_model)
         for i, j, v in zip(cx.row, cx.col, cx.data):
             whichBlock = -1
             indexInBlock = -1
@@ -184,7 +183,7 @@ class SemiDynamicCSPBounding(BoundingAlgAbstract):
                     whichBlock = k
                     indexInBlock = self.blockIndices[k].index(j)
                     break
-            models[whichBlock].add_clause([self.yVars[whichBlock][i, indexInBlock]])
+            models[whichBlock].append([self.yVars[whichBlock][i, indexInBlock].item()])
         modelTime = time.time() - modelTime
         self.times["modelPreperationTime"] += modelTime
 
@@ -192,8 +191,8 @@ class SemiDynamicCSPBounding(BoundingAlgAbstract):
         optTime = time.time()
         for j in range(self.splitInto):
             model = models[j]
-            print(model)
-            variables = model.compute()
+            rc2 = RC2(model)
+            variables = rc2.compute()
             m = len(self.blockIndices[j])
             bound += sum(i > 0 for i in variables[self.n * m : 2 * self.n * m])
         optTime = time.time() - optTime
@@ -220,18 +219,20 @@ if __name__ == "__main__":
     )
     delta = sp.lil_matrix((noisy.shape), dtype=int)
 
-    algo = StaticCSPBounding(4)
-    algo.reset(noisy)
-    print(algo.get_bound(delta))
+    algo1 = StaticCSPBounding(4)
+    algo1.reset(noisy)
+    print(algo1.get_bound(delta))
 
-    algo = SemiDynamicCSPBounding(4)
-    algo.reset(noisy)
-    print(algo.get_bound(delta))
-    print(algo.times)
+    algo2 = SemiDynamicCSPBounding(4)
+    algo2.reset(noisy)
+    print(algo2.get_bound(delta))
+    print(algo2.times)
 
     delta[0, 0] = 1
-    print(algo.get_bound(delta))
+    print(algo2.get_bound(delta))
     delta[0, 5] = 1
-    print(algo.get_bound(delta))
+    print(algo2.get_bound(delta))
     delta[0, 9] = 1
-    print(algo.get_bound(delta))
+    print(algo2.get_bound(delta))
+
+    print(algo1.get_bound(delta))
