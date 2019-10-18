@@ -17,7 +17,7 @@ parser.add_argument("-n", dest="n", type=int, default=None)
 parser.add_argument("-m", dest="m", type=int, default=None)
 parser.add_argument("-i", dest="i", type=int, default=1)
 parser.add_argument("-s", "--source_type", dest="source_type", type=int, default=0)
-parser.add_argument("-k", dest="k", type=float, default=0.1)
+parser.add_argument("-k", dest="k", type=float, default=None)
 parser.add_argument("--instance_index", type=int, default=0)
 parser.add_argument("--print_rows", action="store_true", default=False)
 parser.add_argument("--print_results", action="store_true", default=False)
@@ -98,6 +98,21 @@ if __name__ == "__main__":
     print(f"{script_name} starts here")
     print(args)
     methods = [
+        # ("BnB", HybridBounding(
+        #     firstBounding=SemiDynamicLPBounding(),
+        #     secondBounding=DynamicMWMBounding(),
+        #     ratioNFlips=5,
+        # )),
+        # ("BnB", HybridBounding(
+        #     firstBounding=SemiDynamicLPBounding(),
+        #     secondBounding=DynamicMWMBounding(),
+        #     ratioNFlips=10,
+        # )),
+        # ("BnB", HybridBounding(
+        #     firstBounding=SemiDynamicLPBounding(),
+        #     secondBounding=DynamicMWMBounding(),
+        #     ratioNFlips=15,
+        # )),
         # # (PhISCS_B_external, None),
         (PhISCS_I, None),
         (PhISCS_B, None),
@@ -159,7 +174,7 @@ if __name__ == "__main__":
         # ("BnB", DynamicMWMBounding(ascending_order=True)),
         ("BnB", DynamicMWMBounding(ascending_order=False)),
         # ("BnB", StaticMWMBounding(ascending_order=True)),
-        ("BnB", StaticMWMBounding(ascending_order=False)),
+        # ("BnB", StaticMWMBounding(ascending_order=False)),
         # ("OldBnB", lb_max_weight_matching),
         # ("OldBnB", lb_lp_ortools),
         # ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True)),
@@ -185,16 +200,20 @@ if __name__ == "__main__":
     # n: number of Cells
     # m: number of Mutations
 
+
+    if args.k is None:
+        k_list = [0.1, ]
+    else:
+        k_list = [args.k]
     if args.n is None or args.m is None:  # if n and m not given use our looping
         # 20, 30 , 40, 50, 60, 70, 80, 90, 40, 80, 100, 120, 160
-        iterList = itertools.product(range(5, 21), range(5, 21), list(range(10)), list(range(len(methods))))  # n  # m  # i
+        iterList = itertools.product(range(5, 21), range(5, 21), k_list, list(range(10)), list(range(len(methods))))  # n  # m  # i
     else:
-        iterList = itertools.product([args.n], [args.m], list(range(args.i)), list(range(len(methods))))
+        iterList = itertools.product([args.n], [args.m], k_list, list(range(args.i)), list(range(len(methods))))
 
     iterList = list(iterList)
     x, x_hash = None, None
-    k = args.k
-    for n, m, i, methodInd in tqdm(iterList):
+    for n, m, k, i, methodInd in tqdm(iterList):
         if m is None:
             m = n
         if methodInd == 0:  # make new Input
