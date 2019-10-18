@@ -171,7 +171,7 @@ if __name__ == "__main__":
         # ("BnB", RandomPartitioning(ascendingOrder=False)),
         # ("OldBnB", lb_max_weight_matching),
         # ("BnB", SemiDynamicCSPBounding(splitInto=2)),
-        # ("BnB", DynamicMWMBounding(ascending_order=True)),
+        ("BnB", DynamicMWMBounding(ascending_order=True)),
         ("BnB", DynamicMWMBounding(ascending_order=False)),
         # ("BnB", StaticMWMBounding(ascending_order=True)),
         # ("BnB", StaticMWMBounding(ascending_order=False)),
