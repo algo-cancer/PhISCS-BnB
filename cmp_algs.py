@@ -8,6 +8,24 @@ from general_BnB import *
 from Boundings.CSP import *
 from Boundings.Hybrid import *
 from argparse import ArgumentParser
+try:
+    from input import *
+except:
+    methods = [
+    (PhISCS_I, None),
+    (PhISCS_B, None),
+    (
+        "BnB",
+        SemiDynamicLPBounding(
+            ratio=None,
+            continuous=True,
+            tool="Gurobi",
+            priority_sign=-1,
+            change_bound_method=True,
+        ),
+    ),
+    ]
+
 
 assert __name__ == "__main__"
 
@@ -97,105 +115,6 @@ if __name__ == "__main__":
     script_name = os.path.basename(__file__).split(".")[0]
     print(f"{script_name} starts here")
     print(args)
-    methods = [
-        # ("BnB", HybridBounding(
-        #     firstBounding=SemiDynamicLPBounding(),
-        #     secondBounding=DynamicMWMBounding(),
-        #     ratioNFlips=5,
-        # )),
-        # ("BnB", HybridBounding(
-        #     firstBounding=SemiDynamicLPBounding(),
-        #     secondBounding=DynamicMWMBounding(),
-        #     ratioNFlips=10,
-        # )),
-        # ("BnB", HybridBounding(
-        #     firstBounding=SemiDynamicLPBounding(),
-        #     secondBounding=DynamicMWMBounding(),
-        #     ratioNFlips=15,
-        # )),
-        # # (PhISCS_B_external, None),
-        (PhISCS_I, None),
-        (PhISCS_B, None),
-        # ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True)),
-        # ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True, tool = "Gurobi", prioritySign = 1)),
-        # ("OldBnB", lb_lp_gurobi),
-        (
-            "BnB",
-            SemiDynamicLPBounding(
-                ratio=None,
-                continuous=True,
-                tool="Gurobi",
-                priority_sign=-1,
-                change_bound_method=True,
-            ),
-        ),
-        # (
-        #     "BnB",
-        #     SemiDynamicLPBounding(
-        #         ratio=None,
-        #         continuous=True,
-        #         tool="Gurobi",
-        #         priority_sign=-1,
-        #         change_bound_method=False,
-        #         for_loop_constrs=True,
-        #     ),
-        # ),
-        # (
-        #     "BnB",
-        #     SemiDynamicLPBounding(
-        #         ratio=None,
-        #         continuous=True,
-        #         tool="Gurobi",
-        #         priority_sign=-1,
-        #         change_bound_method=False,
-        #         for_loop_constrs=False,
-        #     ),
-        # ),
-        # ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True, tool = "Gurobi", prioritySign = -1)),
-        # ("BnB", SemiDynamicLPBoundingBoundChange(ratio=None, continuous = True, tool = "Gurobi", prioritySign = -1)),
-        # ("BnB", SemiDynamicLPBounding(ratio=None, continuous=True, tool="Gurobi", priority_sign=-1)),
-        # ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True, tool = "Gurobi", prioritySign = -1)),
-        # ("OldBnB", lb_lp_gurobi),
-        # ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True, tool = "Gurobi", prioritySign = -1)),
-        # ("OldBnB", lb_lp_gurobi),
-        # ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True, tool = "Gurobi", prioritySign = 1)),
-        # ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True, tool = "Gurobi", prioritySign = -1)),
-        # ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True, tool = "ORTools")),
-        # ("OldBnB", lb_lp_ortools),
-        # ("BnB", SemiDynamicLPBounding(ratio=0.8, continuous = True)),
-        # ("BnB", SemiDynamicLPBounding(ratio=0.7, continuous = True)),
-        # ("BnB", SemiDynamicLPBounding(ratio=0.5, continuous = True)),
-        # ("BnB", SemiDynamicLPBounding(ratio=None, continuous = False)),
-        # ("BnB", StaticLPBounding(ratio = None, continuous = True)),
-        # ("BnB", RandomPartitioning(ascendingOrder=True)),
-        # ("BnB", RandomPartitioning(ascendingOrder=False)),
-        # ("OldBnB", lb_max_weight_matching),
-        ("BnB", SemiDynamicCSPBounding(splitInto=2)),
-        # ("BnB", DynamicMWMBounding(ascending_order=True)),
-        # ("BnB", DynamicMWMBounding(ascending_order=False)),
-        # ("BnB", StaticMWMBounding(ascending_order=True)),
-        # ("BnB", StaticMWMBounding(ascending_order=False)),
-        # ("OldBnB", lb_max_weight_matching),
-        # ("OldBnB", lb_lp_ortools),
-        # ("BnB", SemiDynamicLPBounding(ratio=None, continuous = True)),
-        # ("OldBnB", lb_phiscs_b),
-        # ("OldBnB", lb_openwbo),
-        # ("OldBnB", lb_gurobi),
-        # ("OldBnB", lb_greedy),
-        # ("OldBnB", lb_random),
-        # ("BnB", RandomPartitioning(ascending_order=True)),
-        # ("BnB", RandomPartitioning(ascending_order=False)),
-        # ("BnB", StaticMWMBounding(ascendingOrder=True)),
-        # ("BnB", StaticMWMBounding(ascendingOrder=False)),
-        # ("BnB", NaiveBounding()),
-        # ("BnB", StaticCSPBounding(splitInto = 2)),
-        # ("BnB", StaticCSPBounding(splitInto = 3)),
-        # ("BnB", StaticCSPBounding(splitInto = 4)),
-        # ("BnB", StaticCSPBounding(splitInto = 5)),
-        # ("BnB", HybridBounding(firstBounding=SemiDynamicLPBounding(ratio=None, continuous=True, tool="Gurobi", prioritySign=-1),
-        #                        secondBounding=DynamicMWMBounding(ascendingOrder=False),
-        #                        ratioNFlips=10)),
-    ]
     df = pd.DataFrame(columns=["hash", "n", "m", "n_flips", "method", "runtime"])
     # n: number of Cells
     # m: number of Mutations
