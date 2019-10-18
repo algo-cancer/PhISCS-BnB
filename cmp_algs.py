@@ -9,8 +9,8 @@ from Boundings.CSP import *
 from Boundings.Hybrid import *
 from argparse import ArgumentParser
 try:
-    from input import *
-except:
+    from input import methods
+except ModuleNotFoundError as e:
     methods = [
     (PhISCS_I, None),
     (PhISCS_B, None),
@@ -25,7 +25,8 @@ except:
         ),
     ),
     ]
-
+finally:
+    print(f"{len(methods)} number of methods are chosen.")
 
 assert __name__ == "__main__"
 
