@@ -57,11 +57,11 @@ def PhISCS_B_helper(matrix):
 
 
 class StaticCSPBounding(BoundingAlgAbstract):
-    def __init__(self, splitInto=2):
+    def __init__(self, split_into=2):
         self.matrix = None
         self.n = None
         self.m = None
-        self.splitInto = splitInto
+        self.split_into = split_into
 
     def reset(self, matrix):
         self.matrix = matrix
@@ -69,50 +69,50 @@ class StaticCSPBounding(BoundingAlgAbstract):
         self.m = self.matrix.shape[1]
 
     def get_name(self):
-        return type(self).__name__ + "_" + str(self.splitInto)
+        return type(self).__name__ + "_" + str(self.split_into)
 
     def get_bound(self, delta):
         # https://stackoverflow.com/questions/16856788/slice-2d-array-into-smaller-2d-arrays
         bound = 0
         I = np.array(self.matrix + delta)
-        blocks = np.array_split(I, self.splitInto, axis=1)
+        blocks = np.array_split(I, self.split_into, axis=1)
         for block in blocks:
             bound += PhISCS_B_helper(block)
         return bound + delta.count_nonzero()
 
 
-class SemiDynamicCSPBounding(BoundingAlgAbstract):
-    def __init__(self, splitInto=2):
+class SemiDynamicWCNFCSPBounding(BoundingAlgAbstract):
+    def __init__(self, split_into=2):
         self.matrix = None
         self.n = None
         self.m = None
         self.times = None
-        self.blockIndices = None
-        self.splitInto = splitInto
+        self.block_indices = None
+        self.split_into = split_into
         self.models = []
         self.yVars = []
 
     def reset(self, matrix):
         self.matrix = matrix
-        self.times = {"modelPreperationTime": 0, "optimizationTime": 0}
+        self.times = {"model_preperation_time": 0, "optimization_time": 0}
         self.n = self.matrix.shape[0]
         self.m = self.matrix.shape[1]
-        self.blockIndices = [list(x) for x in np.array_split(range(self.m), self.splitInto)]
-        modelTime = time.time()
+        self.block_indices = [list(x) for x in np.array_split(range(self.m), self.split_into)]
+        model_time = time.time()
         for block in self._get_blocks(self.matrix):
             model, yVar = self._make_model(block)
             self.models.append(model)
             self.yVars.append(yVar)
-        modelTime = time.time() - modelTime
-        self.times["modelPreperationTime"] += modelTime
-        # optTime = time.time()
+        model_time = time.time() - model_time
+        self.times["model_preperation_time"] += model_time
+        # opt_time = time.time()
         # for model in self.models:
         #     variables = model.compute()
-        # optTime = time.time() - optTime
-        # self.times["optimizationTime"] += optTime
+        # opt_time = time.time() - opt_time
+        # self.times["optimization_time"] += opt_time
 
     def _get_blocks(self, I):
-        return [I[:, i] for i in self.blockIndices]
+        return [I[:, i] for i in self.block_indices]
 
     def _make_model(self, subMatrix):
         wcnf = WCNF()
@@ -165,10 +165,10 @@ class SemiDynamicCSPBounding(BoundingAlgAbstract):
         return wcnf, Y
 
     def get_name(self):
-        return type(self).__name__ + "_" + str(self.splitInto)
+        return type(self).__name__ + "_" + str(self.split_into)
 
     def get_bound(self, delta):
-        modelTime = time.time()
+        model_time = time.time()
         cx = delta.tocoo()
         # print('-------------', cx.row, cx.col, cx.data)
         models = []
@@ -178,25 +178,145 @@ class SemiDynamicCSPBounding(BoundingAlgAbstract):
         for i, j, v in zip(cx.row, cx.col, cx.data):
             whichBlock = -1
             indexInBlock = -1
-            for k in range(self.splitInto):
-                if j in self.blockIndices[k]:
+            for k in range(self.split_into):
+                if j in self.block_indices[k]:
                     whichBlock = k
-                    indexInBlock = self.blockIndices[k].index(j)
+                    indexInBlock = self.block_indices[k].index(j)
                     break
             models[whichBlock].append([self.yVars[whichBlock][i, indexInBlock].item()])
-        modelTime = time.time() - modelTime
-        self.times["modelPreperationTime"] += modelTime
+        model_time = time.time() - model_time
+        self.times["model_preperation_time"] += model_time
 
         bound = 0
-        optTime = time.time()
-        for j in range(self.splitInto):
+        opt_time = time.time()
+        for j in range(self.split_into):
             model = models[j]
             rc2 = RC2(model)
             variables = rc2.compute()
-            m = len(self.blockIndices[j])
+            m = len(self.block_indices[j])
             bound += sum(i > 0 for i in variables[self.n * m : 2 * self.n * m])
-        optTime = time.time() - optTime
-        self.times["optimizationTime"] += optTime
+        opt_time = time.time() - opt_time
+        self.times["optimization_time"] += opt_time
+        return bound
+
+
+class SemiDynamicRC2CSPBounding(BoundingAlgAbstract):
+    def __init__(self, split_into=2):
+        self.matrix = None
+        self.n = None
+        self.m = None
+        self.times = None
+        self.block_indices = None
+        self.split_into = split_into
+        self.models = []
+        self.yVars = []
+
+    def reset(self, matrix):
+        self.matrix = matrix
+        self.times = {"model_preperation_time": 0, "optimization_time": 0}
+        self.n = self.matrix.shape[0]
+        self.m = self.matrix.shape[1]
+        self.block_indices = [list(x) for x in np.array_split(range(self.m), self.split_into)]
+        model_time = time.time()
+        for block in self._get_blocks(self.matrix):
+            model, yVar = self._make_model(block)
+            self.models.append(model)
+            self.yVars.append(yVar)
+        model_time = time.time() - model_time
+        self.times["model_preperation_time"] += model_time
+        # opt_time = time.time()
+        # for model in self.models:
+        #     variables = model.compute()
+        # opt_time = time.time() - opt_time
+        # self.times["optimization_time"] += opt_time
+
+    def _get_blocks(self, I):
+        return [I[:, i] for i in self.block_indices]
+
+    def _make_model(self, subMatrix):
+        rc2 = RC2(WCNF())
+        n = subMatrix.shape[0]
+        m = subMatrix.shape[1]
+        fnWeight = 1
+        fpWeight = 10
+
+        Y = np.empty((n, m), dtype=np.int64)
+        numVarY = 0
+        for i in range(n):
+            for j in range(m):
+                numVarY += 1
+                Y[i, j] = numVarY
+
+        X = np.empty((n, m), dtype=np.int64)
+        numVarX = 0
+        for i in range(n):
+            for j in range(m):
+                numVarX += 1
+                X[i, j] = numVarY + numVarX
+
+        B = np.empty((m, m, 2, 2), dtype=np.int64)
+        numVarB = 0
+        for p in range(m):
+            for q in range(m):
+                for i in range(2):
+                    for j in range(2):
+                        numVarB += 1
+                        B[p, q, i, j] = numVarY + numVarX + numVarB
+
+        for i in range(n):
+            for j in range(m):
+                if subMatrix[i, j] == 0:
+                    rc2.add_clause([-X[i, j]], weight=fnWeight)
+                    rc2.add_clause([-X[i, j], Y[i, j]])
+                    rc2.add_clause([X[i, j], -Y[i, j]])
+                elif subMatrix[i, j] == 1:
+                    rc2.add_clause([-X[i, j]], weight=fpWeight)
+                    rc2.add_clause([X[i, j], Y[i, j]])
+                    rc2.add_clause([-X[i, j], -Y[i, j]])
+
+        for i in range(n):
+            for p in range(m):
+                for q in range(p, m):
+                    rc2.add_clause([-Y[i, p], -Y[i, q], B[p, q, 1, 1]])
+                    rc2.add_clause([Y[i, p], -Y[i, q], B[p, q, 0, 1]])
+                    rc2.add_clause([-Y[i, p], Y[i, q], B[p, q, 1, 0]])
+                    rc2.add_clause([-B[p, q, 0, 1], -B[p, q, 1, 0], -B[p, q, 1, 1]])
+        return rc2, Y
+
+    def get_name(self):
+        return type(self).__name__ + "_" + str(self.split_into)
+
+    def get_bound(self, delta):
+        model_time = time.time()
+        cx = delta.tocoo()
+        print("-------------", cx.row, cx.col, cx.data)
+        models = []
+        for model in self.models:
+            new_model = copy.copy(model)
+            models.append(new_model)
+            print(new_model)
+        for i, j, v in zip(cx.row, cx.col, cx.data):
+            whichBlock = -1
+            indexInBlock = -1
+            for k in range(self.split_into):
+                if j in self.block_indices[k]:
+                    whichBlock = k
+                    indexInBlock = self.block_indices[k].index(j)
+                    break
+            models[whichBlock].add_clause([self.yVars[whichBlock][i, indexInBlock]])
+        model_time = time.time() - model_time
+        self.times["model_preperation_time"] += model_time
+
+        bound = 0
+        opt_time = time.time()
+        for j in range(self.split_into):
+            model = models[j]
+            print(model)
+            variables = model.compute()
+            m = len(self.block_indices[j])
+            bound += sum(i > 0 for i in variables[self.n * m : 2 * self.n * m])
+        opt_time = time.time() - opt_time
+        self.times["optimization_time"] += opt_time
         return bound
 
 
@@ -223,7 +343,7 @@ if __name__ == "__main__":
     algo1.reset(noisy)
     print(algo1.get_bound(delta))
 
-    algo2 = SemiDynamicCSPBounding(4)
+    algo2 = SemiDynamicRC2CSPBounding(4)
     algo2.reset(noisy)
     print(algo2.get_bound(delta))
     print(algo2.times)

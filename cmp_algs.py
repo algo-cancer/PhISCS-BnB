@@ -8,22 +8,19 @@ from general_BnB import *
 from Boundings.CSP import *
 from Boundings.Hybrid import *
 from argparse import ArgumentParser
+
 try:
     from input import methods
 except ModuleNotFoundError as e:
     methods = [
-    (PhISCS_I, None),
-    (PhISCS_B, None),
-    (
-        "BnB",
-        SemiDynamicLPBounding(
-            ratio=None,
-            continuous=True,
-            tool="Gurobi",
-            priority_sign=-1,
-            change_bound_method=True,
+        (PhISCS_I, None),
+        (PhISCS_B, None),
+        (
+            "BnB",
+            SemiDynamicLPBounding(
+                ratio=None, continuous=True, tool="Gurobi", priority_sign=-1, change_bound_method=True
+            ),
         ),
-    ),
     ]
 finally:
     print(f"{len(methods)} number of methods are chosen.")
@@ -120,14 +117,15 @@ if __name__ == "__main__":
     # n: number of Cells
     # m: number of Mutations
 
-
     if args.k is None:
-        k_list = [0.1, ]
+        k_list = [0.1]
     else:
         k_list = [args.k]
     if args.n is None or args.m is None:  # if n and m not given use our looping
         # 20, 30 , 40, 50, 60, 70, 80, 90, 40, 80, 100, 120, 160
-        iterList = itertools.product(range(5, 21), range(5, 21), k_list, list(range(10)), list(range(len(methods))))  # n  # m  # i
+        iterList = itertools.product(
+            range(5, 21), range(5, 21), k_list, list(range(10)), list(range(len(methods)))
+        )  # n  # m  # i
     else:
         iterList = itertools.product([args.n], [args.m], k_list, list(range(args.i)), list(range(len(methods))))
 
@@ -182,7 +180,15 @@ if __name__ == "__main__":
             print(method_name)
             print("}}}}}}}}}} Error **********")
     if args.print_results:
-        summary_columns = ["method", "cf", "n_flips", "runtime", "n_nodes"]
+        summary_columns = [
+            "method",
+            "cf",
+            "n_flips",
+            "runtime",
+            "n_nodes",
+            "model_preparation_time",
+            "optimization_time",
+        ]
         summary_columns = (column for column in summary_columns if column in df.columns)
         print(df[summary_columns])
     if args.save_results:
