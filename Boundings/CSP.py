@@ -166,7 +166,7 @@ class SemiDynamicWCNFCSPBounding(BoundingAlgAbstract):
         cx = delta.tocoo()
         models = []
         for model in self.models:
-            new_model = model.copy()
+            new_model = copy.deepcopy(model)
             models.append(new_model)
         for i, j, v in zip(cx.row, cx.col, cx.data):
             whichBlock = -1
