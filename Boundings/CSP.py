@@ -94,7 +94,7 @@ class SemiDynamicWCNFCSPBounding(BoundingAlgAbstract):
 
     def reset(self, matrix):
         self.matrix = matrix
-        self.times = {"model_preperation_time": 0, "optimization_time": 0}
+        self.times = {"model_preparation_time": 0, "optimization_time": 0}
         self.n = self.matrix.shape[0]
         self.m = self.matrix.shape[1]
         self.block_indices = [list(x) for x in np.array_split(range(self.m), self.split_into)]
@@ -104,7 +104,7 @@ class SemiDynamicWCNFCSPBounding(BoundingAlgAbstract):
             self.models.append(model)
             self.yVars.append(yVar)
         model_time = time.time() - model_time
-        self.times["model_preperation_time"] += model_time
+        self.times["model_preparation_time"] += model_time
         # opt_time = time.time()
         # for model in self.models:
         #     variables = model.compute()
@@ -185,7 +185,7 @@ class SemiDynamicWCNFCSPBounding(BoundingAlgAbstract):
                     break
             models[whichBlock].append([self.yVars[whichBlock][i, indexInBlock].item()])
         model_time = time.time() - model_time
-        self.times["model_preperation_time"] += model_time
+        self.times["model_preparation_time"] += model_time
 
         bound = 0
         opt_time = time.time()
@@ -212,7 +212,7 @@ class SemiDynamicRC2CSPBounding(BoundingAlgAbstract):
 
     def reset(self, matrix):
         self.matrix = matrix
-        self.times = {"model_preperation_time": 0, "optimization_time": 0}
+        self.times = {"model_preparation_time": 0, "optimization_time": 0}
         self.n = self.matrix.shape[0]
         self.m = self.matrix.shape[1]
         self.block_indices = [list(x) for x in np.array_split(range(self.m), self.split_into)]
@@ -222,7 +222,7 @@ class SemiDynamicRC2CSPBounding(BoundingAlgAbstract):
             self.models.append(model)
             self.yVars.append(yVar)
         model_time = time.time() - model_time
-        self.times["model_preperation_time"] += model_time
+        self.times["model_preparation_time"] += model_time
         # opt_time = time.time()
         # for model in self.models:
         #     variables = model.compute()
@@ -288,12 +288,12 @@ class SemiDynamicRC2CSPBounding(BoundingAlgAbstract):
     def get_bound(self, delta):
         model_time = time.time()
         cx = delta.tocoo()
-        print("-------------", cx.row, cx.col, cx.data)
+        # print("-------------", cx.row, cx.col, cx.data)
         models = []
         for model in self.models:
             new_model = copy.copy(model)
             models.append(new_model)
-            print(new_model)
+            # print(new_model)
         for i, j, v in zip(cx.row, cx.col, cx.data):
             whichBlock = -1
             indexInBlock = -1
@@ -304,17 +304,16 @@ class SemiDynamicRC2CSPBounding(BoundingAlgAbstract):
                     break
             models[whichBlock].add_clause([self.yVars[whichBlock][i, indexInBlock]])
         model_time = time.time() - model_time
-        self.times["model_preperation_time"] += model_time
+        self.times["model_preparation_time"] += model_time
 
         bound = 0
         opt_time = time.time()
         for j in range(self.split_into):
             model = models[j]
-            print(model)
-            variables = model.compute()
-            print(model.cost)
-            m = len(self.block_indices[j])
-            bound += sum(i > 0 for i in variables[self.n * m : 2 * self.n * m])
+            # print(model)
+            model.compute()
+            # print(model.cost)
+            bound += model.cost
         opt_time = time.time() - opt_time
         self.times["optimization_time"] += opt_time
         return bound

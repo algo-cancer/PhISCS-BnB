@@ -4,9 +4,9 @@ from Utils.util import *
 from Utils.instances import *
 from Boundings.LP import *
 from Boundings.MWM import *
-from general_BnB import *
 from Boundings.CSP import *
 from Boundings.Hybrid import *
+from general_BnB import *
 from argparse import ArgumentParser
 
 try:
