@@ -17,6 +17,23 @@ def myPhISCS_I(x):
     return nf
 
 
+def get_a_coflict(D, p, q):
+    # todo: oneone is not important you can get rid of
+    oneone = None
+    zeroone = None
+    onezero = None
+    for r in range(D.shape[0]):
+        if D[r, p] == 1 and D[r, q] == 1:
+            oneone = r
+        if D[r, p] == 0 and D[r, q] == 1:
+            zeroone = r
+        if D[r, p] == 1 and D[r, q] == 0:
+            onezero = r
+        if oneone != None and zeroone != None and onezero != None:
+            return (p, q, oneone, zeroone, onezero)
+    return None
+
+
 def is_conflict_free_gusfield_and_get_two_columns_in_coflicts(I):
     def sort_bin(a):
         b = np.transpose(a)
@@ -64,6 +81,165 @@ def is_conflict_free_farid(D):
                 conflict_free = False
     return conflict_free
 
+
+def get_lower_bound_new(noisy, partition_randomly=False):
+    def get_important_pair_of_columns_in_conflict(D):
+        important_columns = defaultdict(lambda: 0)
+        for p in range(D.shape[1]):
+            for q in range(p + 1, D.shape[1]):
+                oneone = 0
+                zeroone = 0
+                onezero = 0
+                for r in range(D.shape[0]):
+                    if D[r, p] == 1 and D[r, q] == 1:
+                        oneone += 1
+                    if D[r, p] == 0 and D[r, q] == 1:
+                        zeroone += 1
+                    if D[r, p] == 1 and D[r, q] == 0:
+                        onezero += 1
+                ## greedy approach based on the number of conflicts in a pair of columns
+                # if oneone*zeroone*onezero > 0:
+                #     important_columns[(p,q)] += oneone*zeroone*onezero
+                ## greedy approach based on the min number of 01 or 10 in a pair of columns
+                if oneone > 0:
+                    important_columns[(p, q)] += min(zeroone, onezero)
+        return important_columns
+
+    def get_partition_sophisticated(D):
+        ipofic = get_important_pair_of_columns_in_conflict(D)
+        if len(ipofic) == 0:
+            return []
+        sorted_ipofic = sorted(ipofic.items(), key=operator.itemgetter(1), reverse=True)
+        pairs = [sorted_ipofic[0][0]]
+        elements = [sorted_ipofic[0][0][0], sorted_ipofic[0][0][1]]
+        sorted_ipofic.remove(sorted_ipofic[0])
+        for x in sorted_ipofic[:]:
+            notFound = True
+            for y in x[0]:
+                if y in elements:
+                    sorted_ipofic.remove(x)
+                    notFound = False
+                    break
+            if notFound:
+                pairs.append(x[0])
+                elements.append(x[0][0])
+                elements.append(x[0][1])
+        # print(sorted_ipofic, pairs, elements)
+        partitions = []
+        for x in pairs:
+            partitions.append(D[:, x])
+        return partitions
+
+    def get_partition_random(D):
+        d = int(D.shape[1] / 2)
+        partitions_id = np.random.choice(range(D.shape[1]), size=(d, 2), replace=False)
+        partitions = []
+        for x in partitions_id:
+            partitions.append(D[:, x])
+        return partitions
+
+    def get_lower_bound_for_a_pair_of_columns(D):
+        foundOneOne = False
+        numberOfZeroOne = 0
+        numberOfOneZero = 0
+        for r in range(D.shape[0]):
+            if D[r, 0] == 1 and D[r, 1] == 1:
+                foundOneOne = True
+            if D[r, 0] == 0 and D[r, 1] == 1:
+                numberOfZeroOne += 1
+            if D[r, 0] == 1 and D[r, 1] == 0:
+                numberOfOneZero += 1
+        if foundOneOne:
+            if numberOfZeroOne * numberOfOneZero > 0:
+                return min(numberOfZeroOne, numberOfOneZero)
+        return 0
+
+    LB = []
+    if partition_randomly:
+        partitions = get_partition_random(noisy)
+    else:
+        partitions = get_partition_sophisticated(noisy)
+    for D in partitions:
+        LB.append(get_lower_bound_for_a_pair_of_columns(D))
+    return sum(LB)
+
+
+def get_lower_bound(noisy, partition_randomly=False):
+    def get_important_pair_of_columns_in_conflict(D):
+        important_columns = defaultdict(lambda: 0)
+        for p in range(D.shape[1]):
+            for q in range(p + 1, D.shape[1]):
+                oneone = 0
+                zeroone = 0
+                onezero = 0
+                for r in range(D.shape[0]):
+                    if D[r, p] == 1 and D[r, q] == 1:
+                        oneone += 1
+                    if D[r, p] == 0 and D[r, q] == 1:
+                        zeroone += 1
+                    if D[r, p] == 1 and D[r, q] == 0:
+                        onezero += 1
+                if oneone * zeroone * onezero > 0:
+                    important_columns[(p, q)] += oneone * zeroone * onezero
+        return important_columns
+
+    def get_partition_sophisticated(D):
+        ipofic = get_important_pair_of_columns_in_conflict(D)
+        if len(ipofic) == 0:
+            return []
+        sorted_ipofic = sorted(ipofic.items(), key=operator.itemgetter(1), reverse=True)
+        pairs = [sorted_ipofic[0][0]]
+        elements = [sorted_ipofic[0][0][0], sorted_ipofic[0][0][1]]
+        sorted_ipofic.remove(sorted_ipofic[0])
+        for x in sorted_ipofic[:]:
+            notFound = True
+            for y in x[0]:
+                if y in elements:
+                    sorted_ipofic.remove(x)
+                    notFound = False
+                    break
+            if notFound:
+                pairs.append(x[0])
+                elements.append(x[0][0])
+                elements.append(x[0][1])
+        # print(sorted_ipofic, pairs, elements)
+        partitions = []
+        for x in pairs:
+            partitions.append(D[:, x])
+        return partitions
+
+    def get_partition_random(D):
+        d = int(D.shape[1] / 2)
+        partitions_id = np.random.choice(range(D.shape[1]), size=(d, 2), replace=False)
+        partitions = []
+        for x in partitions_id:
+            partitions.append(D[:, x])
+        return partitions
+
+    def get_lower_bound_for_a_pair_of_columns(D):
+        foundOneOne = False
+        numberOfZeroOne = 0
+        numberOfOneZero = 0
+        for r in range(D.shape[0]):
+            if D[r, 0] == 1 and D[r, 1] == 1:
+                foundOneOne = True
+            if D[r, 0] == 0 and D[r, 1] == 1:
+                numberOfZeroOne += 1
+            if D[r, 0] == 1 and D[r, 1] == 0:
+                numberOfOneZero += 1
+        if foundOneOne:
+            if numberOfZeroOne * numberOfOneZero > 0:
+                return min(numberOfZeroOne, numberOfOneZero)
+        return 0
+
+    LB = []
+    if partition_randomly:
+        partitions = get_partition_random(noisy)
+    else:
+        partitions = get_partition_sophisticated(noisy)
+    for D in partitions:
+        LB.append(get_lower_bound_for_a_pair_of_columns(D))
+    return sum(LB)
 
 def get_data(n, m, seed, fn, fp, na, ms_path=ms_path):
     def make_noisy(data, fn, fp, na):
@@ -180,29 +356,22 @@ def PhISCS_I(I, beta, alpha):
             for m in range(numMutations):
                 Y[c, m] = model.addVar(vtype=GRB.BINARY, name="Y({0},{1})".format(c, m))
         B = {}
-        for p in range(numMutations + 1):
-            for q in range(numMutations + 1):
+        for p in range(numMutations):
+            for q in range(numMutations):
                 B[p, q, 1, 1] = model.addVar(vtype=GRB.BINARY, obj=0, name="B[{0},{1},1,1]".format(p, q))
                 B[p, q, 1, 0] = model.addVar(vtype=GRB.BINARY, obj=0, name="B[{0},{1},1,0]".format(p, q))
                 B[p, q, 0, 1] = model.addVar(vtype=GRB.BINARY, obj=0, name="B[{0},{1},0,1]".format(p, q))
-        K = {}
-        for m in range(numMutations + 1):
-            K[m] = model.addVar(vtype=GRB.BINARY, name="K[{0}]".format(m))
-        model.addConstr(K[numMutations] == 0)
         model.update()
 
-        model.addConstr(quicksum(K[m] for m in range(numMutations)) <= maxMutationsToEliminate)
         for i in range(numCells):
             for p in range(numMutations):
                 for q in range(numMutations):
                     model.addConstr(Y[i, p] + Y[i, q] - B[p, q, 1, 1] <= 1)
                     model.addConstr(-Y[i, p] + Y[i, q] - B[p, q, 0, 1] <= 0)
                     model.addConstr(Y[i, p] - Y[i, q] - B[p, q, 1, 0] <= 0)
-        for p in range(numMutations + 1):
-            model.addConstr(B[p, numMutations, 1, 0] == 0)
         for p in range(numMutations):
             for q in range(numMutations):
-                model.addConstr(B[p, q, 0, 1] + B[p, q, 1, 0] + B[p, q, 1, 1] <= 2 + K[p] + K[q])
+                model.addConstr(B[p, q, 0, 1] + B[p, q, 1, 0] + B[p, q, 1, 1] <= 2)
 
         objective = 0
         for j in range(numMutations):
@@ -218,7 +387,7 @@ def PhISCS_I(I, beta, alpha):
 
             objective += numZeros * np.log(1 - alpha)
             objective += numOnes * np.log(alpha)
-            objective -= K[j] * (numZeros * np.log(1 - alpha) + numOnes * (np.log(alpha) + np.log((1 - beta) / alpha)))
+            objective -= 0 * (numZeros * np.log(1 - alpha) + numOnes * (np.log(alpha) + np.log((1 - beta) / alpha)))
 
         model.setObjective(objective, GRB.MAXIMIZE)
         a = time.time()
@@ -226,19 +395,13 @@ def PhISCS_I(I, beta, alpha):
         b = time.time()
 
         if model.status == GRB.Status.INFEASIBLE:
-            print("The odel is infeasible.")
+            print("The model is infeasible.")
             exit(0)
-
-        removedMutsIDs = []
-        for j in range(numMutations):
-            sol_K.append(nearestInt(float(K[j].X)))
-            if sol_K[j] == 1:
-                removedMutsIDs.append(mutIDs[j])
 
         for i in range(numCells):
             sol_Y.append([nearestInt(float(Y[i, j].X)) for j in range(numMutations)])
 
-    return np.array(sol_Y), count_flips(I, sol_K, sol_Y), b - a
+    return np.array(sol_Y), count_flips(I, I.shape[1] * [0], sol_Y), b - a
 
 
 def PhISCS_B_external(matrix, beta=None, alpha=None, csp_solver_path=openwbo_path):

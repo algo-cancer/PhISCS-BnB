@@ -1,6 +1,6 @@
 from Utils.const import *
 from Utils.interfaces import *
-from Utils.ErfanFuncs import *
+from Utils.util import *
 from Boundings.LP import *
 from Boundings.MWM import *
 

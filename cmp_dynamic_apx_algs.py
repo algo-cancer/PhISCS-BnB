@@ -1,5 +1,4 @@
 from Utils.const import *
-from Utils.ErfanFuncs import *
 from Utils.util import *
 from Utils.interfaces import *
 import operator

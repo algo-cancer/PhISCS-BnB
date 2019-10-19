@@ -52,8 +52,8 @@ def PhISCS_B_helper(matrix):
                 rc2.add_clause([-Y[i, p], Y[i, q], B[p, q, 1, 0]])
                 rc2.add_clause([-B[p, q, 0, 1], -B[p, q, 1, 0], -B[p, q, 1, 1]])
 
-    variables = rc2.compute()
-    return sum(i > 0 for i in variables[n * m : 2 * n * m])
+    rc2.compute()
+    return rc2.cost
 
 
 class StaticCSPBounding(BoundingAlgAbstract):
@@ -192,9 +192,8 @@ class SemiDynamicWCNFCSPBounding(BoundingAlgAbstract):
         for j in range(self.split_into):
             model = models[j]
             rc2 = RC2(model)
-            variables = rc2.compute()
-            m = len(self.block_indices[j])
-            bound += sum(i > 0 for i in variables[self.n * m : 2 * self.n * m])
+            rc2.compute()
+            bound += rc2.cost
         opt_time = time.time() - opt_time
         self.times["optimization_time"] += opt_time
         return bound
@@ -313,6 +312,7 @@ class SemiDynamicRC2CSPBounding(BoundingAlgAbstract):
             model = models[j]
             print(model)
             variables = model.compute()
+            print(model.cost)
             m = len(self.block_indices[j])
             bound += sum(i > 0 for i in variables[self.n * m : 2 * self.n * m])
         opt_time = time.time() - opt_time
