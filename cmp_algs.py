@@ -193,7 +193,6 @@ if __name__ == "__main__":
         print(df[summary_columns])
     if args.save_results:
         now_time = time.strftime("%m-%d-%H-%M-%S", time.gmtime())
-        # csvFileName = f"{scriptName}_{nowTime}.csv"
         csv_file_name = f"{script_name}_{args.n},{args.m},{len(methods)}_{now_time}.csv"
         csv_path = os.path.join(output_folder_path, csv_file_name)
         df.to_csv(csv_path)

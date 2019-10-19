@@ -1,0 +1,1 @@
+python cmp_algs.py -n {1} -m {2} -i 100 -s 0 -k 0.3 --save_results -t 60
