@@ -176,13 +176,11 @@ class StaticLPBounding(BoundingAlgAbstract):
         num_cells = matrix.shape[0]
         num_mutations = matrix.shape[1]
         Y = {}
-        numOne = 0
         for c in range(num_cells):
             for m in range(num_mutations):
                 if matrix[c, m] == 0:
                     Y[c, m] = model.NumVar(0, 1, "Y({0},{1})".format(c, m))
                 elif matrix[c, m] == 1:
-                    numOne += 1
                     Y[c, m] = 1
         B = {}
         for p in range(num_mutations):
