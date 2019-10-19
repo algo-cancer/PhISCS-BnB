@@ -20,7 +20,7 @@ class HybridBounding(BoundingAlgAbstract):
 
     def get_name(self):
         return (
-            type(self).__name__ + f"_{self.firstBounding.get_name()}_{self.secondBounding.getName()}_{self.ratioNFlips}"
+            type(self).__name__ + f"_{self.firstBounding.get_name()}_{self.secondBounding.getـname()}_{self.ratioNFlips}"
         )
 
     def reset(self, matrix):
