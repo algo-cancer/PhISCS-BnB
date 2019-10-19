@@ -6,34 +6,35 @@ from . import MWM
 
 
 class HybridBounding(BoundingAlgAbstract):
-    def __init__(self, firstBounding=None, secondBounding=True, ratioNFlips=None):
+    def __init__(self, first_bounding=None, second_bounding=True, threshold_n_flips=None):
         """
-        :param firstBounding:
-        :param secondBounding:
-        :param ratioNFlips:
+        :param first_bounding:
+        :param second_bounding:
+        :param threshold_n_flips:
         """
         self.matrix = None
-        self.ratioNFlips = ratioNFlips
-        self.firstBounding = firstBounding
-        self.secondBounding = secondBounding
+        self.threshold_n_flips = threshold_n_flips
+        self.first_bounding = first_bounding
+        self.second_bounding = second_bounding
         self.times = None
 
     def get_name(self):
         return (
-            type(self).__name__ + f"_{self.firstBounding.get_name()}_{self.secondBounding.getـname()}_{self.ratioNFlips}"
+            type(self).__name__
+            + f"_{self.first_bounding.get_name()}_{self.second_bounding.getـname()}_{self.threshold_n_flips}"
         )
 
     def reset(self, matrix):
         self.times = {"modelPreperationTime": 0, "optimizationTime": 0}
-        self.firstBounding.reset(matrix)
-        self.secondBounding.reset(matrix)
+        self.first_bounding.reset(matrix)
+        self.second_bounding.reset(matrix)
 
     def get_bound(self, delta):
         flips = delta.count_nonzero()
-        if flips < self.ratioNFlips:
-            bound = self.firstBounding.get_bound(delta)
+        if flips < self.threshold_n_flips:
+            bound = self.first_bounding.get_bound(delta)
         else:
-            bound = self.secondBounding.getBound(delta)
+            bound = self.second_bounding.getBound(delta)
         return bound
 
 
@@ -46,7 +47,7 @@ if __name__ == "__main__":
 
     b1 = LP.SemiDynamicLPBounding(ratio=None, continuous=True)
     b2 = MWM.DynamicMWMBounding()
-    hybridBounding = HybridBounding(firstBounding=b1, secondBounding=b2, ratioNFlips=5)
+    hybridBounding = HybridBounding(first_bounding=b1, second_bounding=b2, threshold_n_flips=5)
     hybridBounding.reset(x)
     print(hybridBounding.get_bound(delta))
 
