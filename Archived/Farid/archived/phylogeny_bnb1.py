@@ -41,7 +41,7 @@ noisy = np.random.randint(2, size=(options.n, options.m))
 # ])
 # noisy = np.zeros((4,4))
 # ms_package_path = '/home/frashidi/software/bin/ms'
-# ground, noisy, (countFN,countFP,countNA) = get_data(n=30, m=15, seed=1, fn=0.20, fp=0, na=0, ms_package_path=ms_package_path)
+# ground, noisy, (countFN,countFP,countNA) = get_data_by_ms(n=30, m=15, seed=1, fn=0.20, fp=0, na=0, ms_package_path=ms_package_path)
 a = time.time()
 solution, (flips_0_1, flips_1_0, flips_2_0, flips_2_1) = PhISCS_I(noisy, beta=0.9, alpha=0.00000001)
 b = time.time()

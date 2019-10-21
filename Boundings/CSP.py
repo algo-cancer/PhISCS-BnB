@@ -284,7 +284,7 @@ class SemiDynamicRC2CSPBounding(BoundingAlgAbstract):
         # print("-------------", cx.row, cx.col, cx.data)
         models = []
         for model in self.models:
-            new_model = copy.deepcopy(model)
+            new_model = model.copy()
             models.append(new_model)
             # print(new_model)
         for i, j, v in zip(cx.row, cx.col, cx.data):

@@ -44,7 +44,7 @@ args = parser.parse_args()
 
 #########
 queue_strategy = "custom"
-source_type = ["RND", "MS", "FIXED"][args.source_type]
+source_type = ["RND", "MS", "FIXED", "SALEM"][args.source_type]
 noisy = instances[args.instance_index]
 
 
@@ -138,12 +138,21 @@ if __name__ == "__main__":
             if source_type == "RND":
                 x = np.random.randint(2, size=(n, m))
             elif source_type == "MS":
-                ground, noisy, (countFN, countFP, countNA) = get_data(
+                ground, noisy, (countFN, countFP, countNA) = get_data_by_ms(
                     n=n, m=m, seed=int(100 * time.time()) % 10000, fn=k, fp=0, na=0, ms_path=ms_path
                 )
                 x = noisy
             elif source_type == "FIXED":
                 x = noisy
+            elif source_type == "SALEM":
+                file = (
+                    simulation_folder_path
+                    + "simNo_2-s_10-m_40-h_1-minVAF_0.05-ISAV_0-n_100-fp_0.0001-fn_0.15-na_0.05-d_0-l_1000000.SC.before_FP_FN_NA"
+                )
+                df_sim = pd.read_csv(file, delimiter="\t", index_col=0)
+                df_sim = df_sim.iloc[: args.n, : args.m]
+                x, (countFN, countFP, countNA) = make_noisy(df_sim.values, fn=k, fp=0, na=0)
+                print(x, (countFN, countFP, countNA))
             else:
                 raise NotImplementedError("The method not implemented")
             x_hash = get_matrix_hash(x)
