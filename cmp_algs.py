@@ -44,7 +44,7 @@ args = parser.parse_args()
 
 #########
 queue_strategy = "custom"
-source_type = ["RND", "MS", "FIXED"][args.source_type]
+source_type = ["RND", "MS", "FIXED", "SALEM"][args.source_type]
 noisy = instances[args.instance_index]
 
 
@@ -138,12 +138,17 @@ if __name__ == "__main__":
             if source_type == "RND":
                 x = np.random.randint(2, size=(n, m))
             elif source_type == "MS":
-                ground, noisy, (countFN, countFP, countNA) = get_data(
+                ground, noisy, (countFN, countFP, countNA) = get_data_by_ms(
                     n=n, m=m, seed=int(100 * time.time()) % 10000, fn=k, fp=0, na=0, ms_path=ms_path
                 )
                 x = noisy
             elif source_type == "FIXED":
                 x = noisy
+            elif source_type == "SALEM":
+                file = simulation_folder_path + f"simNo_{i+1}-s_10-m_40-n_100.SC.ground"
+                df_sim = pd.read_csv(file, delimiter="\t", index_col=0)
+                df_sim = df_sim.iloc[: args.n, : args.m]
+                x, (countFN, countFP, countNA) = make_noisy(df_sim.values, fn=k, fp=0, na=0)
             else:
                 raise NotImplementedError("The method not implemented")
             x_hash = get_matrix_hash(x)
@@ -191,6 +196,7 @@ if __name__ == "__main__":
         ]
         summary_columns = (column for column in summary_columns if column in df.columns)
         print(df[summary_columns])
+        print(">>>", df.loc[0, "n_flips"], df.loc[1, "n_flips"], df.loc[0, "runtime"], df.loc[1, "optimization_time"])
     if args.save_results:
         now_time = time.strftime("%m-%d-%H-%M-%S", time.gmtime())
         csv_file_name = f"{script_name}_{args.n},{args.m},{len(methods)}_{now_time}.csv"

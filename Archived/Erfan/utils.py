@@ -54,7 +54,7 @@ def is_conflict_free_farid(D):
     return conflict_free
 
 
-def get_data(n, m, seed, fn, fp, na, ms_path):
+def get_data_by_ms(n, m, seed, fn, fp, na, ms_path):
     def make_noisy(data, fn, fp, na):
         n, m = data.shape
         data2 = -1*np.ones(shape=(n, m)).astype(int)
@@ -114,7 +114,7 @@ def get_data(n, m, seed, fn, fp, na, ms_path):
         if not is_conflict_free_farid(noisy):
             return ground, noisy, (countFN,countFP,countNA)
     else:
-        return get_data(n, m, seed+1, fn, fp, na, ms_path)
+        return get_data_by_ms(n, m, seed+1, fn, fp, na, ms_path)
 
 def count_flips(I, sol_K, sol_Y):
     flips_0_1 = 0

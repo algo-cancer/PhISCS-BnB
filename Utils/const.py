@@ -50,6 +50,7 @@ if user_name == "esadeqia":
     openwbo_path = "/home/esadeqia/external/openwbo"
     ms_path = "/home/esadeqia/external/ms"
     output_folder_path = "/home/esadeqia/PhISCS_BnB/reports/Erfan"
+    simulation_folder_path = "/home/esadeqia/Phylogeny_BnB/simulations/"
 elif user_name == "school":
     openwbo_path = None
     ms_path = None
@@ -58,6 +59,7 @@ elif user_name == "frashidi":
     openwbo_path = "/data/frashidi/Phylogeny_BnB/Archived/Farid/archived/openwbo"
     ms_path = "/home/frashidi/software/bin/ms"
     output_folder_path = "/data/frashidi/Phylogeny_BnB/reports"
+    simulation_folder_path = "/data/frashidi/Phylogeny_BnB/simulations/"
 else:
     print("User const not found!")
     exit(0)

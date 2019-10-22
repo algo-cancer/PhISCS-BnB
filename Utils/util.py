@@ -241,47 +241,53 @@ def get_lower_bound(noisy, partition_randomly=False):
         LB.append(get_lower_bound_for_a_pair_of_columns(D))
     return sum(LB)
 
-def get_data(n, m, seed, fn, fp, na, ms_path=ms_path):
-    def make_noisy(data, fn, fp, na):
-        n, m = data.shape
-        data2 = -1 * np.ones(shape=(n, m)).astype(int)
-        countFP = 0
-        countFN = 0
-        countNA = 0
-        countOneZero = 0
-        indexNA = []
-        changedBefore = []
-        for i in range(n):
-            for j in range(m):
-                indexNA.append([i, j])
-                countOneZero = countOneZero + 1
-        random.shuffle(indexNA)
-        nas = math.ceil(countOneZero * na)
-        for i in range(int(nas)):
-            [a, b] = indexNA[i]
-            changedBefore.append([a, b])
-            data2[a][b] = 2
-            countNA = countNA + 1
-        for i in range(n):
-            for j in range(m):
-                if data2[i][j] != 2:
-                    if data[i][j] == 1:
-                        if toss(fn):
-                            data2[i][j] = 0
-                            countFN = countFN + 1
-                        else:
-                            data2[i][j] = data[i][j]
-                    elif data[i][j] == 0:
-                        if toss(fp):
-                            data2[i][j] = 1
-                            countFP = countFP + 1
-                        else:
-                            data2[i][j] = data[i][j]
-        return data2, (countFN, countFP, countNA)
 
+def make_noisy(data, fn, fp, na):
     def toss(p):
         return True if np.random.random() < p else False
+    
+    if fn > 1:
+        fn = fn / np.count_nonzero(data == 0)
+        if fn > 1:
+            fn = 0.999
+    
+    n, m = data.shape
+    data2 = -1 * np.ones(shape=(n, m)).astype(int)
+    countFP = 0
+    countFN = 0
+    countNA = 0
+    countOneZero = 0
+    indexNA = []
+    changedBefore = []
+    for i in range(n):
+        for j in range(m):
+            indexNA.append([i, j])
+            countOneZero = countOneZero + 1
+    random.shuffle(indexNA)
+    nas = math.ceil(countOneZero * na)
+    for i in range(int(nas)):
+        [a, b] = indexNA[i]
+        changedBefore.append([a, b])
+        data2[a][b] = 2
+        countNA = countNA + 1
+    for i in range(n):
+        for j in range(m):
+            if data2[i][j] != 2:
+                if data[i][j] == 1:
+                    if toss(fn):
+                        data2[i][j] = 0
+                        countFN = countFN + 1
+                    else:
+                        data2[i][j] = data[i][j]
+                elif data[i][j] == 0:
+                    if toss(fp):
+                        data2[i][j] = 1
+                        countFP = countFP + 1
+                    else:
+                        data2[i][j] = data[i][j]
+    return data2, (countFN, countFP, countNA)
 
+def get_data_by_ms(n, m, seed, fn, fp, na, ms_path=ms_path):
     def build_ground_by_ms(n, m, seed):
         command = "{ms} {n} 1 -s {m} -seeds 7369 217 {r} | tail -n {n}".format(ms=ms_path, n=n, m=m, r=seed)
         result = os.popen(command).read()
@@ -297,15 +303,11 @@ def get_data(n, m, seed, fn, fp, na, ms_path=ms_path):
 
     ground = build_ground_by_ms(n, m, seed)
     if is_conflict_free_farid(ground):
-        if fn > 1:
-            fn = fn / np.count_nonzero(ground == 0)
-        if fn > 1:
-            fn = 0.999
         noisy, (countFN, countFP, countNA) = make_noisy(ground, fn, fp, na)
         if not is_conflict_free_farid(noisy):
             return ground, noisy, (countFN, countFP, countNA)
     else:
-        return get_data(n, m, seed + 1, fn, fp, na, ms_path)
+        return get_data_by_ms(n, m, seed + 1, fn, fp, na, ms_path)
 
 
 def count_flips(I, sol_K, sol_Y):
