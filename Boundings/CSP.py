@@ -284,7 +284,7 @@ class SemiDynamicRC2CSPBounding(BoundingAlgAbstract):
         # print("-------------", cx.row, cx.col, cx.data)
         models = []
         for model in self.models:
-            new_model = copy.deepcopy(model)
+            new_model = copy.copy(model)
             models.append(new_model)
             # print(new_model)
         for i, j, v in zip(cx.row, cx.col, cx.data):
@@ -338,12 +338,27 @@ if __name__ == "__main__":
     algo2 = SemiDynamicRC2CSPBounding(4)
     # algo2 = SemiDynamicWCNFCSPBounding(4)
     algo2.reset(noisy)
+    print("reset")
+    print(algo2.times)
+
+
+    for key in algo2.times:
+        algo2.times[key] = 0
+
+    print("getbound")
     print(algo2.get_bound(delta))
     print(algo2.times)
+
+    for key in algo2.times:
+        algo2.times[key] = 0
+
+    print("change getbound")
 
     delta[0, 0] = 1
     print(algo2.get_bound(delta))
     print(algo2.times)
+
+
     delta[0, 5] = 1
     print(algo2.get_bound(delta))
     print(algo2.times)
@@ -352,3 +367,19 @@ if __name__ == "__main__":
     print(algo2.times)
 
     print(algo1.get_bound(delta))
+
+
+    print("==============")
+    algo2 = SemiDynamicRC2CSPBounding(4)
+    # algo2 = SemiDynamicWCNFCSPBounding(4)
+    algo2.reset(noisy)
+    print("reset")
+    print(algo2.times)
+
+
+    for key in algo2.times:
+        algo2.times[key] = 0
+
+    print("getbound")
+    print(algo2.get_bound(delta))
+    print(algo2.times)
