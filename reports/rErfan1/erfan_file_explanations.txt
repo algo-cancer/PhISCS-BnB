@@ -1,3 +1,10 @@
+cmp_algs_200,200,3_10-23-04-40-18.csv
+comparison 200, 200 n,m and low ke between lp and ilp
+--------------------------------------------------------------
+cmp_algs_100,100,8_10-23-05-38-06.csv
+compare different rates of subsampling with no subsampling
+for big n and m and low k we get improvment over lp bounding but not over MWM.
+------------------------------------------------------------------
 compare_algorithms_18,18,3_10-17-19-17-38.csv
 
 PhISCS_B_external_
