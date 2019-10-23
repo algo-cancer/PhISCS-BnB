@@ -55,7 +55,7 @@ def is_conflict_free_farid(D):
 
 
 def get_data_by_ms(n, m, seed, fn, fp, na, ms_path):
-    def make_noisy(data, fn, fp, na):
+    def make_noisy_by_fn(data, fn, fp, na):
         n, m = data.shape
         data2 = -1*np.ones(shape=(n, m)).astype(int)
         countFP = 0
@@ -110,7 +110,7 @@ def get_data_by_ms(n, m, seed, fn, fp, na, ms_path):
     
     ground = build_ground_by_ms(n, m, seed)
     if is_conflict_free_farid(ground):
-        noisy, (countFN,countFP,countNA) = make_noisy(ground, fn, fp, na)
+        noisy, (countFN,countFP,countNA) = make_noisy_by_fn(ground, fn, fp, na)
         if not is_conflict_free_farid(noisy):
             return ground, noisy, (countFN,countFP,countNA)
     else:

@@ -9,6 +9,8 @@ from Boundings.Hybrid import *
 from general_BnB import *
 from argparse import ArgumentParser
 
+np.set_printoptions(threshold=sys.maxsize)
+
 try:
     from input import methods
 except ModuleNotFoundError as e:
@@ -91,7 +93,7 @@ def solve_with(name, bounding_algorithm, input_matrix):
             if arg in ["I", "matrix"]:
                 args_to_pass[arg] = input_matrix
             elif arg == "beta":
-                args_to_pass[arg] = 0.98
+                args_to_pass[arg] = 0.90
             elif arg == "alpha":
                 args_to_pass[arg] = 0.00001
             elif arg == "csp_solver_path":
@@ -148,7 +150,7 @@ if __name__ == "__main__":
                 file = simulation_folder_path + f"simNo_{i+1}-s_10-m_40-n_100.SC.ground"
                 df_sim = pd.read_csv(file, delimiter="\t", index_col=0)
                 df_sim = df_sim.iloc[: args.n, : args.m]
-                x, (countFN, countFP, countNA) = make_noisy(df_sim.values, fn=k, fp=0, na=0)
+                x = make_noisy_by_k(df_sim.values, int(k))
             else:
                 raise NotImplementedError("The method not implemented")
             x_hash = get_matrix_hash(x)
@@ -196,7 +198,7 @@ if __name__ == "__main__":
         ]
         summary_columns = (column for column in summary_columns if column in df.columns)
         print(df[summary_columns])
-        print(">>>", df.loc[0, "n_flips"], df.loc[1, "n_flips"], df.loc[0, "runtime"], df.loc[1, "optimization_time"])
+        # print(">>>", df.loc[0, "n_flips"], df.loc[1, "n_flips"], df.loc[0, "runtime"], df.loc[1, "optimization_time"])
     if args.save_results:
         now_time = time.strftime("%m-%d-%H-%M-%S", time.gmtime())
         csv_file_name = f"{script_name}_{args.n},{args.m},{len(methods)}_{now_time}.csv"

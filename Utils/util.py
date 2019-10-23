@@ -6,13 +6,13 @@ def get_matrix_hash(x):
 
 
 def myPhISCS_B(x):
-    solution, (f_0_1_b, f_1_0_b, f_2_0_b, f_2_1_b), cb_time = PhISCS_B(x, beta=0.90, alpha=0.00000001)
+    solution, (f_0_1_b, f_1_0_b, f_2_0_b, f_2_1_b), cb_time = PhISCS_B(x, beta=0.90, alpha=0.00001)
     nf = len(np.where(solution != x)[0])
     return nf
 
 
 def myPhISCS_I(x):
-    solution, (flips_0_1, flips_1_0, flips_2_0, flips_2_1), ci_time = PhISCS_I(x, beta=0.90, alpha=0.00000001)
+    solution, (flips_0_1, flips_1_0, flips_2_0, flips_2_1), ci_time = PhISCS_I(x, beta=0.90, alpha=0.00001)
     nf = len(np.where(solution != x)[0])
     return nf
 
@@ -242,7 +242,19 @@ def get_lower_bound(noisy, partition_randomly=False):
     return sum(LB)
 
 
-def make_noisy(data, fn, fp, na):
+def make_noisy_by_k(data, k):
+    data2 = data.copy()
+    n, m = np.where(data2 == 1)
+    assert k <= len(n), 'k is greater than the number of ones in the input matrix!'
+    s = np.random.choice(len(n), k, replace=False)
+    assert len(s) == k
+    for i in s:
+        assert data2[n[i], m[i]] == 1
+        data2[n[i], m[i]] = 0
+    return data2
+
+
+def make_noisy_by_fn(data, fn, fp, na):
     def toss(p):
         return True if np.random.random() < p else False
     
@@ -303,7 +315,7 @@ def get_data_by_ms(n, m, seed, fn, fp, na, ms_path=ms_path):
 
     ground = build_ground_by_ms(n, m, seed)
     if is_conflict_free_farid(ground):
-        noisy, (countFN, countFP, countNA) = make_noisy(ground, fn, fp, na)
+        noisy, (countFN, countFP, countNA) = make_noisy_by_fn(ground, fn, fp, na)
         if not is_conflict_free_farid(noisy):
             return ground, noisy, (countFN, countFP, countNA)
     else:
@@ -334,62 +346,59 @@ def PhISCS_I(I, beta, alpha):
     class HiddenPrints:
         def __enter__(self):
             self._original_stdout = sys.stdout
-            sys.stdout = open(os.devnull, "w")
+            sys.stdout = open(os.devnull, 'w')
 
         def __exit__(self, exc_type, exc_val, exc_tb):
             sys.stdout.close()
             sys.stdout = self._original_stdout
 
     def nearestInt(x):
-        return int(x + 0.5)
+        return int(x+0.5)
 
-    maxMutationsToEliminate = 0
     numCells, numMutations = I.shape
     sol_Y = []
-    sol_K = []
     with HiddenPrints():
-        model = Model("PhISCS_ILP")
-        model.Params.LogFile = ""
+        model = Model('PhISCS_ILP')
+        model.Params.LogFile = ''
         model.Params.Threads = 1
         # model.setParam('TimeLimit', 10*60)
 
         Y = {}
         for c in range(numCells):
             for m in range(numMutations):
-                Y[c, m] = model.addVar(vtype=GRB.BINARY, name="Y({0},{1})".format(c, m))
+                    Y[c, m] = model.addVar(vtype=GRB.BINARY, name='Y({0},{1})'.format(c, m))
         B = {}
         for p in range(numMutations):
             for q in range(numMutations):
-                B[p, q, 1, 1] = model.addVar(vtype=GRB.BINARY, obj=0, name="B[{0},{1},1,1]".format(p, q))
-                B[p, q, 1, 0] = model.addVar(vtype=GRB.BINARY, obj=0, name="B[{0},{1},1,0]".format(p, q))
-                B[p, q, 0, 1] = model.addVar(vtype=GRB.BINARY, obj=0, name="B[{0},{1},0,1]".format(p, q))
+                B[p, q, 1, 1] = model.addVar(vtype=GRB.BINARY, obj=0, name='B[{0},{1},1,1]'.format(p, q))
+                B[p, q, 1, 0] = model.addVar(vtype=GRB.BINARY, obj=0, name='B[{0},{1},1,0]'.format(p, q))
+                B[p, q, 0, 1] = model.addVar(vtype=GRB.BINARY, obj=0, name='B[{0},{1},0,1]'.format(p, q))
         model.update()
-
         for i in range(numCells):
             for p in range(numMutations):
                 for q in range(numMutations):
-                    model.addConstr(Y[i, p] + Y[i, q] - B[p, q, 1, 1] <= 1)
-                    model.addConstr(-Y[i, p] + Y[i, q] - B[p, q, 0, 1] <= 0)
-                    model.addConstr(Y[i, p] - Y[i, q] - B[p, q, 1, 0] <= 0)
+                    model.addConstr(Y[i,p] + Y[i,q] - B[p,q,1,1] <= 1)
+                    model.addConstr(-Y[i,p] + Y[i,q] - B[p,q,0,1] <= 0)
+                    model.addConstr(Y[i,p] - Y[i,q] - B[p,q,1,0] <= 0)
         for p in range(numMutations):
             for q in range(numMutations):
-                model.addConstr(B[p, q, 0, 1] + B[p, q, 1, 0] + B[p, q, 1, 1] <= 2)
+                model.addConstr(B[p,q,0,1] + B[p,q,1,0] + B[p,q,1,1] <= 2)
 
         objective = 0
         for j in range(numMutations):
             numZeros = 0
-            numOnes = 0
+            numOnes  = 0
             for i in range(numCells):
                 if I[i][j] == 0:
                     numZeros += 1
-                    objective += np.log(beta / (1 - alpha)) * Y[i, j]
+                    objective += np.log(beta/(1-alpha)) * Y[i,j]
                 elif I[i][j] == 1:
                     numOnes += 1
-                    objective += np.log((1 - beta) / alpha) * Y[i, j]
-
-            objective += numZeros * np.log(1 - alpha)
+                    objective += np.log((1-beta)/alpha) * Y[i,j]
+                
+            objective += numZeros * np.log(1-alpha)
             objective += numOnes * np.log(alpha)
-            objective -= 0 * (numZeros * np.log(1 - alpha) + numOnes * (np.log(alpha) + np.log((1 - beta) / alpha)))
+            objective -= 0 * (numZeros * np.log(1-alpha) + numOnes * (np.log(alpha) + np.log((1-beta)/alpha)))
 
         model.setObjective(objective, GRB.MAXIMIZE)
         a = time.time()
@@ -397,13 +406,13 @@ def PhISCS_I(I, beta, alpha):
         b = time.time()
 
         if model.status == GRB.Status.INFEASIBLE:
-            print("The model is infeasible.")
+            print('The model is infeasible.')
             exit(0)
 
         for i in range(numCells):
-            sol_Y.append([nearestInt(float(Y[i, j].X)) for j in range(numMutations)])
+            sol_Y.append([nearestInt(float(Y[i,j].X)) for j in range(numMutations)])
 
-    return np.array(sol_Y), count_flips(I, I.shape[1] * [0], sol_Y), b - a
+    return np.array(sol_Y), count_flips(I, I.shape[1] * [0], sol_Y), b-a
 
 
 def PhISCS_B_external(matrix, beta=None, alpha=None, csp_solver_path=openwbo_path):
@@ -640,7 +649,7 @@ def PhISCS_B(matrix, beta=None, alpha=None):
                 else:
                     O[i, j] = 1
             numVar += 1
-
+    
     return O, count_flips(matrix, matrix.shape[1] * [0], O), b - a
 
 
