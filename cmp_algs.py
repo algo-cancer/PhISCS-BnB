@@ -98,6 +98,8 @@ def solve_with(name, bounding_algorithm, input_matrix):
                 args_to_pass[arg] = 0.00001
             elif arg == "csp_solver_path":
                 args_to_pass[arg] = openwbo_path
+            elif arg == "time_limit":
+                args_to_pass[arg] = args.time_limit
 
         run_time = time.time()
         returned_matrix = name(**args_to_pass)
@@ -158,6 +160,7 @@ if __name__ == "__main__":
         method, bounding = methods[methodInd]
         method_name = method if isinstance(method, str) else method.__name__
         try:
+            # print("solving", method, bounding)
             ans, info = solve_with(method, bounding, x)
             bounding_name = None
             if bounding is None:
@@ -182,6 +185,7 @@ if __name__ == "__main__":
             df = df.append(row, ignore_index=True)
         except Exception as e:
             print("********** Error {{{{{{{{{{")
+            traceback.print_tb()
             print(e)
             print(repr(x))
             print(method_name)

@@ -1,9 +1,8 @@
-import scipy.sparse as sp
-import numpy as np
-
+from Utils.util import *
 
 class BoundingAlgAbstract:
     def __init__(self):
+        self._extraInfo = {}
         pass
 
     def reset(self, matrix):
@@ -32,7 +31,7 @@ class BoundingAlgAbstract:
         E.g.,
         return {"icf":True, "bestPair":(a,b)}
         """
-        return set()
+        return copy.copy(self._extraInfo)
 
     def get_priority(self, new_bound, icf=False):
         return -new_bound

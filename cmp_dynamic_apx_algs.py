@@ -3,6 +3,7 @@ from Utils.util import *
 from Utils.interfaces import *
 import operator
 from Boundings.LP import *
+from Boundings.LP_APX import *
 from Boundings.MWM import *
 from Boundings.CSP import *
 from Boundings.Hybrid import *
@@ -12,26 +13,33 @@ if __name__ == "__main__":
     scriptName = os.path.basename(__file__).split(".")[0]
     print(f"{scriptName} starts here")
     methods = [
-        RandomPartitioning(ascending_order=False),
-        RandomPartitioning(ascending_order=True),
-        SemiDynamicLPBounding(
-            ratio=None, continuous=True, priority_sign=-1, change_bound_method=True, for_loop_constrs=True
-        ),
-        SemiDynamicLPBounding(
-            ratio=None, continuous=True, priority_sign=-1, change_bound_method=False, for_loop_constrs=True
-        ),
-        SemiDynamicLPBounding(
-            ratio=None, continuous=True, priority_sign=-1, change_bound_method=False, for_loop_constrs=False
-        ),
-        DynamicMWMBounding(),
-        StaticMWMBounding(),
+        SubsampleLPBounding(strength=0.25),
+        SubsampleLPBounding(strength=0.4),
+        SubsampleLPBounding(strength=0.6),
+        SubsampleLPBounding(strength=None),
+        SemiDynamicLPBounding(continuous=True),
+        # SemiDynamicLPBounding(continuous=False),
+
+        # RandomPartitioning(ascending_order=False),
+        # RandomPartitioning(ascending_order=True),
+        # SemiDynamicLPBounding(
+        #     ratio=None, continuous=True, priority_sign=-1, change_bound_method=True, for_loop_constrs=True
+        # ),
+        # SemiDynamicLPBounding(
+        #     ratio=None, continuous=True, priority_sign=-1, change_bound_method=False, for_loop_constrs=True
+        # ),
+        # SemiDynamicLPBounding(
+        #     ratio=None, continuous=True, priority_sign=-1, change_bound_method=False, for_loop_constrs=False
+        # ),
+        # DynamicMWMBounding(),
+        # StaticMWMBounding(),
     ]
     df_individual = pd.DataFrame(columns=["index", "n", "m", "n_flips", "method", "runtime"])
     missing_cols = ["meanUpdateTime", "sd_update_time", "median_update_time", "mx_update_time", "mn_update_time"]
     df_total = pd.DataFrame(columns=["method", "reset_time"] + missing_cols)
-    n = 15  # n: number of Cells
-    m = 15  # m: number of Mutations
-    k = 3  # k: number extra edits to introduce
+    n = 70  # n: number of Cells
+    m = 70  # m: number of Mutations
+    k = 5  # k: number extra edits to introduce
     x = np.random.randint(2, size=(n, m))
     delta = sp.lil_matrix((n, m))
     method_names = []

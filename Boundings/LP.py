@@ -1,5 +1,6 @@
 from Utils.const import *
 from Utils.interfaces import *
+from Utils.instances import *
 from Utils.util import *
 
 
@@ -37,6 +38,7 @@ class SemiDynamicLPBounding(BoundingAlgAbstract):
         self.priority_sign = priority_sign
         self.change_bound_method = change_bound_method
         self.for_loop_constrs = for_loop_constrs
+        self._extraInfo = None
 
     def get_name(self):
         return (
@@ -63,12 +65,6 @@ class SemiDynamicLPBounding(BoundingAlgAbstract):
             self.model.Solve()
         optTime = time.time() - optTime
         self.times["optimization_time"] += optTime
-
-    def _flip(self, c, m):
-        self.model.addConstr(self.y_vars[c, m] == 1)
-
-    def _unFlipLast(self):
-        self.model.remove(self.model.getConstrs()[-1])
 
     def get_bound(self, delta):
         self._extraInfo = None
@@ -265,9 +261,10 @@ class StaticILPBounding(BoundingAlgAbstract):
 
 if __name__ == "__main__":
 
-    n, m = 15, 15
-    x = np.random.randint(2, size=(n, m))
-    delta = sp.lil_matrix((n, m))
+    # n, m = 15, 15
+    # x = np.random.randint(2, size=(n, m))
+    x = I6
+    delta = sp.lil_matrix(x.shape)
 
     static_LP_bounding = StaticLPBounding()
     static_LP_bounding.reset(x)
