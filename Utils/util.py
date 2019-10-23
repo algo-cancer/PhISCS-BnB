@@ -330,7 +330,7 @@ def count_flips(I, sol_K, sol_Y):
     return (flips_0_1, flips_1_0, flips_2_0, flips_2_1)
 
 
-def PhISCS_I(I, beta, alpha):
+def PhISCS_I(I, beta, alpha, time_limit = 3600):
     class HiddenPrints:
         def __enter__(self):
             self._original_stdout = sys.stdout
@@ -392,6 +392,7 @@ def PhISCS_I(I, beta, alpha):
             objective -= 0 * (numZeros * np.log(1 - alpha) + numOnes * (np.log(alpha) + np.log((1 - beta) / alpha)))
 
         model.setObjective(objective, GRB.MAXIMIZE)
+        model.setParam('TimeLimit', time_limit)
         a = time.time()
         model.optimize()
         b = time.time()

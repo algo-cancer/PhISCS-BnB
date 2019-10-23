@@ -96,6 +96,8 @@ def solve_with(name, bounding_algorithm, input_matrix):
                 args_to_pass[arg] = 0.00001
             elif arg == "csp_solver_path":
                 args_to_pass[arg] = openwbo_path
+            elif arg == "time_limit":
+                args_to_pass[arg] = args.time_limit
 
         run_time = time.time()
         returned_matrix = name(**args_to_pass)
@@ -156,6 +158,7 @@ if __name__ == "__main__":
         method, bounding = methods[methodInd]
         method_name = method if isinstance(method, str) else method.__name__
         try:
+            # print("solving", method, bounding)
             ans, info = solve_with(method, bounding, x)
             bounding_name = None
             if bounding is None:
@@ -180,6 +183,7 @@ if __name__ == "__main__":
             df = df.append(row, ignore_index=True)
         except Exception as e:
             print("********** Error {{{{{{{{{{")
+            traceback.print_tb()
             print(e)
             print(repr(x))
             print(method_name)
@@ -196,7 +200,7 @@ if __name__ == "__main__":
         ]
         summary_columns = (column for column in summary_columns if column in df.columns)
         print(df[summary_columns])
-        print(">>>", df.loc[0, "n_flips"], df.loc[1, "n_flips"], df.loc[0, "runtime"], df.loc[1, "optimization_time"])
+        # print(">>>", df.loc[0, "n_flips"], df.loc[1, "n_flips"], df.loc[0, "runtime"], df.loc[1, "optimization_time"])
     if args.save_results:
         now_time = time.strftime("%m-%d-%H-%M-%S", time.gmtime())
         csv_file_name = f"{script_name}_{args.n},{args.m},{len(methods)}_{now_time}.csv"

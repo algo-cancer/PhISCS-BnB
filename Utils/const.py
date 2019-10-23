@@ -1,31 +1,33 @@
-import sys
-import platform  # For the name of host machine
-import getpass  # For the username running the program
-import scipy.sparse as sp
-import pybnb
-import random
-import math
-import time
-import os
-import subprocess
-import numpy as np
-from gurobipy import *
-import datetime
-from collections import defaultdict
-import operator
-import networkx as nx
 import copy
-import pandas as pd
-from tqdm import tqdm
-from pysat.examples.rc2 import RC2
-from pysat.formula import WCNF
+import datetime
 import inspect
+import getpass  # For the username running the program
+import math
 import matplotlib as mpl
-
 mpl.use("Agg")
 import matplotlib.pyplot as plt
+import numpy as np
+import networkx as nx
+import os
+import operator
+import pandas as pd
 import pickle
+import platform  # For the name of host machine
+import pybnb
+import random
+import scipy.sparse as sp
+import subprocess
+import sys
+import time
+import traceback
+
+from collections import defaultdict
+from gurobipy import *
 from ortools.linear_solver import pywraplp
+from pysat.examples.rc2 import RC2
+from pysat.formula import WCNF
+from tqdm import tqdm
+
 
 
 def print_line(depth=1):
