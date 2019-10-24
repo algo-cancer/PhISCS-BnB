@@ -33,13 +33,14 @@ assert __name__ == "__main__"
 parser = ArgumentParser()
 parser.add_argument("-n", dest="n", type=int, default=None)
 parser.add_argument("-m", dest="m", type=int, default=None)
+parser.add_argument("-s", dest="s", type=int, default=None)
 parser.add_argument("-i", dest="i", type=int, default=1)
-parser.add_argument("-s", "--source_type", dest="source_type", type=int, default=0)
 parser.add_argument("-k", dest="k", type=float, default=None)
 parser.add_argument("--instance_index", type=int, default=0)
 parser.add_argument("--print_rows", action="store_true", default=False)
 parser.add_argument("--print_results", action="store_true", default=False)
 parser.add_argument("--save_results", action="store_true", default=False)
+parser.add_argument("--source_type", dest="source_type", type=int, default=3)
 parser.add_argument("-t", "--time_limit", dest="time_limit", type=float, default=60)
 args = parser.parse_args()
 
@@ -149,9 +150,9 @@ if __name__ == "__main__":
             elif source_type == "FIXED":
                 x = noisy
             elif source_type == "SALEM":
-                file = simulation_folder_path + f"simNo_{i+1}-s_10-m_40-n_100.SC.ground"
+                file = simulation_folder_path + f"simNo_{i+1}-s_{args.s}-m_{args.m}-n_{args.n}.SC.ground"
                 df_sim = pd.read_csv(file, delimiter="\t", index_col=0)
-                df_sim = df_sim.iloc[: args.n, : args.m]
+                # df_sim = df_sim.iloc[: args.n, : args.m]
                 x = make_noisy_by_k(df_sim.values, int(k))
             else:
                 raise NotImplementedError("The method not implemented")
