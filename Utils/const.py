@@ -58,10 +58,10 @@ elif user_name == "school":
     ms_path = None
     output_folder_path = "./reports/Erfan"
 elif user_name == "frashidi":
-    openwbo_path = "/data/frashidi/Phylogeny_BnB/Archived/Farid/archived/openwbo"
-    ms_path = "/home/frashidi/software/bin/ms"
-    output_folder_path = "/data/frashidi/Phylogeny_BnB/reports"
-    simulation_folder_path = "/data/frashidi/Phylogeny_BnB/simulations/"
+    openwbo_path = "./Archived/Farid/archived/openwbo"
+    ms_path = "./Archived/Farid/archived/ms"
+    output_folder_path = "./reports"
+    simulation_folder_path = "./simulations/"
 else:
     print("User const not found!")
     exit(0)
