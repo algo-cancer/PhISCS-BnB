@@ -54,8 +54,8 @@ if user_name == "esadeqia":
     output_folder_path = "/home/esadeqia/PhISCS_BnB/reports/Erfan"
     simulation_folder_path = "/home/esadeqia/PhISCS_BnB/simulations/"
     if "carbonate" in platform_name:
-        openwbo_path = "/gpfs/home/e/s/esadeqia/Carbonateopenwbo"
-        ms_path = "/gpfs/home/e/s/esadeqia/Carbonateexternal/ms"
+        openwbo_path = "/gpfs/home/e/s/esadeqia/Carbonate/external/openwbo"
+        ms_path = "/gpfs/home/e/s/esadeqia/Carbonate/external/ms"
         output_folder_path = "/gpfs/home/e/s/esadeqia/Carbonate/Phylogeny_BnB/reports/Erfan"
         simulation_folder_path = "/home/esadeqia/PhISCS_BnB/simulations/"
 elif user_name == "school":

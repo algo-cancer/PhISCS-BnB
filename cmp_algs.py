@@ -194,23 +194,24 @@ if __name__ == "__main__":
                 "hash": x_hash,
                 "method": f"{method_name}_{bounding_name}",
                 "cf": is_conflict_free_gusfield_and_get_two_columns_in_coflicts(ans)[0],
-                "num_zeros_noisy": str(np.count_nonzero(1-x)),
-                "num_ones_noisy": str(np.count_nonzero(x)),
-                "num_zeros_ground": str(np.count_nonzero(1-y)),
-                "num_ones_ground": str(np.count_nonzero(y)),
+                "num_zeros_noisy": str(int(np.count_nonzero(1-x))),
+                "num_ones_noisy": str(int(np.count_nonzero(x))),
                 "t": str(args.time_limit),
             }
             if source_type == "SALEM":
                 row["s"] = str(args.s)
                 row["file_name"] = file_name
                 row["simNo"] = str(i+1)
+                row["num_zeros_ground"] = str(int(np.count_nonzero(1 - y))),
+                row["num_ones_ground"] =  str(int(np.count_nonzero(y))),
             row.update(info)
             if args.print_rows:
                 print(row)
             df = df.append(row, ignore_index=True)
         except Exception as e:
             print("********** Error {{{{{{{{{{")
-            traceback.print_tb()
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            traceback.print_tb(exc_traceback)
             print(e)
             print(repr(x))
             print(method_name)
