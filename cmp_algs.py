@@ -83,7 +83,7 @@ def solve_with(name, bounding_algorithm, input_matrix):
             assert np.all(returned_matrix[tuple(np.array(flip_list).T)] == 0)
             returned_matrix[tuple(np.array(flip_list).T)] = 1
         ret_dict["n_flips"] = results1.objective
-        ret_dict["termination_cond"] = results1.termination_condition
+        ret_dict["termination_condition"] = results1.termination_condition
         ret_dict["n_nodes"] = str(results1.nodes)
         ret_dict["internal_time"] = results1.wall_time
         ret_dict["avg_node_time"] = ret_dict["internal_time"] / results1.nodes
@@ -103,11 +103,13 @@ def solve_with(name, bounding_algorithm, input_matrix):
                 args_to_pass[arg] = args.time_limit
 
         run_time = time.time()
-        returned_matrix = name(**args_to_pass)
+        returned_output = name(**args_to_pass)
         ret_dict["runtime"] = time.time() - run_time
         if name.__name__ in ["PhISCS_B_external", "PhISCS_I", "PhISCS_B"]:
-            ret_dict["internal_time"] = returned_matrix[-1]
-            returned_matrix = returned_matrix[0]
+            ret_dict["internal_time"] = returned_output[-1]
+            returned_matrix = returned_output[0]
+        if name.__name__ in ["PhISCS_I"]:
+            ret_dict["termination_condition"] = returned_output[-2]
         ret_dict["n_flips"] = len(np.where(returned_matrix != input_matrix)[0])
     else:
         print(f"Method {name} does not exist.")
@@ -118,7 +120,7 @@ if __name__ == "__main__":
     script_name = os.path.basename(__file__).split(".")[0]
     print(f"{script_name} starts here")
     print(args)
-    df = pd.DataFrame(columns=["hash", "n", "m", "k", "n_flips", "method", "runtime"])
+    df = pd.DataFrame(columns=["hash", "n", "m", "k", "t", "n_flips", "method", "runtime"])
     # n: number of Cells
     # m: number of Mutations
 
@@ -189,6 +191,7 @@ if __name__ == "__main__":
                 "cf": is_conflict_free_gusfield_and_get_two_columns_in_coflicts(ans)[0],
                 "num_zeros": str(np.count_nonzero(1-x)),
                 "num_ones": str(np.count_nonzero(x)),
+                "t": str(args.time_limit),
             }
             if source_type == "SALEM":
                 row["s"] = str(args.s)
