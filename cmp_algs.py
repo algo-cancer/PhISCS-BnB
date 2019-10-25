@@ -220,7 +220,8 @@ if __name__ == "__main__":
         # print(">>>", df.loc[0, "n_flips"], df.loc[1, "n_flips"], df.loc[0, "runtime"], df.loc[1, "optimization_time"])
     if args.save_results:
         now_time = time.strftime("%m-%d-%H-%M-%S", time.gmtime())
-        csv_file_name = f"{script_name}_{args.n},{args.m},{len(methods)}_{now_time}.csv"
+        # csv_file_name = f"{script_name}_{args.n},{args.m},{len(methods)}_{now_time}.csv"
+        csv_file_name = f"n_{args.n}-m_{args.m}-s_{args.s}-k_{int(args.k)}.csv"
         csv_path = os.path.join(output_folder_path, csv_file_name)
         df.to_csv(csv_path)
         print(f"CSV file stored at {csv_path}")
