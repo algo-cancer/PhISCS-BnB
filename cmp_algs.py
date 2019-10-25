@@ -138,7 +138,7 @@ if __name__ == "__main__":
         iterList = itertools.product([args.n], [args.m], k_list, list(range(args.i)), list(range(len(methods))))
 
     iterList = list(iterList)
-    x, x_hash = None, None
+    x, y, x_hash = None, None, None
     for n, m, k, i, methodInd in tqdm(iterList):
         if m is None:
             m = n
@@ -159,10 +159,14 @@ if __name__ == "__main__":
                 file = simulation_folder_path + file_name
                 df_sim = pd.read_csv(file, delimiter="\t", index_col=0)
                 # df_sim = df_sim.iloc[: args.n, : args.m]
-                indices_n, indices_m = np.where(df_sim.values == 1)
+                y = df_sim.values
+                indices_n, indices_m = np.where(y == 1)
                 if int(k) > len(indices_n):
+                    x = None
                     continue
-                x = make_noisy_by_k(df_sim.values, int(k))
+                else:
+                    print(k, len(indices_n), i)
+                    x = make_noisy_by_k(y, int(k))
             else:
                 raise NotImplementedError("The method not implemented")
             x_hash = get_matrix_hash(x)
@@ -190,8 +194,10 @@ if __name__ == "__main__":
                 "hash": x_hash,
                 "method": f"{method_name}_{bounding_name}",
                 "cf": is_conflict_free_gusfield_and_get_two_columns_in_coflicts(ans)[0],
-                "num_zeros": str(np.count_nonzero(1-x)),
-                "num_ones": str(np.count_nonzero(x)),
+                "num_zeros_noisy": str(np.count_nonzero(1-x)),
+                "num_ones_noisy": str(np.count_nonzero(x)),
+                "num_zeros_ground": str(np.count_nonzero(1-y)),
+                "num_ones_ground": str(np.count_nonzero(y)),
                 "t": str(args.time_limit),
             }
             if source_type == "SALEM":
