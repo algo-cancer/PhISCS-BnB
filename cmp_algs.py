@@ -156,6 +156,9 @@ if __name__ == "__main__":
                 file = simulation_folder_path + file_name
                 df_sim = pd.read_csv(file, delimiter="\t", index_col=0)
                 # df_sim = df_sim.iloc[: args.n, : args.m]
+                indices_n, indices_m = np.where(df_sim.values == 1)
+                if int(k) > len(indices_n):
+                    continue
                 x = make_noisy_by_k(df_sim.values, int(k))
             else:
                 raise NotImplementedError("The method not implemented")
