@@ -40,7 +40,7 @@ def print_line(depth=1):
 
 
 # This line is here to make sure the line "Academic license - for non-commercial use only" prints at the top
-gurobi_env = Env()
+# gurobi_env = Env()
 # For users and platforms
 user_name = getpass.getuser()
 platform_name = platform.node()
