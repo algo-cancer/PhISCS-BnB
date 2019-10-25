@@ -163,7 +163,8 @@ if __name__ == "__main__":
             else:
                 raise NotImplementedError("The method not implemented")
             x_hash = get_matrix_hash(x)
-
+        if x is None:
+            continue
         method, bounding = methods[methodInd]
         method_name = method if isinstance(method, str) else method.__name__
         try:
