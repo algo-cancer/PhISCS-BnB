@@ -3,9 +3,9 @@ import datetime
 import inspect
 import getpass  # For the username running the program
 import math
-import matplotlib as mpl
-mpl.use("Agg")
-import matplotlib.pyplot as plt
+# import matplotlib as mpl
+# mpl.use("Agg")
+# import matplotlib.pyplot as plt
 import numpy as np
 import networkx as nx
 import os
@@ -53,6 +53,11 @@ if user_name == "esadeqia":
     ms_path = "/home/esadeqia/external/ms"
     output_folder_path = "/home/esadeqia/PhISCS_BnB/reports/Erfan"
     simulation_folder_path = "/home/esadeqia/PhISCS_BnB/simulations/"
+    if "carbonate" in platform_name:
+        openwbo_path = "/gpfs/home/e/s/esadeqia/Carbonateopenwbo"
+        ms_path = "/gpfs/home/e/s/esadeqia/Carbonateexternal/ms"
+        output_folder_path = "/gpfs/home/e/s/esadeqia/Carbonate/Phylogeny_BnB/reports/Erfan"
+        simulation_folder_path = "/home/esadeqia/PhISCS_BnB/simulations/"
 elif user_name == "school":
     openwbo_path = None
     ms_path = None

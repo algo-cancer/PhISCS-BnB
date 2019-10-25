@@ -1,3 +1,4 @@
+numpy==1.17.2
 aacgmv2==2.5.2
 apexpy==1.0.3
 attrs==19.2.0
@@ -11,7 +12,6 @@ cycler==0.10.0
 decorator==4.4.0
 ephem==3.7.7.0
 funcy==1.13
-gurobipy==8.1.1
 h5py==2.10.0
 idna==2.8
 kiwisolver==1.1.0
@@ -20,7 +20,6 @@ madrigalWeb==3.1.11
 matplotlib==3.1.1
 netCDF4==1.5.2
 networkx==2.3
-numpy==1.17.2
 ortools==7.3.7083
 pandas==0.24.2
 parsimonious==0.8.1
