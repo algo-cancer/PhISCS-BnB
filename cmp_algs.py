@@ -190,9 +190,9 @@ if __name__ == "__main__":
                 "num_ones": str(np.count_nonzero(x)),
             }
             if source_type == "SALEM":
-                row["s"] = args.s
+                row["s"] = str(args.s)
                 row["file_name"] = file_name
-                row["simNo"] = i+1
+                row["simNo"] = str(i+1)
             row.update(info)
             if args.print_rows:
                 print(row)
