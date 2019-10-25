@@ -160,6 +160,7 @@ if __name__ == "__main__":
                 # df_sim = df_sim.iloc[: args.n, : args.m]
                 indices_n, indices_m = np.where(df_sim.values == 1)
                 if int(k) > len(indices_n):
+                    x = None
                     continue
                 x = make_noisy_by_k(df_sim.values, int(k))
             else:
