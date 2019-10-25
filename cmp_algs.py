@@ -118,7 +118,7 @@ if __name__ == "__main__":
     script_name = os.path.basename(__file__).split(".")[0]
     print(f"{script_name} starts here")
     print(args)
-    df = pd.DataFrame(columns=["hash", "n", "m", "n_flips", "method", "runtime"])
+    df = pd.DataFrame(columns=["hash", "n", "m", "k", "n_flips", "method", "runtime"])
     # n: number of Cells
     # m: number of Mutations
 
@@ -139,6 +139,8 @@ if __name__ == "__main__":
     for n, m, k, i, methodInd in tqdm(iterList):
         if m is None:
             m = n
+        if source_type == "RND":
+            k = None
         if methodInd == 0:  # make new Input
             if source_type == "RND":
                 x = np.random.randint(2, size=(n, m))
@@ -150,7 +152,8 @@ if __name__ == "__main__":
             elif source_type == "FIXED":
                 x = noisy
             elif source_type == "SALEM":
-                file = simulation_folder_path + f"simNo_{i+1}-s_{args.s}-m_{args.m}-n_{args.n}.SC.ground"
+                file_name = f"simNo_{i+1}-s_{args.s}-m_{args.m}-n_{args.n}.SC.ground"
+                file = simulation_folder_path + file_name
                 df_sim = pd.read_csv(file, delimiter="\t", index_col=0)
                 # df_sim = df_sim.iloc[: args.n, : args.m]
                 x = make_noisy_by_k(df_sim.values, int(k))
@@ -176,10 +179,17 @@ if __name__ == "__main__":
             row = {
                 "n": str(n),
                 "m": str(m),
+                "k": str(k),
                 "hash": x_hash,
                 "method": f"{method_name}_{bounding_name}",
                 "cf": is_conflict_free_gusfield_and_get_two_columns_in_coflicts(ans)[0],
+                "num_zeros": str(np.count_nonzero(1-x)),
+                "num_ones": str(np.count_nonzero(x)),
             }
+            if source_type == "SALEM":
+                row["s"] = args.s
+                row["file_name"] = file_name
+                row["simNo"] = i+1
             row.update(info)
             if args.print_rows:
                 print(row)

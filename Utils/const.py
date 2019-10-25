@@ -52,7 +52,7 @@ if user_name == "esadeqia":
     openwbo_path = "/home/esadeqia/external/openwbo"
     ms_path = "/home/esadeqia/external/ms"
     output_folder_path = "/home/esadeqia/PhISCS_BnB/reports/Erfan"
-    simulation_folder_path = "/home/esadeqia/Phylogeny_BnB/simulations/"
+    simulation_folder_path = "/home/esadeqia/PhISCS_BnB/simulations/"
 elif user_name == "school":
     openwbo_path = None
     ms_path = None
