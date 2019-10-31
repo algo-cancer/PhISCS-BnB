@@ -8,6 +8,11 @@ git clone https://github.com/faridrashidi/Phylogeny_BnB.git
 ```bash
 pip install -r requirments.txt
 ```
+If you get an error regarding utf-8 encoding. Source these lines:
+```bash
+# export LANG=en_US.UTF-8
+# export LC_ALL=en_US.UTF-8
+```
 4. Check that everything works by running:
 ```bash
 python compare_algorithms.py --help
