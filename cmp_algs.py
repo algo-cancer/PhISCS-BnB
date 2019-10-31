@@ -13,7 +13,7 @@ from argparse import ArgumentParser
 np.set_printoptions(threshold=sys.maxsize)
 
 try:
-    from input import methods
+    from input import *
 except ModuleNotFoundError as e:
     methods = [
         (PhISCS_I, None),
@@ -43,8 +43,10 @@ parser.add_argument("--print_results", action="store_true", default=False)
 parser.add_argument("--save_results", action="store_true", default=False)
 parser.add_argument("--source_type", dest="source_type", type=int, default=3)
 parser.add_argument("-t", "--time_limit", dest="time_limit", type=float, default=60)
+parser.add_argument("--methods", dest="methods", type=str, default="methods")
 args = parser.parse_args()
 
+methods = globals()[args.methods]
 
 #########
 queue_strategy = "custom"
@@ -132,7 +134,7 @@ if __name__ == "__main__":
     if args.n is None or args.m is None:  # if n and m not given use our looping
         # 20, 30 , 40, 50, 60, 70, 80, 90, 40, 80, 100, 120, 160
         iterList = itertools.product(
-            range(5, 21), range(5, 21), k_list, list(range(10)), list(range(len(methods)))
+            n_list, m_list, k_list, i_list, list(range(len(methods)))
         )  # n  # m  # i
     else:
         iterList = itertools.product([args.n], [args.m], k_list, list(range(args.i)), list(range(len(methods))))
@@ -149,9 +151,9 @@ if __name__ == "__main__":
                 x = np.random.randint(2, size=(n, m))
             elif source_type == "MS":
                 ground, noisy, (countFN, countFP, countNA) = get_data_by_ms(
-                    n=n, m=m, seed=int(100 * time.time()) % 10000, fn=k, fp=0, na=0, ms_path=ms_path
+                    n=n, m=m, seed=int(100 * time.time()) % 10000, fn=0, fp=0, na=0, ms_path=ms_path
                 )
-                x = noisy
+                x = make_noisy_by_k(ground, int(k))
             elif source_type == "FIXED":
                 x = noisy
             elif source_type == "SALEM":
@@ -231,8 +233,11 @@ if __name__ == "__main__":
         # print(">>>", df.loc[0, "n_flips"], df.loc[1, "n_flips"], df.loc[0, "runtime"], df.loc[1, "optimization_time"])
     if args.save_results:
         now_time = time.strftime("%m-%d-%H-%M-%S", time.gmtime())
-        # csv_file_name = f"{script_name}_{args.n},{args.m},{len(methods)}_{now_time}.csv"
-        csv_file_name = f"n_{args.n}-m_{args.m}-s_{args.s}-k_{int(args.k)}.csv"
+        if source_type == "SALEM":
+            csv_file_name = f"n_{args.n}-m_{args.m}-s_{args.s}-k_{int(args.k)}.csv"
+        else:
+            csv_file_name = f"{script_name}_{args.n},{args.m},{len(methods)}_{now_time}.csv"
+
         csv_path = os.path.join(output_folder_path, csv_file_name)
         df.to_csv(csv_path)
         print(f"CSV file stored at {csv_path}")
