@@ -49,7 +49,7 @@ args = parser.parse_args()
 if args.input_config is None:
     methods = methods # directly from input.py
 else:
-    methods, n_list, m_list, k_list, i_list = input_dict[parser.input_config]
+    methods, n_list, m_list, k_list, i_list = input_dict[args.input_config]
     n_list, m_list, k_list, i_list = list(n_list), list(m_list), list(k_list), list(i_list)
 
 #########
@@ -78,6 +78,22 @@ def solve_with(name, bounding_algorithm, input_matrix):
         ret_dict["avg_node_time"] = ret_dict["internal_time"] / results1.nodes
         if bounding_algorithm is not None and hasattr(bounding_algorithm, "times"):
             ret_dict.update(bounding_algorithm.times)
+    elif name == "OldBnB":
+        time1 = time.time()
+        problem1 = Phylogeny_BnB(input_matrix, bounding_algorithm, bounding_algorithm.__name__)
+        solver = pybnb.solver.Solver()
+        results1 = solver.solve(problem1, queue_strategy=queue_strategy, log=None, time_limit=args.time_limit)
+        ret_dict["runtime"] = time.time() - time1
+        if results1.solution_status != "unknown":
+            flip_list = results1.best_node.state[0]
+            assert np.all(returned_matrix[tuple(np.array(flip_list).T)] == 0)
+            returned_matrix[tuple(np.array(flip_list).T)] = 1
+        ret_dict["n_flips"] = results1.objective
+        ret_dict["termination_condition"] = results1.termination_condition
+        ret_dict["n_nodes"] = str(results1.nodes)
+        ret_dict["internal_time"] = results1.wall_time
+        ret_dict["avg_node_time"] = ret_dict["internal_time"] / results1.nodes
+
     elif callable(name):
         argsNeeded = inspect.getfullargspec(name).args
         for arg in argsNeeded:
@@ -95,7 +111,7 @@ def solve_with(name, bounding_algorithm, input_matrix):
         run_time = time.time()
         returned_output = name(**args_to_pass)
         ret_dict["runtime"] = time.time() - run_time
-        if name.__name__ in ["PhISCS_B_external", "PhISCS_I", "PhISCS_B", "PhISCS_B_timed"]:
+        if name.__name__ in ["PhISCS_B_external", "PhISCS_I", "PhISCS_B"]:
             ret_dict["internal_time"] = returned_output[-1]
             returned_matrix = returned_output[0]
         if name.__name__ in ["PhISCS_I"]:
