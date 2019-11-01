@@ -25,8 +25,7 @@ except ModuleNotFoundError as e:
             ),
         ),
     ]
-finally:
-    print(f"{len(methods)} number of methods are chosen.")
+
 
 assert __name__ == "__main__"
 
@@ -51,6 +50,8 @@ if args.input_config is None:
 else:
     methods, n_list, m_list, k_list, i_list = input_dict[args.input_config]
     n_list, m_list, k_list, i_list = list(n_list), list(m_list), list(k_list), list(i_list)
+
+print(f"{len(methods)} number of methods are chosen.")
 
 #########
 queue_strategy = "custom"
