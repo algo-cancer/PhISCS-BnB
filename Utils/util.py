@@ -587,9 +587,16 @@ def PhISCS_B_timed(matrix, beta=None, alpha=None, time_limit = 3600):
     if p.is_alive():
         p.terminate()
         p.join()
-        return None, None, None
+        output_matrix = matrix
+        flip_counts = np.zeros(4)
+        termination_condition = 'time_limit'
+        internal_time = 2 * time_limit
     else:
-        return return_dict["returned_value"]
+        output_matrix = return_dict["returned_value"][0]
+        flip_counts = return_dict["returned_value"][1]
+        termination_condition = 'optimality' #'time_limit'
+        internal_time = return_dict["returned_value"][2]
+    return output_matrix, flip_counts, termination_condition, internal_time
 
 
 def PhISCS_B(matrix, beta=None, alpha=None):
@@ -703,9 +710,9 @@ def from_interface_to_method(bounding_alg):
     return run_func
 
 if __name__ == '__main__':
-    n = 4
-    m = 4
+    n = 16
+    m = 16
     x = np.random.randint(2, size=(n, m))
     print(x)
-    result = PhISCS_B_timed(x)
+    result = PhISCS_B_timed(x, time_limit=2)
     print(result)
