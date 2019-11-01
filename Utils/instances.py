@@ -6,6 +6,8 @@ I_small = np.array(
      [1, 1]]
 )
 
+I0 = I_small
+
 I1 = np.array([[0, 1, 1, 0], [1, 0, 0, 1], [1, 1, 0, 0], [0, 0, 1, 0]])
 
 I2 = np.array([[0, 1, 1, 0], [1, 1, 0, 1], [1, 1, 0, 0], [0, 1, 1, 0]])
@@ -27,7 +29,7 @@ I6 = np.array(
     ]
 )
 
-instances = [None, I1, I2, I3, I5, I6]
+instances = [I0, I1, I2, I3, I5, I6]
 
 
 def getRandomMatrix(n, m):

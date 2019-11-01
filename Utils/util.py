@@ -316,9 +316,13 @@ def get_data_by_ms(n, m, seed, fn, fp, na, ms_path=ms_path):
     ground = build_ground_by_ms(n, m, seed)
     if is_conflict_free_farid(ground):
         noisy, (countFN, countFP, countNA) = make_noisy_by_fn(ground, fn, fp, na)
-        if not is_conflict_free_farid(noisy):
+        if not is_conflict_free_farid(noisy) or fn + fp + na == 0:
             return ground, noisy, (countFN, countFP, countNA)
+        else:
+            return get_data_by_ms(n, m, seed + 1, fn, fp, na, ms_path)
     else:
+        print("********************** ERROR ********************")
+        print("Ground from ms is not Conflict free!")
         return get_data_by_ms(n, m, seed + 1, fn, fp, na, ms_path)
 
 
@@ -410,7 +414,7 @@ def PhISCS_I(I, beta, alpha, time_limit = 3600):
     return np.array(sol_Y), count_flips(I, I.shape[1] * [0], sol_Y), status[model.status], b-a
 
 
-def PhISCS_B_external(matrix, beta=None, alpha=None, csp_solver_path=openwbo_path):
+def PhISCS_B_external(matrix, beta=None, alpha=None, csp_solver_path=openwbo_path, time_limit = 3600):
     n, m = matrix.shape
     # par_fnRate = beta
     # par_fpRate = alpha
@@ -503,7 +507,7 @@ def PhISCS_B_external(matrix, beta=None, alpha=None, csp_solver_path=openwbo_pat
     a = time.time()
     command = "{} {}".format(csp_solver_path, outfile)
     proc = subprocess.Popen(command.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    output, error = proc.communicate()
+    output, error = proc.communicate(timeout = time_limit)
     b = time.time()
 
     variables = output.decode().split("\n")[-2][2:].split(" ")
@@ -565,6 +569,24 @@ def top10_bad_entries_in_violations(D):
 
     for x in sorted(violations.items(), key=operator.itemgetter(1), reverse=True)[:10]:
         print(x[0], "(entry={}): how many gametes".format(D[x[0]]), x[1])
+
+def PhISCS_B_timed(matrix, beta=None, alpha=None, time_limit = 3600):
+    def returned_PhISCS_B(matrix, returned_dict):
+        returned_dict["returned_value"] = PhISCS_B(matrix)
+
+    returned_dict = { "returned_value" : "not filled yet" }
+    # Start foo as a process
+    p = multiprocessing.Process(target=returned_PhISCS_B, name="returned_PhISCS_B", args=(matrix, returned_dict))
+    p.start()
+    p.join(time_limit)
+    # TODO: working here
+    # If thread is active
+    if p.is_alive():
+        p.terminate()
+        p.join()
+        return None, None, None
+    else:
+        return returned_dict["returned_value"]
 
 
 def PhISCS_B(matrix, beta=None, alpha=None):
@@ -677,3 +699,9 @@ def from_interface_to_method(bounding_alg):
     run_func.__name__ = bounding_alg.get_name()  # include arguments in the name
     return run_func
 
+if __name__ == '__main__':
+    n = 4
+    m = 4
+    x = np.random.randint(2, size=(n, m))
+    result = PhISCS_B_timed(x)
+    print(restult)

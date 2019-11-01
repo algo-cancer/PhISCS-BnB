@@ -43,16 +43,19 @@ parser.add_argument("--print_results", action="store_true", default=False)
 parser.add_argument("--save_results", action="store_true", default=False)
 parser.add_argument("--source_type", dest="source_type", type=int, default=3)
 parser.add_argument("-t", "--time_limit", dest="time_limit", type=float, default=60)
-parser.add_argument("--methods", dest="methods", type=str, default="methods")
+parser.add_argument("--input_config", dest="input_config", type=str, default=None)
 args = parser.parse_args()
 
-methods = globals()[args.methods]
+if args.input_config is None:
+    methods = methods # directly from input.py
+else:
+    methods, n_list, m_list, k_list, i_list = input_dict[parser.input_config]
+    n_list, m_list, k_list, i_list = list(n_list), list(m_list), list(k_list), list(i_list)
 
 #########
 queue_strategy = "custom"
 source_type = ["RND", "MS", "FIXED", "SALEM"][args.source_type]
 noisy = instances[args.instance_index]
-
 
 def solve_with(name, bounding_algorithm, input_matrix):
     returned_matrix = copy.copy(input_matrix)
@@ -150,9 +153,11 @@ if __name__ == "__main__":
             if source_type == "RND":
                 x = np.random.randint(2, size=(n, m))
             elif source_type == "MS":
-                ground, noisy, (countFN, countFP, countNA) = get_data_by_ms(
+                result = get_data_by_ms(
                     n=n, m=m, seed=int(100 * time.time()) % 10000, fn=0, fp=0, na=0, ms_path=ms_path
                 )
+                ground, noisy, (countFN, countFP, countNA) = result
+                k = min(k, np.count_nonzero(ground) - 1)
                 x = make_noisy_by_k(ground, int(k))
             elif source_type == "FIXED":
                 x = noisy
