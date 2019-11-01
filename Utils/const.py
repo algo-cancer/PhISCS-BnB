@@ -3,9 +3,10 @@ import datetime
 import inspect
 import getpass  # For the username running the program
 import math
-# import matplotlib as mpl
-# mpl.use("Agg")
-# import matplotlib.pyplot as plt
+import multiprocessing
+import matplotlib as mpl
+mpl.use("Agg")
+import matplotlib.pyplot as plt
 import numpy as np
 import networkx as nx
 import os

@@ -574,9 +574,12 @@ def PhISCS_B_timed(matrix, beta=None, alpha=None, time_limit = 3600):
     def returned_PhISCS_B(matrix, returned_dict):
         returned_dict["returned_value"] = PhISCS_B(matrix)
 
-    returned_dict = { "returned_value" : "not filled yet" }
+    manager = multiprocessing.Manager()
+    return_dict = manager.dict()
+    return_dict["returned_value"] = "not filled yet"
     # Start foo as a process
-    p = multiprocessing.Process(target=returned_PhISCS_B, name="returned_PhISCS_B", args=(matrix, returned_dict))
+    # multiprocessing.Pool(processes=1)
+    p = multiprocessing.Process(target=returned_PhISCS_B, name="returned_PhISCS_B", args=(matrix, return_dict))
     p.start()
     p.join(time_limit)
     # TODO: working here
@@ -586,7 +589,7 @@ def PhISCS_B_timed(matrix, beta=None, alpha=None, time_limit = 3600):
         p.join()
         return None, None, None
     else:
-        return returned_dict["returned_value"]
+        return return_dict["returned_value"]
 
 
 def PhISCS_B(matrix, beta=None, alpha=None):
@@ -703,5 +706,6 @@ if __name__ == '__main__':
     n = 4
     m = 4
     x = np.random.randint(2, size=(n, m))
+    print(x)
     result = PhISCS_B_timed(x)
-    print(restult)
+    print(result)
