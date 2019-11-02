@@ -15,6 +15,9 @@ np.set_printoptions(threshold=sys.maxsize)
 try:
     from input import *
 except ModuleNotFoundError as e:
+    print("Input in Error ----------------")
+    print(e)
+    print("--------------------------------")
     methods = [
         (PhISCS_I, None),
         (PhISCS_B, None),
