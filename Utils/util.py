@@ -504,34 +504,46 @@ def PhISCS_B_external(matrix, beta=None, alpha=None, csp_solver_path=openwbo_pat
         for cnf in clauseHard:
             out.write("{} {} 0\n".format(hardWeight, cnf))
 
+    finished_correctly = True
     a = time.time()
     command = "{} {}".format(csp_solver_path, outfile)
-    proc = subprocess.Popen(command.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    output, error = proc.communicate(timeout = time_limit)
+    with subprocess.Popen(command.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE) as proc:
+        try:
+            output, error = proc.communicate(timeout = time_limit)
+        except subprocess.TimeoutExpired:
+            finished_correctly = False
+            output_matrix = matrix
+            flip_counts = np.zeros(4)
+            termination_condition = 'time_limit'
     b = time.time()
+    internal_time = b - a
+    if finished_correctly:
+        variables = output.decode().split("\n")[-2][2:].split(" ")
+        O = np.empty((n, m), dtype=np.int8)
+        numVar = 0
+        for i in range(n):
+            for j in range(m):
+                if matrix[i, j] == 0:
+                    if "-" in variables[numVar]:
+                        O[i, j] = 0
+                    else:
+                        O[i, j] = 1
+                elif matrix[i, j] == 1:
+                    if "-" in variables[numVar]:
+                        O[i, j] = 0
+                    else:
+                        O[i, j] = 1
+                elif matrix[i, j] == 2:
+                    if "-" in variables[numVar]:
+                        O[i, j] = 0
+                    else:
+                        O[i, j] = 1
+                numVar += 1
 
-    variables = output.decode().split("\n")[-2][2:].split(" ")
-    O = np.empty((n, m), dtype=np.int8)
-    numVar = 0
-    for i in range(n):
-        for j in range(m):
-            if matrix[i, j] == 0:
-                if "-" in variables[numVar]:
-                    O[i, j] = 0
-                else:
-                    O[i, j] = 1
-            elif matrix[i, j] == 1:
-                if "-" in variables[numVar]:
-                    O[i, j] = 0
-                else:
-                    O[i, j] = 1
-            elif matrix[i, j] == 2:
-                if "-" in variables[numVar]:
-                    O[i, j] = 0
-                else:
-                    O[i, j] = 1
-            numVar += 1
-    return O, count_flips(matrix, matrix.shape[1] * [0], O), b - a
+        output_matrix = O
+        flip_counts = count_flips(matrix, matrix.shape[1] * [0], O)
+        termination_condition = 'optimality'
+    return output_matrix, flip_counts, termination_condition, internal_time
 
 
 def top10_bad_entries_in_violations(D):
@@ -582,7 +594,6 @@ def PhISCS_B_timed(matrix, beta=None, alpha=None, time_limit = 3600):
     p = multiprocessing.Process(target=returned_PhISCS_B, name="returned_PhISCS_B", args=(matrix, return_dict))
     p.start()
     p.join(time_limit)
-    # TODO: working here
     # If thread is active
     if p.is_alive():
         p.terminate()

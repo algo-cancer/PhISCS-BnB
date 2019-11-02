@@ -23,15 +23,12 @@ class SubsampleLPBounding(BoundingAlgAbstract):
         """
         super().__init__()
         self.ratio = ratio
-        self.matrix = None
         self.model = None
         self.y_vars = None
         self.b_vars = None
         self.continuous = continuous
         self.n_threads = n_threads
-        self.times = None
         self.priority_sign = priority_sign
-        self._extraInfo = {}
         self.constraints = None
         self.weights = None
         self.strength = strength
@@ -43,7 +40,7 @@ class SubsampleLPBounding(BoundingAlgAbstract):
         )
 
     def reset(self, matrix):
-        self.times = {"model_preparation_time": 0, "optimization_time": 0}
+        self._times = {"model_preparation_time": 0, "optimization_time": 0}
         self.matrix = matrix
         model_time = time.time()
         self.model, self.y_vars, self.b_vars = StaticUtil.make_Gurobi_model(
@@ -57,12 +54,12 @@ class SubsampleLPBounding(BoundingAlgAbstract):
         self.add_constraints(self.constraints, sample)
         self.weights = np.ones(len(self.constraints))
         model_time = time.time() - model_time
-        self.times["model_preparation_time"] += model_time
+        self._times["model_preparation_time"] += model_time
 
         optTime = time.time()
         self.model.optimize()
         optTime = time.time() - optTime
-        self.times["optimization_time"] += optTime
+        self._times["optimization_time"] += optTime
 
     def get_bound(self, delta):
         self._extraInfo = None
@@ -71,13 +68,13 @@ class SubsampleLPBounding(BoundingAlgAbstract):
         for i in range(flips.shape[0]):
             self.y_vars[flips[i, 0], flips[i, 1]].lb = 1
         model_time = time.time() - model_time
-        self.times["model_preparation_time"] += model_time
+        self._times["model_preparation_time"] += model_time
         obj_val = None
         opt_time = time.time()
         self.model.optimize()
         obj_val = np.int(np.ceil(self.model.objVal))
         opt_time = time.time() - opt_time
-        self.times["optimization_time"] += opt_time
+        self._times["optimization_time"] += opt_time
 
         if self.ratio is not None:
             bound = np.int(np.ceil(self.ratio * obj_val))
@@ -88,7 +85,7 @@ class SubsampleLPBounding(BoundingAlgAbstract):
         for i in range(flips.shape[0]):
             self.y_vars[flips[i, 0], flips[i, 1]].lb = 0
         model_time = time.time() - model_time
-        self.times["model_preparation_time"] += model_time
+        self._times["model_preparation_time"] += model_time
 
         return bound
 

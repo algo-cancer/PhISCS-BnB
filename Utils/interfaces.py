@@ -2,7 +2,10 @@ from Utils.util import *
 
 class BoundingAlgAbstract:
     def __init__(self):
+        self.matrix = None
+        self._extra_info = None
         self._extraInfo = {}
+        self._times = {}
         pass
 
     def reset(self, matrix):
@@ -35,6 +38,9 @@ class BoundingAlgAbstract:
 
     def get_priority(self, new_bound, icf=False):
         return -new_bound
+
+    def get_times(self):
+        return self._times
 
 
 class NaiveBounding(BoundingAlgAbstract):

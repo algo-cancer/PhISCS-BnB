@@ -10,8 +10,6 @@ class RandomPartitioning(BoundingAlgAbstract):
         :param ascending_order: if True the column pair with max weight is chosen in extra info
         """
         super().__init__()
-        self.matrix = None
-        self._extra_info = None
         self.ascending_order = ascending_order
         self.ratio = ratio
         self.dist = None

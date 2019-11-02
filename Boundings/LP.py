@@ -28,17 +28,15 @@ class SemiDynamicLPBounding(BoundingAlgAbstract):
         """
         super().__init__()
         self.ratio = ratio
-        self.matrix = None
         self.model = None
         self.y_vars = None
         self.continuous = continuous
         self.n_threads = n_threads
         self.tool = tool
-        self.times = None
         self.priority_sign = priority_sign
         self.change_bound_method = change_bound_method
         self.for_loop_constrs = for_loop_constrs
-        self._extraInfo = None
+
 
     def get_name(self):
         return (
@@ -47,7 +45,7 @@ class SemiDynamicLPBounding(BoundingAlgAbstract):
         )
 
     def reset(self, matrix):
-        self.times = {"model_preparation_time": 0, "optimization_time": 0}
+        self._times = {"model_preparation_time": 0, "optimization_time": 0}
         self.matrix = matrix
 
         model_time = time.time()
@@ -56,7 +54,7 @@ class SemiDynamicLPBounding(BoundingAlgAbstract):
         elif self.tool == "ORTools":
             self.model, self.y_vars = StaticLPBounding.make_OR_tools_model(self.matrix, continuous=self.continuous)
         model_time = time.time() - model_time
-        self.times["model_preparation_time"] += model_time
+        self._times["model_preparation_time"] += model_time
 
         optTime = time.time()
         if self.tool == "Gurobi":
@@ -64,7 +62,7 @@ class SemiDynamicLPBounding(BoundingAlgAbstract):
         elif self.tool == "ORTools":
             self.model.Solve()
         optTime = time.time() - optTime
-        self.times["optimization_time"] += optTime
+        self._times["optimization_time"] += optTime
 
     def get_bound(self, delta):
         self._extraInfo = None
@@ -86,7 +84,7 @@ class SemiDynamicLPBounding(BoundingAlgAbstract):
             for constraint in new_constrs:
                 self.model.Add(constraint)
         model_time = time.time() - model_time
-        self.times["model_preparation_time"] += model_time
+        self._times["model_preparation_time"] += model_time
 
         obj_val = None
         opt_time = time.time()
@@ -97,7 +95,7 @@ class SemiDynamicLPBounding(BoundingAlgAbstract):
             self.model.Solve()
             obj_val = self.model.Objective().Value()
         opt_time = time.time() - opt_time
-        self.times["optimization_time"] += opt_time
+        self._times["optimization_time"] += opt_time
 
         if self.ratio is not None:
             bound = np.int(np.ceil(self.ratio * obj_val))
@@ -117,7 +115,7 @@ class SemiDynamicLPBounding(BoundingAlgAbstract):
                     for constraint in new_constrs_returned.values():
                         self.model.remove(constraint)
         model_time = time.time() - model_time
-        self.times["model_preparation_time"] += model_time
+        self._times["model_preparation_time"] += model_time
 
         return bound
 

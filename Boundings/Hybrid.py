@@ -16,7 +16,7 @@ class HybridBounding(BoundingAlgAbstract):
         self.threshold_n_flips = threshold_n_flips
         self.first_bounding = first_bounding
         self.second_bounding = second_bounding
-        self.times = None
+        self._times = None
 
     def get_name(self):
         return (
@@ -25,7 +25,7 @@ class HybridBounding(BoundingAlgAbstract):
         )
 
     def reset(self, matrix):
-        self.times = {"modelPreperationTime": 0, "optimizationTime": 0}
+        self._times = {"modelPreperationTime": 0, "optimizationTime": 0}
         self.first_bounding.reset(matrix)
         self.second_bounding.reset(matrix)
 
@@ -39,7 +39,6 @@ class HybridBounding(BoundingAlgAbstract):
 
 
 if __name__ == "__main__":
-
     n, m = 15, 15
     x = np.random.randint(2, size=(n, m))
     delta = sp.lil_matrix((n, m))

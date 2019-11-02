@@ -90,7 +90,7 @@ class SemiDynamicWCNFCSPBounding(BoundingAlgAbstract):
         self.matrix = None
         self.n = None
         self.m = None
-        self.times = None
+        self._times = None
         self.block_indices = None
         self.split_into = split_into
         self.models = []
@@ -98,7 +98,7 @@ class SemiDynamicWCNFCSPBounding(BoundingAlgAbstract):
 
     def reset(self, matrix):
         self.matrix = matrix
-        self.times = {"model_preparation_time": 0, "optimization_time": 0}
+        self._times = {"model_preparation_time": 0, "optimization_time": 0}
         self.n = self.matrix.shape[0]
         self.m = self.matrix.shape[1]
         self.block_indices = [list(x) for x in np.array_split(range(self.m), self.split_into)]
@@ -108,7 +108,7 @@ class SemiDynamicWCNFCSPBounding(BoundingAlgAbstract):
             self.models.append(model)
             self.yVars.append(yVar)
         model_time = time.time() - model_time
-        self.times["model_preparation_time"] += model_time
+        self._times["model_preparation_time"] += model_time
 
     def _get_blocks(self, I):
         return [I[:, i] for i in self.block_indices]
@@ -183,7 +183,7 @@ class SemiDynamicWCNFCSPBounding(BoundingAlgAbstract):
                     break
             models[whichBlock].append([self.yVars[whichBlock][i, indexInBlock].item()])
         model_time = time.time() - model_time
-        self.times["model_preparation_time"] += model_time
+        self._times["model_preparation_time"] += model_time
 
         bound = 0
         opt_time = time.time()
@@ -193,7 +193,7 @@ class SemiDynamicWCNFCSPBounding(BoundingAlgAbstract):
                 rc2.compute()
                 bound += rc2.cost
         opt_time = time.time() - opt_time
-        self.times["optimization_time"] += opt_time
+        self._times["optimization_time"] += opt_time
         return bound
 
 
@@ -202,7 +202,7 @@ class SemiDynamicRC2CSPBounding(BoundingAlgAbstract):
         self.matrix = None
         self.n = None
         self.m = None
-        self.times = None
+        self._times = None
         self.block_indices = None
         self.split_into = split_into
         self.models = []
@@ -210,7 +210,7 @@ class SemiDynamicRC2CSPBounding(BoundingAlgAbstract):
 
     def reset(self, matrix):
         self.matrix = matrix
-        self.times = {"model_preparation_time": 0, "optimization_time": 0}
+        self._times = {"model_preparation_time": 0, "optimization_time": 0}
         self.n = self.matrix.shape[0]
         self.m = self.matrix.shape[1]
         self.block_indices = [list(x) for x in np.array_split(range(self.m), self.split_into)]
@@ -220,7 +220,7 @@ class SemiDynamicRC2CSPBounding(BoundingAlgAbstract):
             self.models.append(model)
             self.yVars.append(yVar)
         model_time = time.time() - model_time
-        self.times["model_preparation_time"] += model_time
+        self._times["model_preparation_time"] += model_time
 
     def _get_blocks(self, I):
         return [I[:, i] for i in self.block_indices]
@@ -297,7 +297,7 @@ class SemiDynamicRC2CSPBounding(BoundingAlgAbstract):
                     break
             models[whichBlock].add_clause([self.yVars[whichBlock][i, indexInBlock]])
         model_time = time.time() - model_time
-        self.times["model_preparation_time"] += model_time
+        self._times["model_preparation_time"] += model_time
 
         bound = 0
         opt_time = time.time()
@@ -308,7 +308,7 @@ class SemiDynamicRC2CSPBounding(BoundingAlgAbstract):
             # print(model.cost)
             bound += model.cost
         opt_time = time.time() - opt_time
-        self.times["optimization_time"] += opt_time
+        self._times["optimization_time"] += opt_time
         return bound
 
 
