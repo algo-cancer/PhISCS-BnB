@@ -14,21 +14,23 @@ class RandomHybridBounding(BoundingAlgAbstract):
         self.matrix = None
         self.boundings = boundings
         self.n_algs_per_node = n_algs_per_node
-        self.weight = weight
-        if self.weight is None:
+        if weight is None:
             self.weight = np.ones(len(self.boundings))
+        else: # in case weight is not given as numpy array I convert here
+            self.weight = np.array(weight)
         assert len(self.weight) == len(self.boundings), "Number of weights should be equal to boundings"
         assert self.n_algs_per_node <= len(self.boundings), f"should be " \
             f"self.n_algs_per_node <= len(self.boundings) but {self.n_algs_per_node} <= {len(self.boundings)}"
         assert 0 <= self.n_algs_per_node , f"should be 0 <= self.n_algs_per_node but {0} <= {self.n_algs_per_node}"
-        self.weight /= len(self.weight)
+        # print(self.weight, len(self.weight), self.weight.shape)
+        self.weight = self.weight / self.weight.sum()
         self._times = None
         self._extraInfo = None
 
     def get_name(self):
         return (
             type(self).__name__
-            + f"_{len(self.boundings)}_{self.weight[0]}_{self.n_algs_per_node}"
+            + f"_{len(self.boundings)}_{self.weight[0]:.3}_{self.n_algs_per_node}"
         )
 
     def reset(self, matrix):

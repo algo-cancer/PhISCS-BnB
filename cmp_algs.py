@@ -36,16 +36,24 @@ assert __name__ == "__main__"
 parser = ArgumentParser()
 parser.add_argument("-n", dest="n", type=int, default=None)
 parser.add_argument("-m", dest="m", type=int, default=None)
-parser.add_argument("-s", dest="s", type=int, default=None)
 parser.add_argument("-i", dest="i", type=int, default=1)
+parser.add_argument("-t", "--time_limit", dest="time_limit", type=float, default=60)
+parser.add_argument("--source_type", dest="source_type", type=int, default=3)
+# if source_type in 1, 3
 parser.add_argument("-k", dest="k", type=float, default=None)
+# if source_type = 3
+parser.add_argument("-s", dest="s", type=int, default=None)
+# if source_type = 2
 parser.add_argument("--instance_index", type=int, default=0)
+# if n or m is None:
+parser.add_argument("--input_config", dest="input_config", type=str, default=None)
+
+# reporting/logging settings
 parser.add_argument("--print_rows", action="store_true", default=False)
 parser.add_argument("--print_results", action="store_true", default=False)
+parser.add_argument("--print_matrix", action="store_true", default=False)
 parser.add_argument("--save_results", action="store_true", default=False)
-parser.add_argument("--source_type", dest="source_type", type=int, default=3)
-parser.add_argument("-t", "--time_limit", dest="time_limit", type=float, default=60)
-parser.add_argument("--input_config", dest="input_config", type=str, default=None)
+
 args = parser.parse_args()
 
 if args.input_config is None:
@@ -166,6 +174,12 @@ if __name__ == "__main__":
             else:
                 raise NotImplementedError("The method not implemented")
             x_hash = get_matrix_hash(x)
+            if args.print_matrix:
+                print("-"*20)
+                print("Input matrix:")
+                print(repr(x))
+                print("Matrix Hash:", x_hash)
+                print("-"*20)
         if x is None:
             continue
         method, bounding = methods[methodInd]
