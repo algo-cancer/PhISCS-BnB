@@ -5,6 +5,7 @@ from . import LP
 from . import MWM
 
 
+
 class RandomHybridBounding(BoundingAlgAbstract):
     def __init__(self, boundings = [], weight = None, n_algs_per_node = 1):
         """

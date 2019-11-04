@@ -1,0 +1,5 @@
+ python cmp_algs.py --help
+ python cmp_algs.py -n 5 -m 5 -i 1 -t 10 --source_type 0 --print_rows --print_results
+ python cmp_algs.py -n 5 -m 5 -i 1 -t 10 --source_type 0 --print_rows --print_results --print_matrix --save_results
+ python cmp_algs.py -n 5 -m 5 -k 2 -i 1 -t 10 --source_type 1 --print_rows --print_results --print_matrix
+ python cmp_algs.py -n 5 -m 5 -i 1 -t 10 --source_type 0 --print_results --input_config exp_simple

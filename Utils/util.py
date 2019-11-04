@@ -509,9 +509,7 @@ def PhISCS_B_external(matrix, beta=None, alpha=None, csp_solver_path=openwbo_pat
     command = "{} {}".format(csp_solver_path, outfile)
     with subprocess.Popen(command.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE) as proc:
         try:
-            finished_correctly = False
             output, error = proc.communicate(timeout = time_limit)
-            finished_correctly = True
         except subprocess.TimeoutExpired:
             finished_correctly = False
             output_matrix = matrix

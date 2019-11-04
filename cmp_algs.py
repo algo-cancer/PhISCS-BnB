@@ -36,7 +36,7 @@ assert __name__ == "__main__"
 parser = ArgumentParser()
 parser.add_argument("-n", dest="n", type=int, default=None)
 parser.add_argument("-m", dest="m", type=int, default=None)
-parser.add_argument("-i", dest="i", type=int, default=1)
+parser.add_argument("-i", dest="i", type=int, default=None)
 parser.add_argument("-t", "--time_limit", dest="time_limit", type=float, default=60)
 parser.add_argument("--source_type", dest="source_type", type=int, default=3)
 # if source_type in 1, 3
@@ -44,7 +44,7 @@ parser.add_argument("-k", dest="k", type=float, default=None)
 # if source_type = 3
 parser.add_argument("-s", dest="s", type=int, default=None)
 # if source_type = 2
-parser.add_argument("--instance_index", type=int, default=0)
+parser.add_argument("--instance_index", type=int, default=None)
 # if n or m is None:
 parser.add_argument("--input_config", dest="input_config", type=str, default=None)
 
@@ -53,21 +53,38 @@ parser.add_argument("--print_rows", action="store_true", default=False)
 parser.add_argument("--print_results", action="store_true", default=False)
 parser.add_argument("--print_matrix", action="store_true", default=False)
 parser.add_argument("--save_results", action="store_true", default=False)
-
 args = parser.parse_args()
 
 if args.input_config is None:
     methods = methods # directly from input.py
+    k_list = None
 else:
-    methods, n_list, m_list, k_list, i_list = input_dict[args.input_config]
-    n_list, m_list, k_list, i_list = list(n_list), list(m_list), list(k_list), list(i_list)
+    methods, n_list, m_list, k_list, i_number = input_dict[args.input_config]
+    n_list, m_list, k_list = list(n_list), list(m_list), list(k_list)
+
+if args.n is not None:
+    n_list = [args.n]
+
+if args.m is not None:
+    m_list = [args.m]
+
+if args.k is not None:
+    k_list = [args.k]
+
+if args.i is not None:
+    i_number = args.i
+
+assert n_list is not None and m_list is not None  and i_number is not None
 
 print(f"{len(methods)} number of methods are chosen.")
 
 #########
 queue_strategy = "custom"
 source_type = ["RND", "MS", "FIXED", "SALEM"][args.source_type]
-noisy = instances[args.instance_index]
+noisy = None
+if args.instance_index is not None:
+    noisy = instances[args.instance_index]
+
 
 def solve_with(name, bounding_algorithm, input_matrix):
     returned_matrix = copy.copy(input_matrix)
@@ -127,19 +144,13 @@ if __name__ == "__main__":
     # n: number of Cells
     # m: number of Mutations
 
-    if args.k is None:
-        k_list = [0.1]
-    else:
-        k_list = [args.k]
-    if args.n is None or args.m is None:  # if n and m not given use our looping
-        # 20, 30 , 40, 50, 60, 70, 80, 90, 40, 80, 100, 120, 160
-        iterList = itertools.product(
-            n_list, m_list, k_list, i_list, list(range(len(methods)))
-        )  # n  # m  # i
-    else:
-        iterList = itertools.product([args.n], [args.m], k_list, list(range(args.i)), list(range(len(methods))))
-
+    if k_list is None:
+        assert source_type == "RND"
+        k_list = [None ]
+    i_list = list(range(i_number))
+    iterList = itertools.product(n_list, m_list, k_list, i_list, list(range(len(methods))))
     iterList = list(iterList)
+
     x, y, x_hash = None, None, None
     for n, m, k, i, methodInd in tqdm(iterList):
         if m is None:
@@ -175,11 +186,11 @@ if __name__ == "__main__":
                 raise NotImplementedError("The method not implemented")
             x_hash = get_matrix_hash(x)
             if args.print_matrix:
-                print("-"*20)
+                print("-" * 20)
                 print("Input matrix:")
                 print(repr(x))
                 print("Matrix Hash:", x_hash)
-                print("-"*20)
+                print("-" * 20)
         if x is None:
             continue
         method, bounding = methods[methodInd]
