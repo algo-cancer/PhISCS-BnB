@@ -21,15 +21,15 @@ Ongoing experiments:
   
   Install the project:
   
-- conda create -n env2
+- conda create -n env2 python=3.6
 - source activate env2
 - conda install -c http://conda.anaconda.org/gurobi gurobi
 - module load openmpi/gnu/2.1.0
 - pip install mpi4py
-- # export sat stuff
+- export LC_CTYPE=en_US.UTF-8
 - pip install numpy
-- pip install pysat
-- pip install py-aiger-cnf==2.0.0
+- pip install python-sat
+- pip install py-aiger-cnf
 - pip install -r requirments_no_version.txt
 - python -m Utils.const
 
