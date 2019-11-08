@@ -13,6 +13,7 @@ Ongoing experiments:
 
 - Correct strength function for subsample
   - "find_relation_subsam.py" screen is running on Phi 70% on 10am nov 5th.
+    - 97% or 73/75 on nov 8th 4pm.
   - cmp_algs_100,100,10_11-03-16-03-46.csv seems bigger pool didn't help?
   
   
