@@ -91,9 +91,15 @@ def solve_with(name, bounding_algorithm, input_matrix):
     ret_dict = dict()
     args_to_pass = dict()
 
-    if name == "BnB":
+    if isinstance(name, str) and "BnB" in name:
         time1 = time.time()
-        problem1 = BnB(input_matrix, bounding_algorithm, False)
+        checkBounding = False
+        version = 0
+        if "True" in name:
+            checkBounding = True
+        if "1" in name:
+            version = 1
+        problem1 = BnB(input_matrix, bounding_algorithm, checkBounding, version)
         solver = pybnb.solver.Solver()
         results1 = solver.solve(problem1, queue_strategy=queue_strategy, log=None, time_limit=args.time_limit)
         ret_dict["runtime"] = time.time() - time1
