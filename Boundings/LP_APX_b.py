@@ -28,7 +28,7 @@ class SubsampleLPBounding_b(BoundingAlgAbstract):
 
     def get_name(self):
         if self.constraints is None:
-            return f"{type(self).__name__}_{self.n_cnst_func}"
+            return f"{type(self).__name__}_sad_{self.n_cnst_func}"
         else:
             return f"{type(self).__name__}_{self.n_chosen}_{len(self.constraints)}"
 
@@ -164,7 +164,7 @@ class StaticUtil_b():
 
 
 if __name__ == "__main__":
-    n, m = 100, 100
+    n, m = 5, 5
     x = np.random.randint(2, size=(n, m))
     # x = I6
     # x = I_small

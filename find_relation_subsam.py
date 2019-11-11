@@ -6,7 +6,6 @@ from Boundings.LP import *
 from Boundings.LP_APX_b import *
 
 
-
 if __name__ == "__main__":
     script_name = os.path.basename(__file__).split(".")[0]
     print(f"{script_name} starts here")
@@ -26,22 +25,29 @@ if __name__ == "__main__":
     df = pd.DataFrame(columns=["hash", "n", "m", "n_flips", "method", "runtime"])
     # n: number of Cells
     # m: number of Mutations
-    iterList = itertools.product([20, 40, 80, 160, 320], [20, 40, 80, 160, 320], list(range(3)))  # n  # m  # i
+    # [10, 20, 30, 40, 50]
+    iterList = itertools.product([10, 20, 30, 40, 50, 60, 70], [10, 20, 30, 40, 50, 60, 70], list(range(5)))  # n  # m  # i
     iterList = list(iterList)
     for n, m, ind in tqdm(iterList):
         x = np.random.randint(2, size=(n, m))
         for method in methods:
             runtime = time.time()
-            nf = method(x)
+            ret = timed_run(method, {"x":x}, time_limit = 20)
+
             runtime = time.time() - runtime
             row = {
                 "n": str(n),
                 "m": str(m),
                 "hash": get_matrix_hash(x),
-                "method": f"{method.__name__ }",
-                "runtime": str(runtime)[:6],
-                "n_flips": str(nf),
+                "runtime": str(runtime),
+                "internal_time": str(ret["runtime"]),
+                "termination_condition": ret['termination_condition'],
             }
+            if ret['termination_condition'] == "success":
+                row.update({
+                    "method": f'{ret["output"][1] }',
+                    "n_flips": str(ret["output"][0]),
+                })
             df = df.append(row, ignore_index=True)
     print(df)
     now_time = time.strftime("%m-%d-%H-%M-%S", time.gmtime())

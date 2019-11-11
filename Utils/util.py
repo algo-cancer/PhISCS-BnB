@@ -1,6 +1,37 @@
 from Utils.const import *
 
 
+def timed_run(func, args, time_limit=1):
+    def internal_func(shared_dict):
+        args_to_pass = dict()
+        args_needed = inspect.getfullargspec(func).args
+        for arg in args_needed:
+            args_to_pass[arg] = shared_dict["input"][arg]
+
+        runtime = time.time()
+        shared_dict["output"] = func(**args_to_pass)
+        runtime = time.time() - runtime
+        shared_dict["runtime"] = runtime
+
+    manager = multiprocessing.Manager()
+    shared_dict = manager.dict()
+
+    shared_dict["input"] = args
+    p = multiprocessing.Process(target=internal_func, name="internal_func", args=(shared_dict,))
+    p.start()
+    p.join(time_limit)
+    # If thread is active
+    if p.is_alive():
+        p.terminate()
+        # p.join()
+        shared_dict["output"] = None
+        shared_dict["termination_condition"] = 'time_limit'
+        shared_dict["runtime"] = time_limit
+    else:
+        shared_dict["termination_condition"] = 'success'
+    return shared_dict
+
+
 def get_matrix_hash(x):
     return hash(x.tostring()) % 10000000
 
@@ -715,9 +746,10 @@ def get_k_partitioned_PhISCS(k):
 def from_interface_to_method(bounding_alg):
     def run_func(x):
         bounding_alg.reset(x)
-        return bounding_alg.get_bound(sp.lil_matrix(x.shape, dtype=np.int8))
+        ret = bounding_alg.get_bound(sp.lil_matrix(x.shape, dtype=np.int8))
+        return ret, bounding_alg.get_name()
 
-    run_func.__name__ = bounding_alg.get_name()  # include arguments in the name
+    run_func.core = bounding_alg  # include arguments in the name
     return run_func
 
 if __name__ == '__main__':
