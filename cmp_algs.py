@@ -74,6 +74,7 @@ if args.k is not None:
 if args.i is not None:
     i_number = args.i
 
+
 assert n_list is not None and m_list is not None  and i_number is not None
 
 print(f"{len(methods)} number of methods are chosen.")
@@ -144,15 +145,16 @@ if __name__ == "__main__":
     # n: number of Cells
     # m: number of Mutations
 
-    if k_list is None:
+    if k_list is None or source_type == "RND":
         assert source_type == "RND"
-        k_list = [None ]
+        k_list = [None]
     i_list = list(range(i_number))
-    iterList = itertools.product(n_list, m_list, k_list, i_list, list(range(len(methods))))
-    iterList = list(iterList)
-
+    print(i_number, i_list)
+    iter_list = itertools.product(n_list, m_list, k_list, i_list, list(range(len(methods))))
+    iter_list = list(iter_list)
+    print(f"len(iter_list) = {len(iter_list)}")
     x, y, x_hash = None, None, None
-    for n, m, k, i, methodInd in tqdm(iterList):
+    for n, m, k, i, methodInd in tqdm(iter_list):
         if m is None:
             m = n
         if source_type == "RND":
@@ -170,7 +172,7 @@ if __name__ == "__main__":
             elif source_type == "FIXED":
                 x = noisy
             elif source_type == "SALEM":
-                file_name = f"simNo_{i+1}-s_{args.s}-m_{args.m}-n_{args.n}.SC.ground"
+                file_name = f"simNo_{i+1}-s_{args.s}-m_{m}-n_{n}.SC.ground"
                 file = simulation_folder_path + file_name
                 df_sim = pd.read_csv(file, delimiter="\t", index_col=0)
                 # df_sim = df_sim.iloc[: args.n, : args.m]
