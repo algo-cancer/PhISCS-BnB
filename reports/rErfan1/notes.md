@@ -15,6 +15,7 @@ Ongoing experiments:
   - "find_relation_subsam.py" screen is running on Phi 70% on 10am nov 5th.
     - 97% or 73/75 on nov 8th 4pm.
     - 99% or 74/75 on nov 10th 7pm.
+    - This finished I put new ones to run to take less than 20sec each
   - cmp_algs_100,100,10_11-03-16-03-46.csv seems bigger pool didn't help?
   
   
