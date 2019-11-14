@@ -31,13 +31,7 @@ from tqdm import tqdm
 
 
 
-def print_line(depth=1):
-    """A debugging tool!  """
-    for i in range(1, depth + 1):
-        info = inspect.stack()[i]
-        for j in range(i - 1):
-            print("\t", end="")
-        print(f"Line {info.lineno} in {info.filename}, Function: {info.function}")
+
 
 
 # This line is here to make sure the line "Academic license - for non-commercial use only" prints at the top
@@ -53,7 +47,9 @@ if user_name == "esadeqia":
     openwbo_path = "/home/esadeqia/external/openwbo"
     ms_path = "/home/esadeqia/external/ms"
     output_folder_path = "/home/esadeqia/PhISCS_BnB/reports/Erfan"
-    simulation_folder_path = "/home/esadeqia/PhISCS_BnB/simulations/"
+    data_folder_path = "/home/esadeqia/PhISCS_BnB/Data"
+    simulation_folder_path = data_folder_path + "/simulations/"
+    noisy_folder_path = data_folder_path + "/noisy/"
     if "Carbonate" in os.getcwd():
         openwbo_path = "/gpfs/home/e/s/esadeqia/Carbonate/external/openwbo"
         ms_path = "/gpfs/home/e/s/esadeqia/Carbonate/external/ms"

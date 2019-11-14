@@ -5,8 +5,8 @@ import os
 
 def main():
     script_name = os.path.basename(__file__).split(".")[0]
-    input_file = "exp1_ms_prevM_Phy.o1437459_memory_limit_example"
-    output_folder_path = "/gpfs/home/e/s/esadeqia/Carbonate/Phylogeny_BnB/reports/Erfan"
+    input_file = "subsam_incom_result.txt"
+    output_folder_path = "/home/esadeqia/PhISCS_BnB/reports/Erfan"
     pattern = re.compile("\{.*\}")
     with open(input_file, "r") as file:
         text = file.read()

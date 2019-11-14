@@ -45,6 +45,7 @@ parser.add_argument("-k", dest="k", type=float, default=None)
 parser.add_argument("-s", dest="s", type=int, default=None)
 # if source_type = 2
 parser.add_argument("--instance_index", type=int, default=None)
+parser.add_argument("--instance_name", type=str, default=None)
 # if n or m is None:
 parser.add_argument("--input_config", dest="input_config", type=str, default=None)
 
@@ -53,6 +54,7 @@ parser.add_argument("--print_rows", action="store_true", default=False)
 parser.add_argument("--print_results", action="store_true", default=False)
 parser.add_argument("--print_matrix", action="store_true", default=False)
 parser.add_argument("--save_results", action="store_true", default=False)
+parser.add_argument("--save_solutions", action="store_true", default=False)
 args = parser.parse_args()
 
 if args.input_config is None:
@@ -83,8 +85,11 @@ print(f"{len(methods)} number of methods are chosen.")
 queue_strategy = "custom"
 source_type = ["RND", "MS", "FIXED", "SALEM"][args.source_type]
 noisy = None
-if args.instance_index is not None:
-    noisy = instances[args.instance_index]
+if source_type == "FIXED":
+    if args.instance_index is not None:
+        noisy = instances[args.instance_index]
+    elif args.instance_name is not None:
+        noisy = read_matrix_from_file(file_name = args.instance_name)
 
 
 def solve_with(name, bounding_algorithm, input_matrix):
@@ -220,13 +225,21 @@ if __name__ == "__main__":
                 "n": str(n),
                 "m": str(m),
                 "k": str(k),
-                "hash": x_hash,
+                "hash": str(int(x_hash)),
                 "method": f"{method_name}_{bounding_name}",
                 "cf": is_conflict_free_gusfield_and_get_two_columns_in_coflicts(ans)[0],
                 "num_zeros_noisy": str(int(np.count_nonzero(1-x))),
                 "num_ones_noisy": str(int(np.count_nonzero(x))),
                 "t": str(args.time_limit),
             }
+            if args.save_solutions:
+                print(type(ans))
+                if isinstance(ans, np.ndarray):
+                    ans_file_name = f"solution_{row['hash']}_{row['method']}"
+                    np.savetxt(ans_file_name, ans, fmt = "%d")
+                    print(f"numpy file stored at {ans_file_name}")
+                else:
+                    print("No answer!")
             if source_type == "SALEM":
                 row["s"] = str(args.s)
                 row["file_name"] = file_name

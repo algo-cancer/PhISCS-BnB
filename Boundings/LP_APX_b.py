@@ -8,6 +8,10 @@ import collections
 Constraint = collections.namedtuple('Constraint', " ".join(('type', 'row', 'col1', 'col2', 'exp')))
 
 class SubsampleLPBounding_b(BoundingAlgAbstract):
+    @staticmethod
+    def n_const(n, m):
+        return (0.35301756  * n + 5.71581769) * (1.05 * m * m + 35.54995381 * m - 150.87030838)
+
     def __init__(self, n_cnst_func=None):
         """
         :param ratio:

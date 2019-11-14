@@ -1,6 +1,43 @@
 from Utils.const import *
 
 
+
+def print_line(depth=1, shift=1):
+    """A debugging tool!  """
+    for i in range(shift, depth + shift):
+        info = inspect.stack()[i]
+        for j in range(i - 1):
+            print("\t", end="")
+        print(f"Line {info.lineno} in {info.filename}, Function: {info.function}")
+
+def print_line_iter(depth=1):
+    """A debugging tool!  """
+    last_time = 0
+    while(True):
+        last_time = time.time() - last_time
+        print(last_time, end="")
+        print_line(depth=depth, shift=2)
+        print(flush=True)
+        last_time = time.time()
+        yield
+        # return
+
+def read_matrix_from_file(
+        file_name = "simNo_2-s_4-m_50-n_50-k_50.SC.noisy",
+        args = {"simNo":2, "s": 4, "m": 50, "n":50, "k":50, "kind": "noisy"}, folder_path = noisy_folder_path):
+    assert file_name is not None or args is not None, "give an input"
+
+    if file_name is None:
+        file_name = f"simNo_{args['simNo']}-s_{args['s']}-m_{args['m']}-n_{args['n']}.SC.{args['kind']}"
+        if args['kind'] == "noisy":
+            folder_path = noisy_folder_path
+        elif args['kind'] == "ground":
+            folder_path = simulation_folder_path
+    file = folder_path + file_name
+    df_sim = pd.read_csv(file, delimiter="\t", index_col=0)
+    return df_sim.values
+
+
 def timed_run(func, args, time_limit=1):
     def internal_func(shared_dict):
         args_to_pass = dict()
@@ -42,10 +79,11 @@ def get_matrix_hash(x):
 #     return nf
 
 
-# def myPhISCS_I(x):
-#     solution, (flips_0_1, flips_1_0, flips_2_0, flips_2_1), ci_time = PhISCS_I(x, beta=0.90, alpha=0.00001)
-#     nf = len(np.where(solution != x)[0])
-#     return nf
+def myPhISCS_I(x):
+    ret = PhISCS_I(x, beta=0.97, alpha=0.0001)
+    solution = ret[0]
+    nf = len(np.where(solution != x)[0])
+    return nf
 
 
 def get_a_coflict(D, p, q):
@@ -377,7 +415,7 @@ def count_flips(I, sol_K, sol_Y):
     return (flips_0_1, flips_1_0, flips_2_0, flips_2_1)
 
 
-def PhISCS_I(I, beta, alpha, time_limit = 3600):
+def PhISCS_I(I, beta=0.97, alpha=0.00001, time_limit = 3600):
     def nearestInt(x):
         return int(x+0.5)
 
@@ -750,6 +788,7 @@ def from_interface_to_method(bounding_alg):
         return ret, bounding_alg.get_name()
 
     run_func.core = bounding_alg  # include arguments in the name
+    run_func.__name__ = bounding_alg.get_name()
     return run_func
 
 if __name__ == '__main__':
