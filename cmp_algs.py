@@ -84,14 +84,18 @@ print(f"{len(methods)} number of methods are chosen.")
 #########
 queue_strategy = "custom"
 source_type = ["RND", "MS", "FIXED", "SALEM"][args.source_type]
-noisy = None
+noisy_list = None
 if source_type == "FIXED":
+    noisy_list = []
     if args.instance_index is not None:
         noisy = instances[args.instance_index]
     elif args.instance_name is not None:
-        noisy = read_matrix_from_file(file_name = args.instance_name)
-
-
+        if args.instance_name == "list":
+            pass # use file_names_list variable from input.py
+        else:
+            file_names_list = [args.instance_name]
+    i_number = len(file_names_list)
+print(file_names_list)
 def solve_with(name, bounding_algorithm, input_matrix):
     returned_matrix = copy.copy(input_matrix)
     ret_dict = dict()
@@ -159,8 +163,10 @@ if __name__ == "__main__":
     if k_list is None or source_type == "RND":
         assert source_type == "RND"
         k_list = [None]
+
+    if source_type == "FIXED":
+        n_list, m_list, k_list = [None], [None], [None],
     i_list = list(range(i_number))
-    print(i_number, i_list)
     iter_list = itertools.product(n_list, m_list, k_list, i_list, list(range(len(methods))))
     iter_list = list(iter_list)
     print(f"len(iter_list) = {len(iter_list)}")
@@ -181,7 +187,8 @@ if __name__ == "__main__":
                 k = min(k, np.count_nonzero(ground) - 1)
                 x = make_noisy_by_k(ground, int(k))
             elif source_type == "FIXED":
-                x = noisy
+                x = read_matrix_from_file(file_names_list[i])
+
             elif source_type == "SALEM":
                 file_name = f"simNo_{i+1}-s_{args.s}-m_{m}-n_{n}.SC.ground"
                 file = simulation_folder_path + file_name
@@ -206,6 +213,8 @@ if __name__ == "__main__":
                 print("-" * 20)
         if x is None:
             continue
+        else:
+            n, m = x.shape
         method, bounding = methods[methodInd]
         method_name = method if isinstance(method, str) else method.__name__
         try:
@@ -246,6 +255,8 @@ if __name__ == "__main__":
                 row["simNo"] = str(i+1)
                 row["num_zeros_ground"] = str(int(np.count_nonzero(1 - y))),
                 row["num_ones_ground"] =  str(int(np.count_nonzero(y))),
+            elif source_type == "FIXED":
+                row["file_name"] = file_names_list[i]
             row.update(info)
             if args.print_rows:
                 print(row)
