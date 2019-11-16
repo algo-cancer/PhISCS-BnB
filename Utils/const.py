@@ -23,18 +23,29 @@ import time
 import traceback
 
 from collections import defaultdict
-from gurobipy import *
 from ortools.linear_solver import pywraplp
-from pysat.examples.rc2 import RC2
 from pysat.formula import WCNF
 from tqdm import tqdm
+try:
+    from pysat.examples.rc2 import RC2
+except ImportError:
+    print("from pysat.examples.rc2 import RC2 didn't run successfully. CSP based methods will not work.")
 
+try:
+    from gurobipy import *
+except ImportError:
+    print("from gurobipy import * didn't run successfully. LP based methods will not work.")
 
 
 
 
 
 # This line is here to make sure the line "Academic license - for non-commercial use only" prints at the top
+try:
+    gurobi_env = Env()
+except GurobiError:
+    print("Gurubi License is not working properly. LP based methods will not work")
+
 # gurobi_env = Env()
 # For users and platforms
 user_name = getpass.getuser()
@@ -48,13 +59,14 @@ if user_name == "esadeqia":
     ms_path = "/home/esadeqia/external/ms"
     output_folder_path = "/home/esadeqia/PhISCS_BnB/reports/Erfan"
     data_folder_path = "/home/esadeqia/PhISCS_BnB/Data"
-    simulation_folder_path = data_folder_path + "/simulations/"
-    noisy_folder_path = data_folder_path + "/noisy/"
     if "Carbonate" in os.getcwd():
         openwbo_path = "/gpfs/home/e/s/esadeqia/Carbonate/external/openwbo"
         ms_path = "/gpfs/home/e/s/esadeqia/Carbonate/external/ms"
         output_folder_path = "/gpfs/home/e/s/esadeqia/Carbonate/Phylogeny_BnB/reports/Erfan"
-        simulation_folder_path = "/gpfs/home/e/s/esadeqia/Carbonate/Phylogeny_BnB/simulations/"
+        data_folder_path = "/gpfs/home/e/s/esadeqia/Carbonate/Phylogeny_BnB/Data"
+
+    simulation_folder_path = data_folder_path + "/simulations/"
+    noisy_folder_path = data_folder_path + "/noisy/"
 elif user_name == "school":
     openwbo_path = None
     ms_path = None
