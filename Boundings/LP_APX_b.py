@@ -9,8 +9,14 @@ Constraint = collections.namedtuple('Constraint', " ".join(('type', 'row', 'col1
 
 class SubsampleLPBounding_b(BoundingAlgAbstract):
     @staticmethod
-    def n_const(n, m):
+    def n_const_1(n, m):
         return (0.35301756  * n + 5.71581769) * (1.05 * m * m + 35.54995381 * m - 150.87030838)
+
+    @staticmethod
+    def n_const_func_maker(a, b):
+        def func(n, m):
+            return b + a * (n * (0.164 * m * m + 22.44 * m - 92.756) + 9.1935 * m * m - 22.822 * m - 1237.4)
+        return func
 
     def __init__(self, n_cnst_func=None):
         """

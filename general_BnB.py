@@ -2,6 +2,7 @@ from Utils.const import *
 from Utils.interfaces import *
 from Utils.util import *
 from Boundings.LP import *
+from Boundings.LP_APX_b import *
 from Boundings.MWM import *
 
 
@@ -144,6 +145,17 @@ class BnB(pybnb.Problem):
                 node.queue_priority = self.boundingAlg.get_priority(newBound - nf, node_icf)
                 yield node
 
+    # def notify_new_best_node(self,
+    #                          node,
+    #                          current):
+    #     print("-----------------------------------")
+    #     next(plg)
+    #     print(node)
+    #     print("changing version")
+    #     print("-----------------------------------")
+    #     # self.version = 1
+
+
 
 # def ErfanBnBSolver(x):
 #   problem = BnB(x, EmptyBoundingAlg())
@@ -154,9 +166,10 @@ class BnB(pybnb.Problem):
 if __name__ == "__main__":
     time_limit = 60
 
-    n, m = 30, 4
+    # n, m = 30, 4
     # n, m = 5, 5
-    x = np.random.randint(2, size=(n, m))
+    # x = np.random.randint(2, size=(n, m))
+    x = read_matrix_from_file()
     # x = np.array(
     #     [
     #         [0, 1, 0, 0,],
@@ -200,9 +213,14 @@ if __name__ == "__main__":
     # )
     print(repr(x))
     queue_strategy = "custom"
-    time_limit = 5
+    time_limit = 300
+    plg= print_line_iter()
+    next(plg)
     for i in range(2):
-        problem1 = BnB(x, SemiDynamicLPBounding(), False, i)
+        next(plg)
+        problem1 = BnB(x, SubsampleLPBounding_b(lambda n, m: int(0.6 * (3 * n + 1) * m ** 1.8)), False, i)
+        # problem1 = BnB(x, SemiDynamicLPBounding(), False, i)
+        # problem1 = BnB(x, DynamicMWMBounding(), False, i)
         solver = pybnb.solver.Solver()
         results1 = solver.solve(problem1, queue_strategy=queue_strategy, log=None, time_limit=time_limit)
         print(results1)
