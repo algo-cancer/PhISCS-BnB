@@ -95,7 +95,7 @@ if source_type == "FIXED":
         else:
             file_names_list = [args.instance_name]
     i_number = len(file_names_list)
-print(file_names_list)
+# print(file_names_list)
 def solve_with(name, bounding_algorithm, input_matrix):
     returned_matrix = copy.copy(input_matrix)
     ret_dict = dict()
