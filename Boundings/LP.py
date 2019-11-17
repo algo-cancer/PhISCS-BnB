@@ -19,6 +19,7 @@ class SemiDynamicLPBounding(BoundingAlgAbstract):
         priority_sign=-1,
         change_bound_method=True,
         for_loop_constrs=True,
+        add_extra_constraints=False,
     ):
         """
         :param ratio:
@@ -36,6 +37,7 @@ class SemiDynamicLPBounding(BoundingAlgAbstract):
         self.priority_sign = priority_sign
         self.change_bound_method = change_bound_method
         self.for_loop_constrs = for_loop_constrs
+        self.add_extra_constraints = add_extra_constraints
 
 
     def get_name(self):
@@ -50,7 +52,8 @@ class SemiDynamicLPBounding(BoundingAlgAbstract):
 
         model_time = time.time()
         if self.tool == "Gurobi":
-            self.model, self.y_vars = StaticLPBounding.make_Gurobi_model(self.matrix, continuous=self.continuous)
+            self.model, self.y_vars = StaticLPBounding.make_Gurobi_model(self.matrix, continuous=self.continuous
+                                                                         , add_extra_constraints=self.add_extra_constraints)
         elif self.tool == "ORTools":
             self.model, self.y_vars = StaticLPBounding.make_OR_tools_model(self.matrix, continuous=self.continuous)
         model_time = time.time() - model_time
@@ -197,7 +200,7 @@ class StaticLPBounding(BoundingAlgAbstract):
         return model, Y
 
     @staticmethod
-    def make_Gurobi_model(I, continuous=True):
+    def make_Gurobi_model(I, continuous=True, add_extra_constraints=False):
         if continuous:
             varType = GRB.CONTINUOUS
         else:
@@ -215,7 +218,7 @@ class StaticLPBounding(BoundingAlgAbstract):
                     Y[c, m] = model.addVar(0, 1, obj=1, vtype=varType, name="Y({0},{1})".format(c, m))
                 elif I[c, m] == 1:
                     Y[c, m] = 1
-
+        # TODO: Working here!
         B = {}
         for p in range(num_mutations):
             for q in range(num_mutations):
@@ -233,6 +236,18 @@ class StaticLPBounding(BoundingAlgAbstract):
         for p in range(num_mutations):
             for q in range(num_mutations):
                 model.addConstr(B[p, q, 0, 1] + B[p, q, 1, 0] + B[p, q, 1, 1] <= 2)
+
+        # new constraints
+        if add_extra_constraints:
+            for p in range(num_mutations):
+                for q in range(num_mutations):
+                    if p != q and np.any(np.logical_and(I[:, p] == 1, I[:, q] == 1)):
+                        r01 = np.nonzero(np.logical_and(I[:, p] == 0, I[:, q] == 1))[0]
+                        r10 = np.nonzero(np.logical_and(I[:, p] == 1, I[:, q] == 0))[0]
+                        for a, b in itertools.product(r01, r10):
+                            model.addConstr(Y[a,p] + Y[b,q] >= 1)
+
+
 
         model.Params.ModelSense = GRB.MINIMIZE
         return model, Y
@@ -261,24 +276,46 @@ if __name__ == "__main__":
 
     # n, m = 15, 15
     # x = np.random.randint(2, size=(n, m))
-    x = I6
+    # x = I6
+    x = read_matrix_from_file()
     delta = sp.lil_matrix(x.shape)
+    # print(x)
+    # StaticLPBounding.make_Gurobi_model(x)
 
-    static_LP_bounding = StaticLPBounding()
-    static_LP_bounding.reset(x)
 
-    algo = SemiDynamicLPBounding(ratio=None, continuous=True, n_threads=1, tool="Gurobi", priority_sign=-1)
+    algoF = SemiDynamicLPBounding(ratio=None, continuous=True, n_threads=1, tool="Gurobi", priority_sign=-1, add_extra_constraints=False)
+    algoT = SemiDynamicLPBounding(ratio=None, continuous=True, n_threads=1, tool="Gurobi", priority_sign=-1, add_extra_constraints=True)
+
     reset_time = time.time()
-    algo.reset(x)
+    algoF.reset(x)
     reset_time = time.time() - reset_time
     print(reset_time)
+
+    reset_time = time.time()
+    algoT.reset(x)
+    reset_time = time.time() - reset_time
+    print(reset_time)
+
+    print(len(algoF.model.getConstrs()))
+    print(len(algoT.model.getConstrs()))
 
     xp = np.asarray(x + delta)
     optim = myPhISCS_I(xp)
 
     print("Optimal answer:", optim)
-    print(StaticLPBounding.LP_brief(xp), algo.get_bound(delta))
-    print(algo.has_state())
+
+    bound_time = time.time()
+    bft = algoF.get_bound(delta)
+    bound_time = time.time() - bound_time
+    print(bound_time)
+
+    bound_time = time.time()
+    btt = algoT.get_bound(delta)
+    bound_time = time.time() - bound_time
+    print(bound_time)
+
+    print(bft, btt)
+    exit(0)
     # algo.model.reset()
     algoPrim = algo.model.copy()
 
