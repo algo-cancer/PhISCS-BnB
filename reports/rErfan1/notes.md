@@ -1,23 +1,27 @@
 Experiment checklist:
+- ILP behaviour
+ - making matrices 100x100 in PHI
+ - then I should run those in bigred
+
+
+- Hybrid of MWM and SemiLP
+  - priority queue
+  
+Ongoing experiments:
+
+
+- Correct strength function for subsample
+  - subsamp_bin_search.py running in phi
+    - Nov16 138/180 77%
+  
+  
+  
+Old notes:
 - Memory limit exceeds 10gb for Phisics_I : 'n': '100', 'm': '100', 'k': '40' in carbonate
   - exceeded even with 16gb
   - I am gonna try Karst
-  
+  - This is solved in BigRed3
 
-Ongoing experiments:
-- Previous methods: What is nature of relation with n_flip, n, m?
-  - exp1_rnd_prevM_P (1437460)
-  - exp1_ms_prevM_P (1437495): potential limit before
-  - exp1_salem_prevM_P: choose correct combinations
-- Hybrid of MWM and SemiLP
-
-- Correct strength function for subsample
-  - "find_relation_subsam.py" screen is running on Phi 70% on 10am nov 5th.
-    - 97% or 73/75 on nov 8th 4pm.
-    - 99% or 74/75 on nov 10th 7pm.
-    - This finished I put new ones to run to take less than 20sec each
-  - cmp_algs_100,100,10_11-03-16-03-46.csv seems bigger pool didn't help?
-  
   
   
   
@@ -36,3 +40,11 @@ Ongoing experiments:
 - pip install -r requirments_no_version.txt
 - python -m Utils.const
 
+
+
+copying the noisy files
+tar -czf noisy_nov16.tar.gz noisy
+
+in bigred:
+scp esadeqia@phi.cs.indiana.edu:/home/esadeqia/PhISCS_BnB/Data/noisy_nov16.tar.gz .
+tar -xzf noisy_nov16.tar.gz
