@@ -141,10 +141,10 @@ def solve_with(name, bounding_algorithm, input_matrix):
         run_time = time.time()
         returned_output = name(**args_to_pass)
         ret_dict["runtime"] = time.time() - run_time
-        if name.__name__ in ["PhISCS_B_external", "PhISCS_I", "PhISCS_B", "PhISCS_B_timed"]:
+        if name.__name__ in ["PhISCS_B_external", "PhISCS_I", "PhISCS_B", "PhISCS_B_timed",  "PhISCS_B_2_sat_timed"]:
             ret_dict["internal_time"] = returned_output[-1]
             returned_matrix = returned_output[0]
-        if name.__name__ in ["PhISCS_I", "PhISCS_B_external", "PhISCS_B_timed"]:
+        if name.__name__ in ["PhISCS_I", "PhISCS_B_external", "PhISCS_B_timed", "PhISCS_B_2_sat_timed"]:
             ret_dict["termination_condition"] = returned_output[-2]
         ret_dict["n_flips"] = len(np.where(returned_matrix != input_matrix)[0])
     else:

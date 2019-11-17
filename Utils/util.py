@@ -791,10 +791,66 @@ def from_interface_to_method(bounding_alg):
     run_func.__name__ = bounding_alg.get_name()
     return run_func
 
+
+def PhISCS_B_2_sat_timed(matrix, time_limit):
+    args = {"matrix" : matrix}
+    result = timed_run(PhISCS_B_2_sat, args, time_limit=time_limit)
+    if result["termination_condition"] == "success":
+        output = result["output"]
+        output = (output[0], output[1], "optimality", output[2])
+    elif result["termination_condition"] == "time_limit":
+        output = (None, (0,0,0,0), "time_limit", time_limit)
+    return output
+
+def PhISCS_B_2_sat(matrix,):
+    rc2 = RC2(WCNF())
+    n, m = matrix.shape
+
+
+    F = np.empty((n, m), dtype=np.int64)
+    num_var_F = 0
+    map_f2ij = {}
+    for i in range(n):
+        for j in range(m):
+            if matrix[i, j] == 0:
+                num_var_F += 1
+                map_f2ij[num_var_F] = (i, j)
+                F[i, j] = num_var_F
+                rc2.add_clause([-F[i,j]], weight = 1)
+
+    for p in range(m):
+        for q in range(m):
+            if p != q and np.any(np.logical_and(matrix[:, p] == 1, matrix[:, q] == 1)):
+                r01 = np.nonzero(np.logical_and(matrix[:, p] == 0, matrix[:, q] == 1))[0]
+                r10 = np.nonzero(np.logical_and(matrix[:, p] == 1, matrix[:, q] == 0))[0]
+                for a, b in itertools.product(r01, r10):
+                    rc2.add_clause([F[a, p], F[b, q]]) # at least one of them should be flipped
+
+    a = time.time()
+    variables = rc2.compute()
+    b = time.time()
+
+
+    O = matrix.copy()
+    O = O.astype(np.int8)
+    for var_ind in range(len(variables)):
+        if variables[var_ind] > 0:
+            O[map_f2ij[variables[var_ind]]] = 1
+
+    return O, count_flips(matrix, matrix.shape[1] * [0], O), b - a
+
+
+
 if __name__ == '__main__':
-    n = 16
-    m = 16
+    n = 40
+    m = 40
     x = np.random.randint(2, size=(n, m))
-    print(x)
+    # print(x)
+    # result = PhISCS_B_2_sat(x)
+    # print(result)
+
+    result = PhISCS_B_2_sat_timed(x, time_limit=2)
+    print(result)
+
     result = PhISCS_B_timed(x, time_limit=2)
     print(result)
