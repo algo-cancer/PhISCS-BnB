@@ -5,6 +5,7 @@ from Utils.interfaces import *
 from Boundings.LP import *
 from Boundings.LP_APX_b import *
 from Boundings.MWM import *
+from Boundings.two_sat import *
 
 
 if __name__ == "__main__":
@@ -13,6 +14,7 @@ if __name__ == "__main__":
     methods = [
         myPhISCS_I,
         # myPhISCS_B,
+        from_interface_to_method(two_sat()),
         from_interface_to_method(SemiDynamicLPBounding()),
         from_interface_to_method(SubsampleLPBounding_b(SubsampleLPBounding_b.n_const_func_maker(3, 2000))),
         from_interface_to_method(SubsampleLPBounding_b(SubsampleLPBounding_b.n_const_func_maker(2, 2000))),

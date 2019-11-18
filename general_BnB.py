@@ -26,6 +26,7 @@ class BnB(pybnb.Problem):
         self.icf, self.colPair = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(self.I)
         self.boundingAlg = boundingAlg
         self.boundingAlg.reset(I)
+        self.node_to_add = self.boundingAlg.get_init_node()
         self.boundVal = self.boundingAlg.get_bound(self.delta)
         self.checkBounding = checkBounding
         self.version = version
@@ -80,6 +81,10 @@ class BnB(pybnb.Problem):
     def branch(self):
         if self.icf:  # by fliping more the objective is not going to get better
             return
+        if self.node_to_add is not None:
+            newnode = self.node_to_add
+            self.node_to_add = None
+            yield newnode
         p, q = self.colPair
         if self.version == 0:
             p, q, oneone, zeroone, onezero = get_a_coflict(self.getCurrentMatrix(), p, q)
@@ -101,14 +106,19 @@ class BnB(pybnb.Problem):
                         nodeicf = extraInfo["icf"]
                     if "one_pair_of_columns" in extraInfo:
                         nodecolPair = extraInfo["one_pair_of_columns"]
-                if nodeicf is None or nodecolPair is None:
+                if nodeicf is None:
                     # print("run gusfield")
                     nodeicf, nodecolPair = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(self.I + nodedelta)
 
                 nodeboundVal = max(self.boundVal, newBound)
                 node.state = (nodedelta, nodeicf, nodecolPair, nodeboundVal, self.boundingAlg.get_state())
-                # node.queue_priority = - ( newBound - nf)
-                node.queue_priority = self.boundingAlg.get_priority(newBound - nf, nodeicf)
+                # node.queue_priority = - newBound
+                node.queue_priority = self.boundingAlg.get_priority(
+                    till_here = nf - 1,
+                    this_step = 1,
+                    after_here = newBound - nf,
+                    icf = nodeicf)
+                # node.queue_priority = self.boundingAlg.get_priority(newBound - nf, nodeicf)
                 # node.queue_priority =  self.boundingAlg.getPriority(nodeboundVal)
                 yield node
         elif self.version == 1:
@@ -120,12 +130,12 @@ class BnB(pybnb.Problem):
                 col1 = np.array(current_matrix[:, col], dtype = np.bool).reshape(-1)
                 col2 = np.array(current_matrix[:, colp], dtype = np.bool).reshape(-1)
                 rows = (col1 < col2).nonzero() # 0, 1 s
+                if len(rows) == 0: # nothing has changed! Dont add new node
+                    continue
 
                 nodedelta[rows, col] = 1
 
                 nf = nodedelta.count_nonzero()
-                if nf == self.getNFlips():
-                    continue
                 newBound = self.boundingAlg.get_bound(nodedelta)
 
                 node_icf, nodecol_pair = None, None
@@ -142,7 +152,11 @@ class BnB(pybnb.Problem):
 
                 nodeboundVal = max(self.boundVal, newBound)
                 node.state = (nodedelta, node_icf, nodecol_pair, nodeboundVal, self.boundingAlg.get_state())
-                node.queue_priority = self.boundingAlg.get_priority(newBound - nf, node_icf)
+                node.queue_priority = self.boundingAlg.get_priority(
+                    till_here = nf - len(rows),
+                    this_step = len(rows),
+                    after_here = newBound - nf,
+                    icf = node_icf)
                 yield node
 
     # def notify_new_best_node(self,

@@ -89,12 +89,14 @@ if source_type == "FIXED":
     noisy_list = []
     if args.instance_index is not None:
         noisy = instances[args.instance_index]
+        file_names_list = []
+        i_number = 1
     elif args.instance_name is not None:
         if args.instance_name == "list":
             pass # use file_names_list variable from input.py
         else:
             file_names_list = [args.instance_name]
-    i_number = len(file_names_list)
+        i_number = len(file_names_list)
 # print(file_names_list)
 def solve_with(name, bounding_algorithm, input_matrix):
     returned_matrix = copy.copy(input_matrix)
@@ -187,7 +189,10 @@ if __name__ == "__main__":
                 k = min(k, np.count_nonzero(ground) - 1)
                 x = make_noisy_by_k(ground, int(k))
             elif source_type == "FIXED":
-                x = read_matrix_from_file(file_names_list[i])
+                if len(file_names_list)==0:
+                    x = noisy
+                else:
+                    x = read_matrix_from_file(file_names_list[i])
 
             elif source_type == "SALEM":
                 file_name = f"simNo_{i+1}-s_{args.s}-m_{m}-n_{n}.SC.ground"
@@ -255,7 +260,7 @@ if __name__ == "__main__":
                 row["simNo"] = str(i+1)
                 row["num_zeros_ground"] = str(int(np.count_nonzero(1 - y))),
                 row["num_ones_ground"] =  str(int(np.count_nonzero(y))),
-            elif source_type == "FIXED":
+            elif source_type == "FIXED" and i < len(file_names_list):
                 row["file_name"] = file_names_list[i]
             row.update(info)
             if args.print_rows:

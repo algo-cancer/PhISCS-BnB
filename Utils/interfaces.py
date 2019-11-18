@@ -36,11 +36,14 @@ class BoundingAlgAbstract:
         """
         return copy.copy(self._extraInfo)
 
-    def get_priority(self, new_bound, icf=False):
-        return -new_bound
+    def get_priority(self, till_here, this_step, after_here, icf=False):
+        return -after_here
 
     def get_times(self):
         return self._times
+
+    def get_init_node(self):
+        return None
 
 
 class NaiveBounding(BoundingAlgAbstract):

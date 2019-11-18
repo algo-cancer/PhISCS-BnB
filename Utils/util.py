@@ -80,7 +80,7 @@ def get_matrix_hash(x):
 
 
 def myPhISCS_I(x):
-    ret = PhISCS_I(x, beta=0.97, alpha=0.0001)
+    ret = PhISCS_I(x, beta=0.90, alpha=0.00001)
     solution = ret[0]
     nf = len(np.where(solution != x)[0])
     return nf
@@ -803,9 +803,14 @@ def PhISCS_B_2_sat_timed(matrix, time_limit):
     return output
 
 def PhISCS_B_2_sat(matrix,):
+    """
+    This algorithm is based on iterative usage of weighted 2-sat solver.
+    It runs in polynomial time (TODO complexity) and is theoretically guaranteed to give an upper bound
+    :param matrix:
+    :return:
+    """
     rc2 = RC2(WCNF())
     n, m = matrix.shape
-
 
     F = np.empty((n, m), dtype=np.int64)
     num_var_F = 0
@@ -818,39 +823,56 @@ def PhISCS_B_2_sat(matrix,):
                 F[i, j] = num_var_F
                 rc2.add_clause([-F[i,j]], weight = 1)
 
+    icf = True
     for p in range(m):
         for q in range(m):
             if p != q and np.any(np.logical_and(matrix[:, p] == 1, matrix[:, q] == 1)):
                 r01 = np.nonzero(np.logical_and(matrix[:, p] == 0, matrix[:, q] == 1))[0]
                 r10 = np.nonzero(np.logical_and(matrix[:, p] == 1, matrix[:, q] == 0))[0]
+                if len(r01) * len(r10) > 0:
+                    icf = False
                 for a, b in itertools.product(r01, r10):
                     rc2.add_clause([F[a, p], F[b, q]]) # at least one of them should be flipped
+    # print(icf)
+    if icf:
+        return matrix.copy(), (0, 0, 0, 0), 0
+    else:
+        a = time.time()
+        variables = rc2.compute()
+        b = time.time()
 
-    a = time.time()
-    variables = rc2.compute()
-    b = time.time()
 
+        O = matrix.copy()
+        O = O.astype(np.int8)
+        for var_ind in range(len(variables)):
+            if variables[var_ind] > 0:
+                O[map_f2ij[variables[var_ind]]] = 1
 
-    O = matrix.copy()
-    O = O.astype(np.int8)
-    for var_ind in range(len(variables)):
-        if variables[var_ind] > 0:
-            O[map_f2ij[variables[var_ind]]] = 1
-
-    return O, count_flips(matrix, matrix.shape[1] * [0], O), b - a
+    Orec, cntfliprec, timerec = PhISCS_B_2_sat(O)
+    cntflip = list(count_flips(matrix, matrix.shape[1] * [0], O))
+    for ind in range(len(cntflip)):
+        cntflip[ind] += cntfliprec[ind]
+    return Orec, tuple(cntflip), timerec + b - a
 
 
 
 if __name__ == '__main__':
-    n = 40
-    m = 40
-    x = np.random.randint(2, size=(n, m))
-    # print(x)
-    # result = PhISCS_B_2_sat(x)
-    # print(result)
+    # n = 6
+    # m = 5
+    # x = np.random.randint(2, size=(n, m))
+    x = np.array([[0, 0, 1, 0, 1],
+       [1, 0, 1, 1, 1],
+       [1, 0, 1, 1, 1],
+       [0, 1, 0, 1, 0],
+       [0, 0, 1, 1, 1],
+       [0, 1, 1, 0, 0]])
 
-    result = PhISCS_B_2_sat_timed(x, time_limit=2)
+    print(repr(x))
+    result = PhISCS_B_2_sat(x)
     print(result)
+
+    # result = PhISCS_B_2_sat_timed(x, time_limit=2)
+    # print(result)
 
     result = PhISCS_B_timed(x, time_limit=2)
     print(result)

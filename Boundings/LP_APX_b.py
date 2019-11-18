@@ -91,11 +91,11 @@ class SubsampleLPBounding_b(BoundingAlgAbstract):
 
         return bound
 
-    def get_priority(self, new_bound, icf=False):
+    def get_priority(self, till_here, this_step, after_here, icf=False):
         if icf:
-            return 1000
+            return self.matrix.shape[0] * self.matrix.shape[1] + 10
         else:
-            return new_bound * self.priority_sign
+            return after_here * self.priority_sign
 
 
     def add_constraints(self, constraints, indices):
