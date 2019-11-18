@@ -77,7 +77,6 @@ if args.i is not None:
     i_number = args.i
 
 
-assert n_list is not None and m_list is not None  and i_number is not None
 
 print(f"{len(methods)} number of methods are chosen.")
 
@@ -97,6 +96,9 @@ if source_type == "FIXED":
         else:
             file_names_list = [args.instance_name]
         i_number = len(file_names_list)
+    n_list, m_list = [None], [None]
+
+assert n_list is not None and m_list is not None  and i_number is not None
 # print(file_names_list)
 def solve_with(name, bounding_algorithm, input_matrix):
     returned_matrix = copy.copy(input_matrix)
@@ -163,7 +165,6 @@ if __name__ == "__main__":
     # m: number of Mutations
 
     if k_list is None or source_type == "RND":
-        assert source_type == "RND"
         k_list = [None]
 
     if source_type == "FIXED":
