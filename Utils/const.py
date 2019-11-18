@@ -75,7 +75,8 @@ elif user_name == "frashidi":
     openwbo_path = "./Archived/Farid/archived/openwbo"
     ms_path = "./Archived/Farid/archived/ms"
     output_folder_path = "./reports"
-    simulation_folder_path = "./simulations/"
+    simulation_folder_path = "./simulations"
+    noisy_folder_path = "./Data/noisy/"
 else:
     print("User const not found!")
     exit(0)
