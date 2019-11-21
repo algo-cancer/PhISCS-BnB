@@ -802,17 +802,13 @@ def PhISCS_B_2_sat_timed(matrix, time_limit):
         output = (None, (0,0,0,0), "time_limit", time_limit)
     return output
 
-def PhISCS_B_2_sat(matrix,):
-    """
-    This algorithm is based on iterative usage of weighted 2-sat solver.
-    It runs in polynomial time (TODO complexity) and is theoretically guaranteed to give an upper bound
-    :param matrix:
-    :return:
-    """
+def make_2sat_model(matrix, version = 1):
+    hard_cnst_num = 0
+    soft_cnst_num = 0
     rc2 = RC2(WCNF())
     n, m = matrix.shape
 
-    F = np.empty((n, m), dtype=np.int64)
+    F = - np.ones((n, m), dtype=np.int64)
     num_var_F = 0
     map_f2ij = {}
     for i in range(n):
@@ -822,18 +818,71 @@ def PhISCS_B_2_sat(matrix,):
                 map_f2ij[num_var_F] = (i, j)
                 F[i, j] = num_var_F
                 rc2.add_clause([-F[i,j]], weight = 1)
+                soft_cnst_num += 1
+    # variables for pair of columns
+    B = None
+    num_var_B = None
+    map_b2pq = None
+    if version == 1:
+        num_var_B = 0
+        map_b2pq = {}
+        B = - np.ones((m, m), dtype=np.int64)
 
-    icf = True
+    col_pair = None
+    pair_cost = 0
     for p in range(m):
         for q in range(m):
-            if p != q and np.any(np.logical_and(matrix[:, p] == 1, matrix[:, q] == 1)):
+            if p < q and np.any(np.logical_and(matrix[:, p] == 1, matrix[:, q] == 1)):
                 r01 = np.nonzero(np.logical_and(matrix[:, p] == 0, matrix[:, q] == 1))[0]
                 r10 = np.nonzero(np.logical_and(matrix[:, p] == 1, matrix[:, q] == 0))[0]
-                if len(r01) * len(r10) > 0:
-                    icf = False
-                for a, b in itertools.product(r01, r10):
-                    rc2.add_clause([F[a, p], F[b, q]]) # at least one of them should be flipped
-    # print(icf)
+                cost = min(len(r01), len(r10))
+                if cost > pair_cost:
+                    col_pair = (p, q)
+                    pair_cost = cost
+                    # print("update")
+
+                if version == 0 or \
+                            (version == 1 and len(r01) * len(r10) <= len(r01) + len(r10)):
+                    for a, b in itertools.product(r01, r10):
+                        # print((a, p), (b, q))
+                        rc2.add_clause([F[a, p], F[b, q]]) # at least one of them should be flipped
+                        hard_cnst_num += 1
+                elif version == 1:
+                    if cost > 0 :
+                        num_var_B += 1
+                        map_b2pq[num_var_B] = (p, q)
+                        B[p, q] = num_var_B + num_var_F
+                        queue = itertools.chain(
+                            itertools.product(r01, [1]),
+                            itertools.product(r10, [-1]),
+                        )
+                        for row, sign in queue:
+                            assert B[p, q] > 0
+                            col = p if sign == 1 else q
+                            # print(row, col, sign, p, q, sign * B[p, q])
+                            rc2.add_clause([F[row, col], sign * B[p, q]])
+                            hard_cnst_num += 1
+                            # either the all the zeros in col1 should be fliped
+                            # OR this pair is already covered
+                else:
+                    raise Exception("version not implemented")
+                # exit(0)
+    print(num_var_F, num_var_B, soft_cnst_num, hard_cnst_num, version, sep="\t")
+    return rc2, col_pair, map_f2ij, num_var_F
+
+
+def PhISCS_B_2_sat(matrix, version = 1):
+    """
+    This algorithm is based on iterative usage of weighted 2-sat solver.
+    It runs in polynomial time (TODO complexity) and is theoretically guaranteed to give an upper bound
+    :param matrix:
+    :return:
+    """
+    # print("call ", version)
+    rc2, col_pair, map_f2ij, num_var_F = make_2sat_model(matrix, version = version)
+    icf = col_pair is None
+    # print(col_pair, num_var_F)
+    nf = 0
     if icf:
         return matrix.copy(), (0, 0, 0, 0), 0
     else:
@@ -841,38 +890,56 @@ def PhISCS_B_2_sat(matrix,):
         variables = rc2.compute()
         b = time.time()
 
-
+        # print(variables)
+        # exit(0)
         O = matrix.copy()
         O = O.astype(np.int8)
         for var_ind in range(len(variables)):
-            if variables[var_ind] > 0:
+            if 0 < variables[var_ind] <= num_var_F:
+            # if 0 < variables[var_ind] :
                 O[map_f2ij[variables[var_ind]]] = 1
-
-    Orec, cntfliprec, timerec = PhISCS_B_2_sat(O)
+                nf += 1
+                # print("flip ", map_f2ij[variables[var_ind]])
     cntflip = list(count_flips(matrix, matrix.shape[1] * [0], O))
-    for ind in range(len(cntflip)):
-        cntflip[ind] += cntfliprec[ind]
-    return Orec, tuple(cntflip), timerec + b - a
+    if nf > 0:
+        Orec, cntfliprec, timerec = PhISCS_B_2_sat(O, version=version)
+        for ind in range(len(cntflip)):
+            cntflip[ind] += cntfliprec[ind]
+        return Orec, tuple(cntflip), timerec + b - a
+    else: # not needed but just for readability logic
+        return O, cntflip, b - a
 
 
 
 if __name__ == '__main__':
-    # n = 6
-    # m = 5
-    # x = np.random.randint(2, size=(n, m))
-    x = np.array([[0, 0, 1, 0, 1],
-       [1, 0, 1, 1, 1],
-       [1, 0, 1, 1, 1],
-       [0, 1, 0, 1, 0],
-       [0, 0, 1, 1, 1],
-       [0, 1, 1, 0, 0]])
+    n = 19
+    m = 19
+    x = np.random.randint(2, size=(n, m))
+    # x = np.array([
+    #     [0, 0, 1, 0, 1],
+    #     [1, 0, 1, 1, 1],
+    #     [1, 0, 1, 1, 1],
+    #     [0, 1, 0, 1, 0],
+    #     [0, 0, 1, 1, 1],
+    #     [0, 1, 1, 0, 0]
+    # ])
+    # x = read_matrix_from_file("../noisy_simp/simNo_2-s_4-m_50-n_50-k_50.SC.noisy")
 
-    print(repr(x))
-    result = PhISCS_B_2_sat(x)
-    print(result)
+    # print(repr(x))
+
+    result = PhISCS_B(x)
+    print(result, end="\n\n")
+
+
+    result = PhISCS_B_2_sat(x, version=0)
+    print(result, end="\n\n")
+
+
+    result = PhISCS_B_2_sat(x, version=1)
+    print(result, end="\n\n")
 
     # result = PhISCS_B_2_sat_timed(x, time_limit=2)
     # print(result)
-
-    result = PhISCS_B_timed(x, time_limit=2)
-    print(result)
+    #
+    # result = PhISCS_B_timed(x, time_limit=2)
+    # print(result)

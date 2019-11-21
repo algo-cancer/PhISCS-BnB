@@ -5,13 +5,14 @@ from functools import reduce
 from Utils.instances import *
 
 class two_sat(BoundingAlgAbstract):
-    def __init__(self, priority_version = 0):
+    def __init__(self, priority_version = 0, formulation_version = 0):
         self.matrix = None
         self.priority_version = priority_version
+        self.formulation_version = formulation_version
 
 
     def get_name(self):
-        return f"{type(self).__name__}_{self.priority_version}"
+        return f"{type(self).__name__}_{self.priority_version}_{self.formulation_version}"
 
     def reset(self, matrix):
         self.matrix = matrix # make the model here and do small alterations later
@@ -19,7 +20,7 @@ class two_sat(BoundingAlgAbstract):
 
     def get_init_node(self):
         node = pybnb.Node()
-        solution, cntflip, time = PhISCS_B_2_sat(self.matrix)
+        solution, cntflip, time = PhISCS_B_2_sat(self.matrix, version = self.formulation_version)
 
         nodedelta = sp.lil_matrix(solution != self.matrix)
         nodeboundVal = self.get_bound(nodedelta)
@@ -38,7 +39,7 @@ class two_sat(BoundingAlgAbstract):
         current_matrix = np.array(self.matrix + delta) # todo: make this dynamic
 
         model_time = time.time()
-        rc2, col_pair = two_sat.make_model(current_matrix)
+        rc2, col_pair, _, num_var_F = make_2sat_model(current_matrix, self.formulation_version)
         model_time = time.time() - model_time
         self._times["model_preparation_time"] += model_time
 
@@ -49,18 +50,11 @@ class two_sat(BoundingAlgAbstract):
         self._times["optimization_time"] += opt_time
 
         result = 0
-        for var_ind in range(len(variables)):
+        for var_ind in range(num_var_F):
             if variables[var_ind] > 0:
                 result += 1
 
-        # p = col_pair[0]
-        # q = col_pair[1]
-        # matrix = current_matrix
-        # r01 = np.nonzero(np.logical_and(matrix[:, p] == 0, matrix[:, q] == 1))[0]
-        # r10 = np.nonzero(np.logical_and(matrix[:, p] == 1, matrix[:, q] == 0))[0]
-        # cost = min(len(r01), len(r10))
-        #
-        # print(r01, r10, cost)
+
         assert (result == 0) == (col_pair is None), f"{result}_{col_pair}"
         self._extraInfo = {
             "icf": col_pair == None,
@@ -68,36 +62,6 @@ class two_sat(BoundingAlgAbstract):
         }
         return result
 
-    @staticmethod
-    def make_model(matrix):
-        rc2 = RC2(WCNF())
-        n, m = matrix.shape
-
-        F = np.empty((n, m), dtype=np.int64)
-        num_var_F = 0
-        map_f2ij = {}
-        for i in range(n):
-            for j in range(m):
-                if matrix[i, j] == 0:
-                    num_var_F += 1
-                    map_f2ij[num_var_F] = (i, j)
-                    F[i, j] = num_var_F
-                    rc2.add_clause([-F[i,j]], weight = 1)
-
-        col_pair = None
-        pair_cost = 0
-        for p in range(m):
-            for q in range(m):
-                if p != q and np.any(np.logical_and(matrix[:, p] == 1, matrix[:, q] == 1)):
-                    r01 = np.nonzero(np.logical_and(matrix[:, p] == 0, matrix[:, q] == 1))[0]
-                    r10 = np.nonzero(np.logical_and(matrix[:, p] == 1, matrix[:, q] == 0))[0]
-                    cost = min(len(r01), len(r10))
-                    if cost > pair_cost:
-                        col_pair = (p, q)
-                        pair_cost = cost
-                    for a, b in itertools.product(r01, r10):
-                        rc2.add_clause([F[a, p], F[b, q]]) # at least one of them should be flipped
-        return rc2, col_pair
 
     def get_priority(self, till_here, this_step, after_here, icf=False):
         if icf:
@@ -124,13 +88,24 @@ class two_sat(BoundingAlgAbstract):
 if __name__ == "__main__":
     # n, m = 15, 15
     # x = np.random.randint(2, size=(n, m))
-    # x = I_small
-    x = read_matrix_from_file()
+    x = I_small
+    # x = read_matrix_from_file("test2.SC.noisy")
+    x = read_matrix_from_file("../noisy_simp/simNo_2-s_4-m_50-n_50-k_50.SC.noisy")
     delta = sp.lil_matrix(x.shape)
 
-    algo = two_sat()
+    algo = two_sat(priority_version=1, formulation_version=0)
     algo.reset(x)
     bnd = algo.get_bound(delta)
 
     print(algo._times)
     print(bnd)
+    print(algo.get_priority(0,0,bnd, False))
+
+    print()
+    algo = two_sat(priority_version=1, formulation_version=1)
+    algo.reset(x)
+    bnd = algo.get_bound(delta)
+
+    print(algo._times)
+    print(bnd)
+    print(algo.get_priority(0, 0, bnd, False))
