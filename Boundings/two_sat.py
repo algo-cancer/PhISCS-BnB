@@ -5,14 +5,22 @@ from functools import reduce
 from Utils.instances import *
 
 class two_sat(BoundingAlgAbstract):
-    def __init__(self, priority_version = 0, formulation_version = 0):
+    def __init__(self, priority_version = 0, formulation_version = 0, formulation_threshold = 0):
+        """
+        :param priority_version:
+        :param formulation_version: 0 all, 1 cluster
+        :param formulation_threshold:
+        """
         self.matrix = None
         self.priority_version = priority_version
         self.formulation_version = formulation_version
-
+        self.formulation_threshold = formulation_threshold
+        self._times = None
 
     def get_name(self):
-        return f"{type(self).__name__}_{self.priority_version}_{self.formulation_version}"
+        params = [type(self).__name__, self.priority_version, self.formulation_version,self.formulation_threshold]
+        params_str = map(str, params)
+        return "_".join(params_str)
 
     def reset(self, matrix):
         self.matrix = matrix # make the model here and do small alterations later
@@ -20,7 +28,8 @@ class two_sat(BoundingAlgAbstract):
 
     def get_init_node(self):
         node = pybnb.Node()
-        solution, cntflip, time = PhISCS_B_2_sat(self.matrix, version = self.formulation_version)
+        solution, cntflip, time = upper_bound_2_sat(
+            self.matrix, threshold = self.formulation_threshold, version = self.formulation_version )
 
         nodedelta = sp.lil_matrix(solution != self.matrix)
         nodeboundVal = self.get_bound(nodedelta)
@@ -39,23 +48,30 @@ class two_sat(BoundingAlgAbstract):
         current_matrix = np.array(self.matrix + delta) # todo: make this dynamic
 
         model_time = time.time()
-        rc2, col_pair, _, num_var_F = make_2sat_model(current_matrix, self.formulation_version)
+        if self.formulation_version == 0:
+            coloring = None
+        elif self.formulation_version == 1:
+            coloring = get_clustering(current_matrix)
+        else:
+            raise NotImplementedError("version?")
+        rc2, col_pair, map_f2ij, map_b2pq = make_2sat_model(
+            current_matrix, self.formulation_threshold, coloring)
         model_time = time.time() - model_time
         self._times["model_preparation_time"] += model_time
 
 
         opt_time = time.time()
-        variables = rc2.compute()
+        variables = rc2.compute() # TODO try different settings from https://pysathq.github.io/docs/html/api/examples/rc2.html
         opt_time = time.time() - opt_time
         self._times["optimization_time"] += opt_time
 
         result = 0
-        for var_ind in range(num_var_F):
-            if variables[var_ind] > 0:
+        for var_ind in range(len(variables)):
+            if variables[var_ind] > 0 and abs(variables[var_ind]) in map_f2ij:
                 result += 1
 
 
-        assert (result == 0) == (col_pair is None), f"{result}_{col_pair}"
+        assert self.formulation_version!=0 or ((result == 0) == (col_pair is None)), f"{result}_{col_pair}"
         self._extraInfo = {
             "icf": col_pair == None,
             "one_pair_of_columns": col_pair,
@@ -86,26 +102,40 @@ class two_sat(BoundingAlgAbstract):
 
 
 if __name__ == "__main__":
-    # n, m = 15, 15
+    # n, m = 25, 25
     # x = np.random.randint(2, size=(n, m))
-    x = I_small
+    # x = I_small
     # x = read_matrix_from_file("test2.SC.noisy")
     x = read_matrix_from_file("../noisy_simp/simNo_2-s_4-m_50-n_50-k_50.SC.noisy")
+    # x = np.hstack((x, x, x, x, x, x, x))
+    # x = np.vstack((x, x))
+    print(x.shape)
     delta = sp.lil_matrix(x.shape)
 
-    algo = two_sat(priority_version=1, formulation_version=0)
-    algo.reset(x)
-    bnd = algo.get_bound(delta)
-
-    print(algo._times)
-    print(bnd)
-    print(algo.get_priority(0,0,bnd, False))
-
-    print()
-    algo = two_sat(priority_version=1, formulation_version=1)
-    algo.reset(x)
-    bnd = algo.get_bound(delta)
-
-    print(algo._times)
-    print(bnd)
-    print(algo.get_priority(0, 0, bnd, False))
+    algos =[
+        two_sat(priority_version=1, formulation_version=0, formulation_threshold=0),
+        two_sat(priority_version=1, formulation_version=1, formulation_threshold=0),
+        # two_sat(priority_version=1, formulation_version=0, formulation_threshold=0),
+        # two_sat(priority_version=1, formulation_version=0, formulation_threshold=0.2),
+        # two_sat(priority_version=1, formulation_version=0, formulation_threshold=0.3),
+        # two_sat(priority_version=1, formulation_version=0, formulation_threshold=0.4),
+        # two_sat(priority_version=1, formulation_version=0, formulation_threshold=0.5),
+        # two_sat(priority_version=1, formulation_version=0, formulation_threshold=0.6),
+        # two_sat(priority_version=1, formulation_version=0, formulation_threshold=0.7),
+        # two_sat(priority_version=1, formulation_version=0, formulation_threshold=1),
+        # two_sat(priority_version=1, formulation_version=0, formulation_threshold=1.5),
+        # two_sat(priority_version=1, formulation_version=0, formulation_threshold=2),
+        # two_sat(priority_version=1, formulation_version=0, formulation_threshold=3),
+        # two_sat(priority_version=1, formulation_version=0, formulation_threshold=4),
+    ]
+    for algo in algos:
+        a = time.time()
+        algo.reset(x)
+        # bnd = algo.get_bound(delta)
+        # b = time.time()
+        # print(bnd, b - a, algo.formulation_threshold, algo._times["model_preparation_time"], algo._times["optimization_time"], sep="\t")
+        node = algo.get_init_node()
+        print(node.state[0].count_nonzero())
+        # print(bnd, algo._times)
+    # print(bnd)
+    # print(algo.get_priority(0,0,bnd, False))

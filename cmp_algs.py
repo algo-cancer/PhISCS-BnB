@@ -193,7 +193,11 @@ if __name__ == "__main__":
                 if len(file_names_list)==0:
                     x = noisy
                 else:
-                    x = read_matrix_from_file(file_names_list[i])
+                    if "txt" in file_names_list[i]:
+                        xx = np.loadtxt(file_names_list[i])
+                        x = xx[:17, :17]
+                    else:
+                        x = read_matrix_from_file(file_names_list[i])
 
             elif source_type == "SALEM":
                 file_name = f"simNo_{i+1}-s_{args.s}-m_{m}-n_{n}.SC.ground"

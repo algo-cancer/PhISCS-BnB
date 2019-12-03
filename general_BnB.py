@@ -84,6 +84,8 @@ class BnB(pybnb.Problem):
         if self.node_to_add is not None:
             newnode = self.node_to_add
             self.node_to_add = None
+            print("Adding a node --------------------------" )
+            print(newnode.state[0].count_nonzero())
             yield newnode
         p, q = self.colPair
         if self.version == 0:
