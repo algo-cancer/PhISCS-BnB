@@ -415,7 +415,7 @@ def count_flips(I, sol_K, sol_Y):
     return (flips_0_1, flips_1_0, flips_2_0, flips_2_1)
 
 
-def PhISCS_I(I, beta=0.97, alpha=0.00001, time_limit = 3600):
+def PhISCS_I(I, beta=0.90, alpha=0.00001, time_limit = 3600):
     def nearestInt(x):
         return int(x+0.5)
 
@@ -476,11 +476,15 @@ def PhISCS_I(I, beta=0.97, alpha=0.00001, time_limit = 3600):
     for i in range(numCells):
         sol_Y.append([nearestInt(float(Y[i,j].X)) for j in range(numMutations)])
 
+    for i in range(numCells):
+        for j in range(numMutations):
+            sol_Y[i, j] =  Y[i, j].X > 0.5
+
     status = {
         GRB.Status.OPTIMAL:'optimality',
         GRB.Status.TIME_LIMIT:'time_limit',
     }
-    return np.array(sol_Y), count_flips(I, I.shape[1] * [0], sol_Y), status[model.status], b-a
+    return np.array(sol_Y, dtype = np.int8), count_flips(I, I.shape[1] * [0], sol_Y), status[model.status], b-a
 
 
 def PhISCS_B_external(matrix, beta=None, alpha=None, csp_solver_path=openwbo_path, time_limit = 3600):
@@ -802,7 +806,9 @@ def upper_bound_2_sat_timed(matrix, time_limit):
         output = (None, (0,0,0,0), "time_limit", time_limit)
     return output
 
-def make_2sat_model(matrix, threshold = 0, coloring = None):
+def make_2sat_model(matrix, threshold = 0, coloring = None, na_value = 2):
+    def zero_or_na(vec):
+        return np.logical_or(vec == 0, vec == na_value)
     hard_cnst_num = 0
     soft_cnst_num = 0
     rc2 = RC2(WCNF())
@@ -834,8 +840,8 @@ def make_2sat_model(matrix, threshold = 0, coloring = None):
     for p in range(m):
         for q in range(p+1, m):
             if np.any(np.logical_and(matrix[:, p] == 1, matrix[:, q] == 1)): # p and q has intersection
-                r01 = np.nonzero(np.logical_and(matrix[:, p] == 0, matrix[:, q] == 1))[0]
-                r10 = np.nonzero(np.logical_and(matrix[:, p] == 1, matrix[:, q] == 0))[0]
+                r01 = np.nonzero(np.logical_and(zero_or_na(matrix[:, p]), matrix[:, q] == 1))[0]
+                r10 = np.nonzero(np.logical_and(matrix[:, p] == 1, zero_or_na(matrix[:, q])))[0]
                 cost = min(len(r01), len(r10))
                 if cost > pair_cost: # keep best pair to return as auxiliary info
                     col_pair = (p, q)
@@ -950,9 +956,9 @@ def upper_bound_2_sat(matrix, threshold, version):
 
 
 if __name__ == '__main__':
-    n = 20
-    m = 5
-    x = np.random.randint(2, size=(n, m))
+    # n = 20
+    # m = 5
+    # x = np.random.randint(2, size=(n, m))
     # x = np.array([
     #     [0, 0, 1, 0, 1],
     #     [1, 0, 1, 1, 1],
@@ -961,23 +967,27 @@ if __name__ == '__main__':
     #     [0, 0, 1, 1, 1],
     #     [0, 1, 1, 0, 0]
     # ])
-    # x = read_matrix_from_file("../noisy_simp/simNo_2-s_4-m_50-n_50-k_50.SC.noisy")
+    x = read_matrix_from_file("../noisy_simp/simNo_2-s_4-m_50-n_50-k_50.SC.noisy")
+    x = x[:25, :25]
 
     # print(repr(x))
 
     result = PhISCS_B(x)
     print(result, end="\n\n")
 
-
-    result = upper_bound_2_sat(x, threshold=0)
+    result = PhISCS_I(x)
     print(result, end="\n\n")
 
 
-    result = upper_bound_2_sat(x, threshold=1)
+    result = upper_bound_2_sat(x, threshold=0, version=0)
     print(result, end="\n\n")
 
-    # result = PhISCS_B_2_sat_timed(x, time_limit=2)
-    # print(result)
+
+    # result = upper_bound_2_sat(x, threshold=1)
+    # print(result, end="\n\n")
     #
-    # result = PhISCS_B_timed(x, time_limit=2)
-    # print(result)
+    # # result = PhISCS_B_2_sat_timed(x, time_limit=2)
+    # # print(result)
+    # #
+    # # result = PhISCS_B_timed(x, time_limit=2)
+    # # print(result)
