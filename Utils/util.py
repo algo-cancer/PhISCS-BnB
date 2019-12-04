@@ -415,10 +415,21 @@ def count_flips(I, sol_K, sol_Y):
     return (flips_0_1, flips_1_0, flips_2_0, flips_2_1)
 
 
-def PhISCS_I(I, beta=0.90, alpha=0.00001, time_limit = 3600):
+def PhISCS_I(I, beta=0.99, alpha=0.00001, time_limit = 3600):
     def nearestInt(x):
         return int(x+0.5)
 
+    logb1ma, log1mba, log1ma, loga = \
+        np.log(beta / (1 - alpha)), np.log((1 - beta) / alpha), np.log((1 - alpha)), np.log(alpha)
+
+    # scale = 1
+    # logb1ma, log1mba, log1ma, loga = scale * logb1ma, scale * log1mba, scale * log1ma, scale * loga
+    if  - log1mba / logb1ma > 100:
+        logb1ma = -1
+        log1mba = 100
+        # print("change")
+
+    # print(beta, logb1ma, log1mba, log1ma, loga)
     numCells, numMutations = I.shape
     sol_Y = []
     model = Model('PhISCS_ILP')
@@ -448,6 +459,7 @@ def PhISCS_I(I, beta=0.90, alpha=0.00001, time_limit = 3600):
         for q in range(numMutations):
             model.addConstr(B[p,q,0,1] + B[p,q,1,0] + B[p,q,1,1] <= 2)
 
+
     objective = 0
     for j in range(numMutations):
         numZeros = 0
@@ -455,14 +467,14 @@ def PhISCS_I(I, beta=0.90, alpha=0.00001, time_limit = 3600):
         for i in range(numCells):
             if I[i][j] == 0:
                 numZeros += 1
-                objective += np.log(beta/(1-alpha)) * Y[i,j]
+                objective += logb1ma * Y[i,j]
             elif I[i][j] == 1:
                 numOnes += 1
-                objective += np.log((1-beta)/alpha) * Y[i,j]
+                objective += log1mba * Y[i,j]
             
-        objective += numZeros * np.log(1-alpha)
-        objective += numOnes * np.log(alpha)
-        objective -= 0 * (numZeros * np.log(1-alpha) + numOnes * (np.log(alpha) + np.log((1-beta)/alpha)))
+        objective += numZeros * log1ma
+        objective += numOnes * loga
+        # objective -= 0 * (numZeros * log1m + numOnes * (np.log(alpha) + np.log((1-beta)/alpha)))
 
     model.setObjective(objective, GRB.MAXIMIZE)
     model.setParam('TimeLimit', time_limit)
@@ -473,12 +485,18 @@ def PhISCS_I(I, beta=0.90, alpha=0.00001, time_limit = 3600):
         print('The model is infeasible.')
         exit(0)
 
-    for i in range(numCells):
-        sol_Y.append([nearestInt(float(Y[i,j].X)) for j in range(numMutations)])
+    # for i in range(numCells):
+    #     sol_Y.append([nearestInt(float(Y[i,j].X)) for j in range(numMutations)])
 
+    ###############
+    sol_Y = np.zeros((numCells, numMutations))
     for i in range(numCells):
         for j in range(numMutations):
+            # print(type(Y[i, j].X))
+            # exit(0)
             sol_Y[i, j] =  Y[i, j].X > 0.5
+            # sol_Y[i, j] =  Y[i, j].X * 100
+    ###############
 
     status = {
         GRB.Status.OPTIMAL:'optimality',
@@ -1227,19 +1245,19 @@ if __name__ == '__main__':
     #     [0, 1, 1, 0, 0]
     # ])
     x = read_matrix_from_file("../noisy_simp/simNo_2-s_4-m_50-n_50-k_50.SC.noisy")
-    x = x[:25, :25]
+    # x = x[:25, :25]
 
     # print(repr(x))
 
     result = PhISCS_B(x)
-    print(result, end="\n\n")
+    print(result[1:], end="\n\n")
 
     result = PhISCS_I(x)
-    print(result, end="\n\n")
+    print(result[1:], end="\n\n")
 
 
     result = upper_bound_2_sat(x, threshold=0, version=0)
-    print(result, end="\n\n")
+    print(result[1:], end="\n\n")
 
 
     # result = upper_bound_2_sat(x, threshold=1)
