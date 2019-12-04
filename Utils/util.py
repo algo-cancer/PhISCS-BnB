@@ -948,6 +948,265 @@ def upper_bound_2_sat(matrix, threshold, version):
         return Orec, tuple(cntflip), timerec + b - a
 
 
+def save_matrix_to_file(filename, numpy_input):
+    n, m = numpy_input.shape
+    dfout = pd.DataFrame(numpy_input)
+    dfout.columns = ['mut'+str(j) for j in range(m)]
+    dfout.index = ['cell'+str(j) for j in range(n)]
+    dfout.index.name = 'cellIDxmutID'
+    dfout.to_csv(filename, sep='\t')
+
+
+def draw_tree_muts_in_edges(filename):
+    bulkfile=''
+    addBulk=False
+    add_cells=False
+
+    import numpy as np
+    import pandas as pd
+    import pygraphviz as pyg
+    import networkx as nx
+    from networkx.drawing.nx_agraph import graphviz_layout, to_agraph
+
+    def contains(col1, col2):
+        for i in range(len(col1)):
+            if not col1[i] >= col2[i]:
+                return False
+        return True
+
+    df = pd.read_csv(filename, sep='\t').set_index('cellID/mutID')
+    splitter_mut = '\n'
+    matrix = df.values
+    names_mut = list(df.columns)
+
+    i = 0
+    while i < matrix.shape[1]:
+        j = i + 1
+        while j < matrix.shape[1]:
+            if np.array_equal(matrix[:,i], matrix[:,j]):
+                matrix = np.delete(matrix, j, 1)
+                x = names_mut.pop(j)
+                names_mut[i] += splitter_mut + x
+                j -= 1
+            j += 1
+        i += 1
+
+    rows = matrix.shape[0]
+    cols = matrix.shape[1]
+    dimensions = np.sum(matrix, axis=0)
+    indices = np.argsort(dimensions)
+    dimensions = np.sort(dimensions)
+    names_mut = [names_mut[indices[i]] for i in range(cols)]
+
+    G = nx.DiGraph()
+    G.add_node(cols)
+    G.add_node(cols-1)
+    G.add_edge(cols, cols-1, label=names_mut[cols-1])
+    node_mud = {}
+    node_mud[names_mut[cols-1]] = cols-1
+
+    i = cols - 2
+    while i >= 0:
+        if dimensions[i] == 0:
+            break
+        attached = False
+        for j in range(i+1, cols):
+            if contains(matrix[:, indices[j]], matrix[:, indices[i]]):
+                G.add_node(i)
+                G.add_edge(node_mud[names_mut[j]], i, label=names_mut[i])
+                node_mud[names_mut[i]] = i
+                attached = True
+                break
+        if not attached:
+            G.add_node(i)
+            G.add_edge(cols, i, label=names_mut[i])
+            node_mud[names_mut[i]] = i
+        i -=1
+
+    clusters = {}
+    for node in G:
+        if node == cols:
+            G._node[node]['label'] = '<<b>germ<br/>cells</b>>'
+            G._node[node]['fontname'] = 'Helvetica'
+            G._node[node]['width'] = 0.4
+            G._node[node]['style'] = 'filled'
+            G._node[node]['penwidth'] = 3
+            G._node[node]['fillcolor'] = 'gray60'
+            continue
+        untilnow_mut = []
+        sp = nx.shortest_path(G, cols, node)
+        for i in range(len(sp)-1):
+            untilnow_mut += G.get_edge_data(sp[i], sp[i+1])['label'].split(splitter_mut)
+        untilnow_cell = df.loc[(df[untilnow_mut] == 1).all(axis=1) & \
+                               (df[[x for x in df.columns if x not in untilnow_mut]] == 0).all(axis=1)].index
+        if len(untilnow_cell) > 0:
+            clusters[node] = '\n'.join(untilnow_cell)
+        else:
+            clusters[node] = '-'
+        
+        if add_cells:
+            G._node[node]['label'] = clusters[node]
+        else:
+            G._node[node]['label'] = ''
+            G._node[node]['shape'] = 'circle'
+        G._node[node]['fontname'] = 'Helvetica'
+        G._node[node]['width'] = 0.4
+        G._node[node]['style'] = 'filled'
+        G._node[node]['penwidth'] = 2
+        G._node[node]['fillcolor'] = 'gray90'
+    i = 1
+    for k, v in clusters.items():
+        if v == '-':
+            clusters[k] = i*'-'
+            i += 1
+
+    header = ''
+    if addBulk:
+        vafs = {}
+        bulkMutations = readMutationsFromBulkFile(bulkfile)
+        sampleIDs = bulkMutations[0].getSampleIDs()
+        for mut in bulkMutations:
+            temp_vaf = []
+            for sample in sampleIDs:
+                temp_vaf.append(str(mut.getVAF(sampleID=sample)))
+            vafs[mut.getID()] = '<font color="blue">'+','.join(temp_true)+'</font>'        
+        for edge in G.edges():
+            temp = []
+            for mut in G.get_edge_data(edge[0],edge[1])['label'].split(splitter_mut):
+                mut = '<u>' + mut + '</u>' + ': ' + vafs_true[mut] + '; ' + vafs_noisy[mut]
+                temp.append(mut)
+            temp = '<' + '<br/>'.join(temp) + '>'
+            G.get_edge_data(edge[0],edge[1])['label'] = temp
+
+        for mut in bulkMutations:
+            try:
+                isatype = mut.getINFOEntryStringValue('ISAVtype')
+                header += mut.getID() + ': ' + isatype + '<br/>'
+            except:
+                pass
+    
+    temp = df.columns[(df==0).all(axis=0)]
+    if len(temp) > 0:
+        header += 'Became Germline: ' + ','.join(temp) + '<br/>'
+    
+    '''
+    with open(filename[:-len('.CFMatrix')]+'.log') as fin:
+        i = 0
+        for line in fin:
+            i += 1
+            if i > 10 and i < 18:
+                header += line.rstrip() + '<br/>'
+    '''
+
+    H = nx.relabel_nodes(G, clusters)
+    html = '''<{}>'''.format(header)
+    H.graph['graph'] = {'label':html, 'labelloc':'t', 'resolution':300, 'fontname':'Helvetica', 'fontsize':8}
+    H.graph['node'] = {'fontname':'Helvetica', 'fontsize':8}
+    H.graph['edge'] = {'fontname':'Helvetica', 'fontsize':8}
+    
+    mygraph = to_agraph(H)
+    mygraph.layout(prog='dot')
+    outputpath = filename[:-len('.CFMatrix')]
+    mygraph.draw('{}.edges.png'.format(outputpath))
+
+
+def draw_tree_muts_in_nodes(filename):
+    addBulk=False
+    bulkfile=''
+    import numpy as np
+    import pandas as pd
+    import pygraphviz as pyg
+
+    graph = pyg.AGraph(strict=False, directed=True)
+    font_name = 'Avenir'
+
+    class Node:
+        def __init__(self, name, parent):
+            self.name = name
+            self.parent = parent
+            self.children = []
+            if parent:
+                parent.children.append(self)
+
+    def print_tree(node):
+        graph.add_node(node.name, label=node.name, fontname=font_name, color='black', penwidth=3.5)
+        for child in node.children:
+            graph.add_edge(node.name, child.name)
+            print_tree(child)
+
+    def contains(col1, col2):
+        for i in range(len(col1)):
+            if not col1[i] >= col2[i]:
+                return False
+        return True
+
+    def write_tree(matrix, names):
+        i = 0
+        while i < matrix.shape[1]:
+            j = i + 1
+            while j < matrix.shape[1]:
+                if np.array_equal(matrix[:,i], matrix[:,j]):
+                    matrix = np.delete(matrix, j, 1)
+                    x = names.pop(j)
+                    names[i] += '<br/><br/>' + x
+                    j -= 1
+                j += 1
+            names[i] = '<'+names[i]+'>'
+            i += 1
+
+        rows = len(matrix)
+        cols = len(matrix[0])
+        dimensions = np.sum(matrix, axis=0)
+        # ordered indeces
+        indeces = np.argsort(dimensions)
+        dimensions = np.sort(dimensions)
+        mutations_name = []
+        for i in range(cols):
+            mutations_name.append(names[indeces[i]])
+
+        root = Node(mutations_name[-1], None)
+        mut_nod = {}
+        mut_nod[mutations_name[cols-1]] = root
+
+        i = cols - 2
+        while i >=0:
+            if dimensions[i] == 0:
+                break
+            attached = False
+            for j in range(i+1, cols):
+                if contains(matrix[:, indeces[j]], matrix[:, indeces[i]]):
+                    node = Node(mutations_name[i], mut_nod[mutations_name[j]])
+                    mut_nod[mutations_name[i]] = node
+                    attached = True
+                    break
+            if not attached:
+                node = Node(mutations_name[i], root)
+                mut_nod[mutations_name[i]] = node
+            i -=1
+        print_tree(root)
+
+    if addBulk:
+        vafs = {}
+        bulkMutations = readMutationsFromBulkFile(bulkfile)
+        sampleIDs = bulkMutations[0].getSampleIDs()
+        for mut in bulkMutations:
+            temp_vaf = []
+            for sample in sampleIDs:
+                temp_vaf.append('<font color="blue">' + str(mut.getVAF(sampleID=sample)) + '</font>')
+            vafs[mut.getID()] = '{} ({})'.format(mut.getID(), ','.join(temp_vaf))
+
+    inp = np.genfromtxt(filename, skip_header=1, delimiter='\t')
+    with open(filename, 'r') as fin:
+        if addBulk:
+            mutation_names = [vafs[x] for x in fin.readline().strip().split('\t')[1:]]
+        else:
+            mutation_names = fin.readline().strip().split('\t')[1:]
+    sol_matrix = np.delete(inp, 0, 1)
+    write_tree(sol_matrix, mutation_names)
+    graph.layout(prog='dot')
+    outputpath = filename[:-len('.CFMatrix')]
+    graph.draw('{}.nodes.png'.format(outputpath))
+
 
 if __name__ == '__main__':
     n = 20
