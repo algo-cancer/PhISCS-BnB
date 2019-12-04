@@ -55,7 +55,7 @@ class two_sat(BoundingAlgAbstract):
         else:
             raise NotImplementedError("version?")
         rc2, col_pair, map_f2ij, map_b2pq = make_2sat_model(
-            current_matrix, self.formulation_threshold, coloring)
+            current_matrix, self.formulation_threshold, coloring, eps = 0)
         model_time = time.time() - model_time
         self._times["model_preparation_time"] += model_time
 
@@ -67,7 +67,9 @@ class two_sat(BoundingAlgAbstract):
 
         result = 0
         for var_ind in range(len(variables)):
-            if variables[var_ind] > 0 and abs(variables[var_ind]) in map_f2ij:
+            if variables[var_ind] > 0 \
+                    and abs(variables[var_ind]) in map_f2ij \
+                    and self.matrix[map_f2ij[abs(variables[var_ind])]] != 2:
                 result += 1
 
 
@@ -102,11 +104,11 @@ class two_sat(BoundingAlgAbstract):
 
 
 if __name__ == "__main__":
-    # n, m = 25, 25
-    # x = np.random.randint(2, size=(n, m))
+    n, m = 25, 10
+    x = np.random.randint(3, size=(n, m))
     # x = I_small
     # x = read_matrix_from_file("test2.SC.noisy")
-    x = read_matrix_from_file("../noisy_simp/simNo_2-s_4-m_50-n_50-k_50.SC.noisy")
+    # x = read_matrix_from_file("../noisy_simp/simNo_2-s_4-m_50-n_50-k_50.SC.noisy")
     # x = np.hstack((x, x, x, x, x, x, x))
     # x = np.vstack((x, x))
     print(x.shape)
@@ -114,7 +116,7 @@ if __name__ == "__main__":
 
     algos =[
         two_sat(priority_version=1, formulation_version=0, formulation_threshold=0),
-        two_sat(priority_version=1, formulation_version=1, formulation_threshold=0),
+        # two_sat(priority_version=1, formulation_version=1, formulation_threshold=0),
         # two_sat(priority_version=1, formulation_version=0, formulation_threshold=0),
         # two_sat(priority_version=1, formulation_version=0, formulation_threshold=0.2),
         # two_sat(priority_version=1, formulation_version=0, formulation_threshold=0.3),
@@ -131,11 +133,11 @@ if __name__ == "__main__":
     for algo in algos:
         a = time.time()
         algo.reset(x)
-        # bnd = algo.get_bound(delta)
-        # b = time.time()
-        # print(bnd, b - a, algo.formulation_threshold, algo._times["model_preparation_time"], algo._times["optimization_time"], sep="\t")
-        node = algo.get_init_node()
-        print(node.state[0].count_nonzero())
+        bnd = algo.get_bound(delta)
+        b = time.time()
+        print(bnd, b - a, algo.formulation_threshold, algo._times["model_preparation_time"], algo._times["optimization_time"], sep="\t")
+        # node = algo.get_init_node()
+        # print(node.state[0].count_nonzero())
         # print(bnd, algo._times)
     # print(bnd)
     # print(algo.get_priority(0,0,bnd, False))

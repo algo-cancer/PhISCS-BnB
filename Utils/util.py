@@ -74,13 +74,13 @@ def get_matrix_hash(x):
 
 
 def myPhISCS_B(x):
-    solution, (f_0_1_b, f_1_0_b, f_2_0_b, f_2_1_b), cb_time = PhISCS_B(x, beta=0.90, alpha=0.00001)
-    nf = len(np.where(solution != x)[0])
+    solution, (f_0_1_b, f_1_0_b, f_2_0_b, f_2_1_b), cb_time = PhISCS_B(x, beta=0.97, alpha=0.00001)
+    nf = len(np.where(np.logical_and(solution != x, x != 2))[0])
     return nf
 
 
 def myPhISCS_I(x):
-    ret = PhISCS_I(x, beta=0.90, alpha=0.00001)
+    ret = PhISCS_I(x, beta=0.99, alpha=0.00001)
     solution = ret[0]
     nf = len(np.where(solution != x)[0])
     return nf
@@ -824,9 +824,11 @@ def upper_bound_2_sat_timed(matrix, time_limit):
         output = (None, (0,0,0,0), "time_limit", time_limit)
     return output
 
-def make_2sat_model(matrix, threshold = 0, coloring = None, na_value = 2):
+def make_2sat_model(matrix, threshold = 0, coloring = None, na_value = 2, eps = None ):
     def zero_or_na(vec):
         return np.logical_or(vec == 0, vec == na_value)
+    if eps is None:
+        eps = 1 / (matrix.shape[0] + matrix.shape[1])
     hard_cnst_num = 0
     soft_cnst_num = 0
     rc2 = RC2(WCNF())
@@ -872,12 +874,17 @@ def make_2sat_model(matrix, threshold = 0, coloring = None, na_value = 2):
                 if  direct_formulation_cost * threshold <= indirect_formulation_cost: # use direct formulation
                     for a, b in itertools.product(r01, r10):
                         for x, y in [(a, p), (b, q)]: # make sure the variables for this are made
-                            if F[x, y]<0:
+                            if F[x, y] < 0:
                                 num_var_F += 1
                                 map_f2ij[num_var_F + num_var_B] = (x, y)
                                 F[x, y] = num_var_F + num_var_B
-                                rc2.add_clause([-F[x,y]], weight = 1)
-                                soft_cnst_num += 1
+                                if matrix[x, y] == 0: # do not add weight for na s
+                                    w = 1
+                                else:
+                                    w = eps
+                                if w > 0:
+                                    rc2.add_clause([-F[x,y]], weight = w)
+                                    soft_cnst_num += 1
                         rc2.add_clause([F[a, p], F[b, q]]) # at least one of them should be flipped
                         hard_cnst_num += 1
                 else:# use indirect formulation
@@ -896,8 +903,13 @@ def make_2sat_model(matrix, threshold = 0, coloring = None, na_value = 2):
                                     num_var_F += 1
                                     map_f2ij[num_var_F + num_var_B] = (x, y)
                                     F[x, y] = num_var_F + num_var_B
-                                    rc2.add_clause([-F[x, y]], weight=1)
-                                    soft_cnst_num += 1
+                                    if matrix[x, y] == 0:  # do not add weight for na s
+                                        w = 1
+                                    else:
+                                        w = eps
+                                    if w > 0:
+                                        rc2.add_clause([-F[x, y]], weight=w)
+                                        soft_cnst_num += 1
                             rc2.add_clause([F[row, col], sign * B[p, q]])
                             hard_cnst_num += 1
                             # either the all the zeros in col1 should be fliped
@@ -905,7 +917,7 @@ def make_2sat_model(matrix, threshold = 0, coloring = None, na_value = 2):
                 # else:
                 #     raise Exception("version not implemented")
                 # exit(0)
-    # print(num_var_F, num_var_B, soft_cnst_num, hard_cnst_num, threshold, sep="\t")
+    print(num_var_F, num_var_B, soft_cnst_num, hard_cnst_num, threshold, sep="\t")
     # print(num_var_F, num_var_B, hard_cnst_num, sep = "\t", end="\t")
 
     return rc2, col_pair, map_f2ij, map_b2pq
@@ -958,12 +970,15 @@ def upper_bound_2_sat(matrix, threshold, version):
         O = matrix.copy()
         O = O.astype(np.int8)
         for var_ind in range(len(variables)):
-            if 0 < variables[var_ind] and variables[var_ind] in map_f2ij:
+            if 0 < variables[var_ind] and variables[var_ind] in map_f2ij: # if 0 or 2 make it one
             # if 0 < variables[var_ind] :
                 O[map_f2ij[variables[var_ind]]] = 1
                 nf += 1
+            if 0 > variables[var_ind] and matrix[map_f2ij[-variables[var_ind]]] == 2 : # if 2 make it one
+                O[map_f2ij[-variables[var_ind]]] = 0
+                nf += 1
                 # print("flip ", map_f2ij[variables[var_ind]])
-        cntflip = list(count_flips(matrix, matrix.shape[1] * [0], O))
+        cntflip = list(count_flips(matrix, matrix.shape[1] * [0], O)) # second argument means no columns has been removed
 
         # *** Even if the first version was one I am changing it so that solve the matrix
         Orec, cntfliprec, timerec = upper_bound_2_sat(O, threshold=threshold, version = 0)
@@ -1233,9 +1248,22 @@ def draw_tree_muts_in_nodes(filename):
 
 
 if __name__ == '__main__':
+    hash = 1151136
+    a = read_matrix_from_file(f"../../solution_{hash}_BnB_1_two_sat_-1_0_0.CFMatrix")
+    b = read_matrix_from_file(f"../../solution_{hash}_PhISCS_B_timed_.CFMatrix")
+    c = read_matrix_from_file(f"../../solution_{hash}_PhISCS_I_.CFMatrix")
+    print(a.shape)
+    # a = a[:, :]
+    # b = b[:, :]
+    # print(np.nonzero(np.sum(a!=b, axis = 0)))
+    print(np.sum(a!=b))
+    print(np.sum(b!=c))
+    print(np.sum(a!=c))
+    exit(0)
+
     # n = 20
     # m = 5
-    # x = np.random.randint(2, size=(n, m))
+    # x = np.random.randint(3, size=(n, m))
     # x = np.array([
     #     [0, 0, 1, 0, 1],
     #     [1, 0, 1, 1, 1],
@@ -1244,17 +1272,25 @@ if __name__ == '__main__':
     #     [0, 0, 1, 1, 1],
     #     [0, 1, 1, 0, 0]
     # ])
-    x = read_matrix_from_file("../noisy_simp/simNo_2-s_4-m_50-n_50-k_50.SC.noisy")
-    # x = x[:25, :25]
 
+    x = read_matrix_from_file("../noisy_simp/simNo_2-s_4-m_50-n_50-k_50.SC.noisy")
+
+    x = x[:50, :50]
+    for i in range(x.shape[0]):
+        x[i, np.random.randint(x.shape[1])] = 2
     # print(repr(x))
 
     result = PhISCS_B(x)
     print(result[1:], end="\n\n")
-
-    result = PhISCS_I(x)
-    print(result[1:], end="\n\n")
-
+    #
+    # result = PhISCS_I(x, beta = 0.99)
+    # print(result[1:], end="\n\n")
+    #
+    # result = PhISCS_I(x, beta=0.90)
+    # print(result[1:], end="\n\n")
+    #
+    # result = PhISCS_I(x, beta = 0.99)
+    # print(result[1:], end="\n\n")
 
     result = upper_bound_2_sat(x, threshold=0, version=0)
     print(result[1:], end="\n\n")

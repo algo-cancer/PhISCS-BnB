@@ -257,6 +257,10 @@ if __name__ == "__main__":
                     ans_file_name = f"solution_{row['hash']}_{row['method']}"
                     np.savetxt(ans_file_name, ans, fmt = "%d")
                     print(f"numpy file stored at {ans_file_name}")
+                    cf_filename = ans_file_name + ".CFMatrix"
+                    save_matrix_to_file(cf_filename, ans)
+                    print(f"fancy file stored at {cf_filename}")
+
                 else:
                     print("No answer!")
             if source_type == "SALEM":
