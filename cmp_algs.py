@@ -119,8 +119,10 @@ def solve_with(name, bounding_algorithm, input_matrix):
         ret_dict["runtime"] = time.time() - time1
         if results1.solution_status != "unknown":
             returned_delta = results1.best_node.state[0]
-            returned_matrix = returned_matrix + returned_delta
-        ret_dict["n_flips"] = results1.objective
+            returned_delta_na = results1.best_node.state[-1]
+            returned_matrix = get_effective_matrix(input_matrix, returned_delta, returned_delta_na, change20 = True)
+        # ret_dict["n_flips"] = results1.objective
+        ret_dict["n_flips"] = len(np.where(np.logical_and(input_matrix != 2, returned_matrix != input_matrix))[0])
         ret_dict["termination_condition"] = results1.termination_condition
         ret_dict["n_nodes"] = str(results1.nodes)
         ret_dict["internal_time"] = results1.wall_time
@@ -150,7 +152,7 @@ def solve_with(name, bounding_algorithm, input_matrix):
             returned_matrix = returned_output[0]
         if name.__name__ in ["PhISCS_I", "PhISCS_B_external", "PhISCS_B_timed", "PhISCS_B_2_sat_timed"]:
             ret_dict["termination_condition"] = returned_output[-2]
-        ret_dict["n_flips"] = len(np.where(returned_matrix != input_matrix)[0])
+        ret_dict["n_flips"] = len(np.where(np.logical_and(input_matrix!=2, returned_matrix != input_matrix))[0])
     else:
         print(f"Method {name} does not exist.")
     return returned_matrix, ret_dict
@@ -198,6 +200,9 @@ if __name__ == "__main__":
                         x = xx[:17, :17]
                     else:
                         x = read_matrix_from_file(file_names_list[i])
+                        x[0, 0] = 2
+                        x[1, 1] = 2
+                        x[2, 2] = 2
 
             elif source_type == "SALEM":
                 file_name = f"simNo_{i+1}-s_{args.s}-m_{m}-n_{n}.SC.ground"
@@ -254,7 +259,7 @@ if __name__ == "__main__":
             if args.save_solutions:
                 print(type(ans))
                 if isinstance(ans, np.ndarray):
-                    ans_file_name = f"solution_{row['hash']}_{row['method']}"
+                    ans_file_name = f"solutions/solution_{row['hash']}_{row['method']}"
                     np.savetxt(ans_file_name, ans, fmt = "%d")
                     print(f"numpy file stored at {ans_file_name}")
                     cf_filename = ans_file_name + ".CFMatrix"

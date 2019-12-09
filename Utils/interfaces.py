@@ -6,6 +6,7 @@ class BoundingAlgAbstract:
         self._extra_info = None
         self._extraInfo = {}
         self._times = {}
+        self.na_support = False
         pass
 
     def reset(self, matrix):

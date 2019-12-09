@@ -4,8 +4,9 @@ from Utils.const import *
 
 def print_line(depth=1, shift=1):
     """A debugging tool!  """
-    for i in range(shift, depth + shift):
-        info = inspect.stack()[i]
+    stack = inspect.stack()
+    for i in range(shift, min(len(stack), depth + shift)):
+        info = stack[i]
         for j in range(i - 1):
             print("\t", end="")
         print(f"Line {info.lineno} in {info.filename}, Function: {info.function}")
@@ -82,7 +83,8 @@ def myPhISCS_B(x):
 def myPhISCS_I(x):
     ret = PhISCS_I(x, beta=0.99, alpha=0.00001)
     solution = ret[0]
-    nf = len(np.where(solution != x)[0])
+    nf = len(np.where(np.logical_and(solution != x, x != 2))[0])
+    print("solution=", solution)
     return nf
 
 
@@ -111,6 +113,8 @@ def is_conflict_free_gusfield_and_get_two_columns_in_coflicts(I):
         c = b[idx]
         return np.transpose(c), idx
 
+    I = I.copy()
+    I[I==2] = 0
     O, idx = sort_bin(I)
     # TODO: delete duplicate columns
     # print(O, '\n')
@@ -424,9 +428,9 @@ def PhISCS_I(I, beta=0.99, alpha=0.00001, time_limit = 3600):
 
     # scale = 1
     # logb1ma, log1mba, log1ma, loga = scale * logb1ma, scale * log1mba, scale * log1ma, scale * loga
-    if  - log1mba / logb1ma > 100:
+    if  - log1mba / logb1ma > 70:
         logb1ma = -1
-        log1mba = 100
+        log1mba = 70
         # print("change")
 
     # print(beta, logb1ma, log1mba, log1ma, loga)
@@ -824,9 +828,19 @@ def upper_bound_2_sat_timed(matrix, time_limit):
         output = (None, (0,0,0,0), "time_limit", time_limit)
     return output
 
+def zero_or_na(vec, na_value = 2): # todo: a more pragmatic way to set na_value
+    return np.logical_or(vec == 0, vec == na_value)
+
+def get_effective_matrix(I, delta01, delta21, change20 = False):
+    x = np.array(I + delta01, dtype = np.int8)
+    if delta21 is not None:
+        na_indices = delta21.nonzero()
+        x[na_indices] = 1# should have been (but does not accept): x[na_indices] = delta21[na_indices]
+    if change20:
+        x[ x==2 ] = 0
+    return x
+
 def make_2sat_model(matrix, threshold = 0, coloring = None, na_value = 2, eps = None ):
-    def zero_or_na(vec):
-        return np.logical_or(vec == 0, vec == na_value)
     if eps is None:
         eps = 1 / (matrix.shape[0] + matrix.shape[1])
     hard_cnst_num = 0
@@ -917,15 +931,16 @@ def make_2sat_model(matrix, threshold = 0, coloring = None, na_value = 2, eps = 
                 # else:
                 #     raise Exception("version not implemented")
                 # exit(0)
-    print(num_var_F, num_var_B, soft_cnst_num, hard_cnst_num, threshold, sep="\t")
+    # print(num_var_F, num_var_B, soft_cnst_num, hard_cnst_num, threshold, sep="\t")
     # print(num_var_F, num_var_B, hard_cnst_num, sep = "\t", end="\t")
 
     return rc2, col_pair, map_f2ij, map_b2pq
 
-def get_clustering(matrix):
+def get_clustering(matrix, na_value = 2):
     from sklearn.cluster import MiniBatchKMeans, KMeans
     from sklearn.metrics.pairwise import pairwise_distances_argmin
     X = matrix.T
+    X[X == na_value] = 0.5
     # k_means = KMeans(init='k-means++', n_clusters=2, n_init =10)
     k_means = KMeans(init='random', n_clusters=2, n_init=2)
     # k_means = KMeans(init='random', n_clusters=2)
@@ -979,6 +994,7 @@ def upper_bound_2_sat(matrix, threshold, version):
                 nf += 1
                 # print("flip ", map_f2ij[variables[var_ind]])
         cntflip = list(count_flips(matrix, matrix.shape[1] * [0], O)) # second argument means no columns has been removed
+
 
         # *** Even if the first version was one I am changing it so that solve the matrix
         Orec, cntfliprec, timerec = upper_bound_2_sat(O, threshold=threshold, version = 0)
@@ -1250,6 +1266,9 @@ def draw_tree_muts_in_nodes(filename):
 if __name__ == '__main__':
     hash = 1151136
     a = read_matrix_from_file(f"../../solution_{hash}_BnB_1_two_sat_-1_0_0.CFMatrix")
+
+
+
     b = read_matrix_from_file(f"../../solution_{hash}_PhISCS_B_timed_.CFMatrix")
     c = read_matrix_from_file(f"../../solution_{hash}_PhISCS_I_.CFMatrix")
     print(a.shape)

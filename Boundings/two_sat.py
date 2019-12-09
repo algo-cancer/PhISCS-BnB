@@ -11,6 +11,7 @@ class two_sat(BoundingAlgAbstract):
         :param formulation_version: 0 all, 1 cluster
         :param formulation_threshold:
         """
+        self.na_support = True
         self.matrix = None
         self.priority_version = priority_version
         self.formulation_version = formulation_version
@@ -31,10 +32,12 @@ class two_sat(BoundingAlgAbstract):
         solution, cntflip, time = upper_bound_2_sat(
             self.matrix, threshold = self.formulation_threshold, version = self.formulation_version )
 
-        nodedelta = sp.lil_matrix(solution != self.matrix)
-        nodeboundVal = self.get_bound(nodedelta)
+        nodedelta = sp.lil_matrix(np.logical_and(solution == 1, self.matrix == 0))
+        node_na_delta = sp.lil_matrix(np.logical_and(solution == 1, self.matrix == 2))
+        nodeboundVal = self.get_bound(nodedelta, node_na_delta)
+
         extraInfo = self.get_extra_info()
-        node.state = (nodedelta, extraInfo["icf"], extraInfo["one_pair_of_columns"], nodeboundVal, self.get_state())
+        node.state = (nodedelta, extraInfo["icf"], extraInfo["one_pair_of_columns"], nodeboundVal, self.get_state(), node_na_delta)
         node.queue_priority = self.get_priority(
             till_here=-1,
             this_step=-1,
@@ -42,11 +45,15 @@ class two_sat(BoundingAlgAbstract):
             icf=True)
         return node
 
-    def get_bound(self, delta):
-        # print(delta)
-        self._extraInfo = None
-        current_matrix = np.array(self.matrix + delta) # todo: make this dynamic
 
+
+    def get_bound(self, delta, delta_na = None):
+        na_value = 2
+
+        # make this dynamic when more nodes were getting explored
+        self._extraInfo = None
+        current_matrix = get_effective_matrix(self.matrix, delta, delta_na)
+        has_na = np.any(current_matrix == na_value)
         model_time = time.time()
         if self.formulation_version == 0:
             coloring = None
@@ -59,7 +66,6 @@ class two_sat(BoundingAlgAbstract):
         model_time = time.time() - model_time
         self._times["model_preparation_time"] += model_time
 
-
         opt_time = time.time()
         variables = rc2.compute() # TODO try different settings from https://pysathq.github.io/docs/html/api/examples/rc2.html
         opt_time = time.time() - opt_time
@@ -69,16 +75,16 @@ class two_sat(BoundingAlgAbstract):
         for var_ind in range(len(variables)):
             if variables[var_ind] > 0 \
                     and abs(variables[var_ind]) in map_f2ij \
-                    and self.matrix[map_f2ij[abs(variables[var_ind])]] != 2:
+                    and self.matrix[map_f2ij[abs(variables[var_ind])]] == 0:
                 result += 1
 
-
-        assert self.formulation_version!=0 or ((result == 0) == (col_pair is None)), f"{result}_{col_pair}"
+        # self.formulation_version == 0 (i.e., all the constraints) =>
+        assert self.formulation_version != 0 or has_na or ((result == 0) == (col_pair is None)), f"{result}_{col_pair}"
         self._extraInfo = {
             "icf": col_pair == None,
             "one_pair_of_columns": col_pair,
         }
-        return result
+        return result + delta.count_nonzero()
 
 
     def get_priority(self, till_here, this_step, after_here, icf=False):
