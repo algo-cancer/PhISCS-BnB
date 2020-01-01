@@ -1,28 +1,31 @@
-from Utils.const import *
-from Utils.util import *
-from Utils.interfaces import *
-
-from Boundings.LP import *
-from Boundings.LP_APX_b import *
-from Boundings.MWM import *
-from Boundings.two_sat import *
-from Boundings.graph import *
+assert False,"Don't run this file. It is out of date"
+from boundings.LP import *
+from boundings.LP_APX_b import *
+from boundings.MWM import *
+from boundings.two_sat import *
+from boundings.clustering import *
+from boundings.graph import *
+from utils.const import *
+from utils.util import *
+from utils.interfaces import *
 
 
 if __name__ == "__main__":
     script_name = os.path.basename(__file__).split(".")[0]
     print(f"{script_name} starts here")
     methods = [
-        myPhISCS_B,
+        # myPhISCS_B,
         # from_interface_to_method(DynamicMWMBounding()),
         # from_interface_to_method(GraphicBounding(version=7)),
         # from_interface_to_method(GraphicBounding(version=8)),
         # from_interface_to_method(RandomPartitioning(ascending_order=False)),
+        from_interface_to_method(Clustering(True, True)),
+
         from_interface_to_method(two_sat(priority_version=1, formulation_version=0, formulation_threshold=0)),
-        from_interface_to_method(two_sat(priority_version=1, formulation_version=0, formulation_threshold=0.25)),
-        from_interface_to_method(two_sat(priority_version=1, formulation_version=0, formulation_threshold=0.5)),
+        # from_interface_to_method(two_sat(priority_version=1, formulation_version=0, formulation_threshold=0.25)),
+        # from_interface_to_method(two_sat(priority_version=1, formulation_version=0, formulation_threshold=0.5)),
         from_interface_to_method(two_sat(priority_version=1, formulation_version=0, formulation_threshold=0.75)),
-        from_interface_to_method(two_sat(priority_version=1, formulation_version=0, formulation_threshold=1)),
+        # from_interface_to_method(two_sat(priority_version=1, formulation_version=0, formulation_threshold=1)),
         # myPhISCS_B,
         # from_interface_to_method(SemiDynamicLPBounding()),
         # from_interface_to_method(SubsampleLPBounding_b(SubsampleLPBounding_b.n_const_func_maker(3, 2000))),
@@ -64,9 +67,9 @@ if __name__ == "__main__":
             xx = np.loadtxt("fivehmatrix.txt")
             # for ss in range(200, 201):
             if True:
-                x = xx[:50, :30]
-                for i in range(x.shape[0]):
-                    x[i, np.random.randint(x.shape[1])] = 2
+                x = xx[:120, :120]
+                # for i in range(x.shape[0]):
+                #     x[i, np.random.randint(x.shape[1])] = 2
                 # print(x.sum(0))
                 # print(x.sum(1))
 

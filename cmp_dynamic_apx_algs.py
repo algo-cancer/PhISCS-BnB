@@ -1,12 +1,13 @@
-from Utils.const import *
-from Utils.util import *
-from Utils.interfaces import *
+assert False,"Don't run this file. It is out of date"
 import operator
-from Boundings.LP import *
-from Boundings.LP_APX import *
-from Boundings.MWM import *
-from Boundings.CSP import *
-from Boundings.Hybrid import *
+from boundings.LP import *
+from boundings.LP_APX import *
+from boundings.MWM import *
+from boundings.CSP import *
+from boundings.Hybrid import *
+from utils.const import *
+from utils.util import *
+from utils.interfaces import *
 
 
 if __name__ == "__main__":

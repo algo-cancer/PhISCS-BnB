@@ -1,5 +1,17 @@
-from Utils.const import *
+from utils.const import *
 
+
+def all_None(*args):
+    return args.count(None) == len(args)
+
+
+def now():
+    return f"[{datetime.datetime.now().strftime('%m/%d %H:%M:%S')}]"
+
+
+def printf(s):
+    print(f"[{now()}] ", end="")
+    print(s, flush=True)
 
 
 def print_line(depth=1, shift=1):
@@ -11,21 +23,75 @@ def print_line(depth=1, shift=1):
             print("\t", end="")
         print(f"Line {info.lineno} in {info.filename}, Function: {info.function}")
 
-def print_line_iter(depth=1):
+
+def print_line_iter(depth=1, precision=5):
     """A debugging tool!  """
     last_time = 0
     while(True):
         last_time = time.time() - last_time
-        print(last_time, end="")
+        print(round(last_time, precision), end="")
         print_line(depth=depth, shift=2)
         print(flush=True)
         last_time = time.time()
         yield
         # return
 
+
+def null_prob(n01: int, n11: int, p: float) -> float:
+    """
+    Probability of observing n01 number of (0, 1)s from n01+n11 number of original intersections,
+     if the probability of flipping is p.
+    :param n01:
+    :param n11:
+    :param p:
+    :return:
+    """
+    return 1 - st.binom.cdf(n01-1, n01 + n11, p)
+
+
+def compute_relation_matrices(matrix, na_value=None, fn_rate=0.1, prob=0.01):
+    """
+    @param matrix: cells on rows and mutations on columns
+    @param na_value: usually 2 or 3
+    @param fn_rate: the rate in which 1s became 0s
+    @param prob: Acceptable probability of missing an event.
+    @return:
+    """
+    if na_value is not None:
+        matrix = matrix.copy()
+        matrix[matrix == na_value] = 0.5
+    # else:  # use matrix as is
+    # matrix: Final = matrix  # no change for matrix in this function from now on
+
+    rates = np.zeros((2, 2, matrix.shape[0], matrix.shape[0]))
+    decendent_row = np.zeros((matrix.shape[0], matrix.shape[0]), dtype = np.bool)
+    ind = 0
+    for row_i in range(rates.shape[2]):
+        for row_j in range(rates.shape[3]):
+            for a, b in itertools.product(range(2), repeat=2):
+                rates[a, b, row_i, row_j] = np.sum(np.logical_and(matrix[row_i] == a, matrix[row_j] == b))
+
+            n_ones = rates[1, 1, row_i, row_j]
+            n_switched = rates[0, 1, row_i, row_j]
+            null_pobability = null_prob(n_switched, n_ones, fn_rate)
+            decendent_row[row_i, row_j] = null_pobability > prob
+            # if prob < null_pobability < 1:
+            #     # print(row_i, row_j, ind)
+            #     # print(n_switched, n_ones, decendent_row[row_i, row_j], null_pobability )
+            #     ind += 1
+
+    intersection_col = np.zeros((matrix.shape[1], matrix.shape[1]), dtype=np.bool)
+    for intersection_col_i in range(intersection_col.shape[0]):
+        for intersection_col_j in range(intersection_col.shape[1]):
+            intersection_col[intersection_col_i, intersection_col_j] = \
+                np.sum(np.logical_and(matrix[:, intersection_col_i] == 1, matrix[:, intersection_col_j] == 1))
+
+    return rates, intersection_col, decendent_row
+
+
 def read_matrix_from_file(
-        file_name = "simNo_2-s_4-m_50-n_50-k_50.SC.noisy",
-        args = {"simNo":2, "s": 4, "m": 50, "n":50, "k":50, "kind": "noisy"}, folder_path = noisy_folder_path):
+        file_name="simNo_2-s_4-m_50-n_50-k_50.SC.noisy",
+        args={"simNo":2, "s": 4, "m": 50, "n":50, "k":50, "kind": "noisy"}, folder_path=noisy_folder_path):
     assert file_name is not None or args is not None, "give an input"
 
     if file_name is None:
@@ -34,7 +100,10 @@ def read_matrix_from_file(
             folder_path = noisy_folder_path
         elif args['kind'] == "ground":
             folder_path = simulation_folder_path
-    file = folder_path + file_name
+    if folder_path is not None:
+        file = os.path.join(folder_path, file_name)
+    else:
+        file = file_name
     df_sim = pd.read_csv(file, delimiter="\t", index_col=0)
     return df_sim.values
 
@@ -42,9 +111,16 @@ def read_matrix_from_file(
 def timed_run(func, args, time_limit=1):
     def internal_func(shared_dict):
         args_to_pass = dict()
-        args_needed = inspect.getfullargspec(func).args
-        for arg in args_needed:
-            args_to_pass[arg] = shared_dict["input"][arg]
+        args_info = inspect.getfullargspec(func)
+        args_needed = args_info.args
+        args_defaults = args_info.defaults
+        for ind, arg in enumerate(args_needed):
+            if arg in shared_dict["input"]:
+                args_to_pass[arg] = shared_dict["input"][arg]
+            elif len(args_needed) - ind <= len(args_defaults) :
+                args_to_pass[arg] = args_defaults[ind - len(args_needed)]
+            else:
+                assert False, f"value for argument {arg} was not found!"
 
         runtime = time.time()
         shared_dict["output"] = func(**args_to_pass)
@@ -70,22 +146,12 @@ def timed_run(func, args, time_limit=1):
     return shared_dict
 
 
-def get_matrix_hash(x):
-    return hash(x.tostring()) % 10000000
-
-
-def myPhISCS_B(x):
-    solution, (f_0_1_b, f_1_0_b, f_2_0_b, f_2_1_b), cb_time = PhISCS_B(x, beta=0.97, alpha=0.00001)
-    nf = len(np.where(np.logical_and(solution != x, x != 2))[0])
-    return nf
-
-
-def myPhISCS_I(x):
-    ret = PhISCS_I(x, beta=0.99, alpha=0.00001)
-    solution = ret[0]
-    nf = len(np.where(np.logical_and(solution != x, x != 2))[0])
-    print("solution=", solution)
-    return nf
+def get_matrix_hash(x, digits = 7) -> int:
+    """
+    :param x: Accepts any object but usually just a matrix.
+    :return:
+    """
+    return hash(x.tostring()) % (10**7)
 
 
 def get_a_coflict(D, p, q):
@@ -114,7 +180,7 @@ def is_conflict_free_gusfield_and_get_two_columns_in_coflicts(I):
         return np.transpose(c), idx
 
     I = I.copy()
-    I[I==2] = 0
+    I[I == 2] = 0
     O, idx = sort_bin(I)
     # TODO: delete duplicate columns
     # print(O, '\n')
@@ -372,6 +438,7 @@ def make_noisy_by_fn(data, fn, fp, na):
                         data2[i][j] = data[i][j]
     return data2, (countFN, countFP, countNA)
 
+
 def get_data_by_ms(n, m, seed, fn, fp, na, ms_path=ms_path):
     def build_ground_by_ms(n, m, seed):
         command = "{ms} {n} 1 -s {m} -seeds 7369 217 {r} | tail -n {n}".format(ms=ms_path, n=n, m=m, r=seed)
@@ -399,7 +466,26 @@ def get_data_by_ms(n, m, seed, fn, fp, na, ms_path=ms_path):
         return get_data_by_ms(n, m, seed + 1, fn, fp, na, ms_path)
 
 
-def count_flips(I, sol_K, sol_Y):
+def is_conflict_free(D):
+    conflict_free = True
+    for p in range(D.shape[1]):
+        for q in range(p + 1, D.shape[1]):
+            oneone = False
+            zeroone = False
+            onezero = False
+            for r in range(D.shape[0]):
+                if D[r, p] == 1 and D[r, q] == 1:
+                    oneone = True
+                if D[r, p] == 0 and D[r, q] == 1:
+                    zeroone = True
+                if D[r, p] == 1 and D[r, q] == 0:
+                    onezero = True
+            if oneone and zeroone and onezero:
+                conflict_free = False
+    return conflict_free
+
+
+def count_flips(I, sol_K=None, sol_Y=None, na_value=2):
     flips_0_1 = 0
     flips_1_0 = 0
     flips_2_0 = 0
@@ -407,238 +493,17 @@ def count_flips(I, sol_K, sol_Y):
     n, m = I.shape
     for i in range(n):
         for j in range(m):
-            if sol_K[j] == 0:
+            if sol_K is None or sol_K[j] == 0:
                 if I[i][j] == 0 and sol_Y[i][j] == 1:
                     flips_0_1 += 1
                 elif I[i][j] == 1 and sol_Y[i][j] == 0:
                     flips_1_0 += 1
-                elif I[i][j] == 2 and sol_Y[i][j] == 0:
+                elif I[i][j] == na_value and sol_Y[i][j] == 0:
                     flips_2_0 += 1
-                elif I[i][j] == 2 and sol_Y[i][j] == 1:
+                elif I[i][j] == na_value and sol_Y[i][j] == 1:
                     flips_2_1 += 1
     return (flips_0_1, flips_1_0, flips_2_0, flips_2_1)
 
-
-def PhISCS_I(I, beta=0.99, alpha=0.00001, time_limit = 3600):
-    def nearestInt(x):
-        return int(x+0.5)
-
-    logb1ma, log1mba, log1ma, loga = \
-        np.log(beta / (1 - alpha)), np.log((1 - beta) / alpha), np.log((1 - alpha)), np.log(alpha)
-
-    # scale = 1
-    # logb1ma, log1mba, log1ma, loga = scale * logb1ma, scale * log1mba, scale * log1ma, scale * loga
-    if  - log1mba / logb1ma > 70:
-        logb1ma = -1
-        log1mba = 70
-        # print("change")
-
-    # print(beta, logb1ma, log1mba, log1ma, loga)
-    numCells, numMutations = I.shape
-    sol_Y = []
-    model = Model('PhISCS_ILP')
-    model.Params.LogFile = ''
-    model.Params.OutputFlag = 0
-    model.Params.Threads = 1
-    # model.setParam('TimeLimit', 10*60)
-
-    Y = {}
-    for c in range(numCells):
-        for m in range(numMutations):
-                Y[c, m] = model.addVar(vtype=GRB.BINARY, name='Y({0},{1})'.format(c, m))
-    B = {}
-    for p in range(numMutations):
-        for q in range(numMutations):
-            B[p, q, 1, 1] = model.addVar(vtype=GRB.BINARY, obj=0, name='B[{0},{1},1,1]'.format(p, q))
-            B[p, q, 1, 0] = model.addVar(vtype=GRB.BINARY, obj=0, name='B[{0},{1},1,0]'.format(p, q))
-            B[p, q, 0, 1] = model.addVar(vtype=GRB.BINARY, obj=0, name='B[{0},{1},0,1]'.format(p, q))
-    model.update()
-    for i in range(numCells):
-        for p in range(numMutations):
-            for q in range(numMutations):
-                model.addConstr(Y[i,p] + Y[i,q] - B[p,q,1,1] <= 1)
-                model.addConstr(-Y[i,p] + Y[i,q] - B[p,q,0,1] <= 0)
-                model.addConstr(Y[i,p] - Y[i,q] - B[p,q,1,0] <= 0)
-    for p in range(numMutations):
-        for q in range(numMutations):
-            model.addConstr(B[p,q,0,1] + B[p,q,1,0] + B[p,q,1,1] <= 2)
-
-
-    objective = 0
-    for j in range(numMutations):
-        numZeros = 0
-        numOnes  = 0
-        for i in range(numCells):
-            if I[i][j] == 0:
-                numZeros += 1
-                objective += logb1ma * Y[i,j]
-            elif I[i][j] == 1:
-                numOnes += 1
-                objective += log1mba * Y[i,j]
-            
-        objective += numZeros * log1ma
-        objective += numOnes * loga
-        # objective -= 0 * (numZeros * log1m + numOnes * (np.log(alpha) + np.log((1-beta)/alpha)))
-
-    model.setObjective(objective, GRB.MAXIMIZE)
-    model.setParam('TimeLimit', time_limit)
-    a = time.time()
-    model.optimize()
-    b = time.time()
-    if model.status == GRB.Status.INFEASIBLE:
-        print('The model is infeasible.')
-        exit(0)
-
-    # for i in range(numCells):
-    #     sol_Y.append([nearestInt(float(Y[i,j].X)) for j in range(numMutations)])
-
-    ###############
-    sol_Y = np.zeros((numCells, numMutations))
-    for i in range(numCells):
-        for j in range(numMutations):
-            # print(type(Y[i, j].X))
-            # exit(0)
-            sol_Y[i, j] =  Y[i, j].X > 0.5
-            # sol_Y[i, j] =  Y[i, j].X * 100
-    ###############
-
-    status = {
-        GRB.Status.OPTIMAL:'optimality',
-        GRB.Status.TIME_LIMIT:'time_limit',
-    }
-    return np.array(sol_Y, dtype = np.int8), count_flips(I, I.shape[1] * [0], sol_Y), status[model.status], b-a
-
-
-def PhISCS_B_external(matrix, beta=None, alpha=None, csp_solver_path=openwbo_path, time_limit = 3600):
-    n, m = matrix.shape
-    # par_fnRate = beta
-    # par_fpRate = alpha
-    par_fnWeight = 1
-    par_fpWeight = 10
-
-    Y = np.empty((n, m), dtype=np.int64)
-    numVarY = 0
-    map_y2ij = {}
-    for i in range(n):
-        for j in range(m):
-            numVarY += 1
-            map_y2ij[numVarY] = (i, j)
-            Y[i, j] = numVarY
-
-    X = np.empty((n, m), dtype=np.int64)
-    numVarX = 0
-    for i in range(n):
-        for j in range(m):
-            numVarX += 1
-            X[i, j] = numVarY + numVarX
-
-    B = np.empty((m, m, 2, 2), dtype=np.int64)
-    numVarB = 0
-    for p in range(m):
-        for q in range(m):
-            for i in range(2):
-                for j in range(2):
-                    numVarB += 1
-                    B[p, q, i, j] = numVarY + numVarX + numVarB
-
-    clauseHard = []
-    clauseSoft = []
-    numZero = 0
-    numOne = 0
-    numTwo = 0
-    for i in range(n):
-        for j in range(m):
-            if matrix[i, j] == 0:
-                numZero += 1
-                cnf = "{} {}".format(par_fnWeight, -X[i, j])
-                clauseSoft.append(cnf)
-                cnf = "{} {}".format(-X[i, j], Y[i, j])
-                clauseHard.append(cnf)
-                cnf = "{} {}".format(X[i, j], -Y[i, j])
-                clauseHard.append(cnf)
-            elif matrix[i, j] == 1:
-                numOne += 1
-                cnf = "{} {}".format(par_fpWeight, -X[i, j])
-                clauseSoft.append(cnf)
-                cnf = "{} {}".format(X[i, j], Y[i, j])
-                clauseHard.append(cnf)
-                cnf = "{} {}".format(-X[i, j], -Y[i, j])
-                clauseHard.append(cnf)
-            elif matrix[i, j] == 2:
-                numTwo += 1
-                cnf = "{} {}".format(-1 * X[i, j], Y[i, j])
-                clauseHard.append(cnf)
-                cnf = "{} {}".format(X[i, j], -1 * Y[i, j])
-                clauseHard.append(cnf)
-
-    for i in range(n):
-        for p in range(m):
-            for q in range(p, m):
-                # ~Yip v ~Yiq v Bpq11
-                cnf = "{} {} {}".format(-Y[i, p], -Y[i, q], B[p, q, 1, 1])
-                clauseHard.append(cnf)
-                # Yip v ~Yiq v Bpq01
-                cnf = "{} {} {}".format(Y[i, p], -Y[i, q], B[p, q, 0, 1])
-                clauseHard.append(cnf)
-                # ~Yip v Yiq v Bpq10
-                cnf = "{} {} {}".format(-Y[i, p], Y[i, q], B[p, q, 1, 0])
-                clauseHard.append(cnf)
-                # ~Bpq01 v ~Bpq10 v ~Bpq11
-                cnf = "{} {} {}".format(-B[p, q, 0, 1], -B[p, q, 1, 0], -B[p, q, 1, 1])
-                clauseHard.append(cnf)
-
-    hardWeight = numZero * par_fnWeight + numOne * par_fpWeight + 1
-
-    outfile = "cnf.tmp"
-    with open(outfile, "w") as out:
-        out.write(
-            "p wcnf {} {} {}\n".format(numVarY + numVarX + numVarB, len(clauseSoft) + len(clauseHard), hardWeight)
-        )
-        for cnf in clauseSoft:
-            out.write("{} 0\n".format(cnf))
-        for cnf in clauseHard:
-            out.write("{} {} 0\n".format(hardWeight, cnf))
-
-    finished_correctly = True
-    a = time.time()
-    command = "{} {}".format(csp_solver_path, outfile)
-    with subprocess.Popen(command.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE) as proc:
-        try:
-            output, error = proc.communicate(timeout = time_limit)
-        except subprocess.TimeoutExpired:
-            finished_correctly = False
-            output_matrix = matrix
-            flip_counts = np.zeros(4)
-            termination_condition = 'time_limit'
-    b = time.time()
-    internal_time = b - a
-    if finished_correctly:
-        variables = output.decode().split("\n")[-2][2:].split(" ")
-        O = np.empty((n, m), dtype=np.int8)
-        numVar = 0
-        for i in range(n):
-            for j in range(m):
-                if matrix[i, j] == 0:
-                    if "-" in variables[numVar]:
-                        O[i, j] = 0
-                    else:
-                        O[i, j] = 1
-                elif matrix[i, j] == 1:
-                    if "-" in variables[numVar]:
-                        O[i, j] = 0
-                    else:
-                        O[i, j] = 1
-                elif matrix[i, j] == 2:
-                    if "-" in variables[numVar]:
-                        O[i, j] = 0
-                    else:
-                        O[i, j] = 1
-                numVar += 1
-
-        output_matrix = O
-        flip_counts = count_flips(matrix, matrix.shape[1] * [0], O)
-        termination_condition = 'optimality'
-    return output_matrix, flip_counts, termination_condition, internal_time
 
 
 def top10_bad_entries_in_violations(D):
@@ -677,7 +542,8 @@ def top10_bad_entries_in_violations(D):
     for x in sorted(violations.items(), key=operator.itemgetter(1), reverse=True)[:10]:
         print(x[0], "(entry={}): how many gametes".format(D[x[0]]), x[1])
 
-def PhISCS_B_timed(matrix, beta=None, alpha=None, time_limit = 3600):
+
+def PhISCS_B_timed(matrix, beta=None, alpha=None, time_limit=3600):
     def returned_PhISCS_B(matrix, returned_dict):
         returned_dict["returned_value"] = PhISCS_B(matrix)
 
@@ -705,86 +571,6 @@ def PhISCS_B_timed(matrix, beta=None, alpha=None, time_limit = 3600):
     return output_matrix, flip_counts, termination_condition, internal_time
 
 
-def PhISCS_B(matrix, beta=None, alpha=None):
-    rc2 = RC2(WCNF())
-    n, m = matrix.shape
-    par_fnWeight = 1
-    par_fpWeight = 10
-
-    Y = np.empty((n, m), dtype=np.int64)
-    numVarY = 0
-    map_y2ij = {}
-    for i in range(n):
-        for j in range(m):
-            numVarY += 1
-            map_y2ij[numVarY] = (i, j)
-            Y[i, j] = numVarY
-
-    X = np.empty((n, m), dtype=np.int64)
-    numVarX = 0
-    for i in range(n):
-        for j in range(m):
-            numVarX += 1
-            X[i, j] = numVarY + numVarX
-
-    B = np.empty((m, m, 2, 2), dtype=np.int64)
-    numVarB = 0
-    for p in range(m):
-        for q in range(m):
-            for i in range(2):
-                for j in range(2):
-                    numVarB += 1
-                    B[p, q, i, j] = numVarY + numVarX + numVarB
-
-    for i in range(n):
-        for j in range(m):
-            if matrix[i, j] == 0:
-                rc2.add_clause([-X[i, j]], weight=par_fnWeight)
-                rc2.add_clause([-X[i, j], Y[i, j]])
-                rc2.add_clause([X[i, j], -Y[i, j]])
-            elif matrix[i, j] == 1:
-                rc2.add_clause([-X[i, j]], weight=par_fpWeight)
-                rc2.add_clause([X[i, j], Y[i, j]])
-                rc2.add_clause([-X[i, j], -Y[i, j]])
-            elif matrix[i, j] == 2:
-                rc2.add_clause([-X[i, j], Y[i, j]])
-                rc2.add_clause([X[i, j], -Y[i, j]])
-
-    for i in range(n):
-        for p in range(m):
-            for q in range(p, m):
-                rc2.add_clause([-Y[i, p], -Y[i, q], B[p, q, 1, 1]])
-                rc2.add_clause([Y[i, p], -Y[i, q], B[p, q, 0, 1]])
-                rc2.add_clause([-Y[i, p], Y[i, q], B[p, q, 1, 0]])
-                rc2.add_clause([-B[p, q, 0, 1], -B[p, q, 1, 0], -B[p, q, 1, 1]])
-
-    a = time.time()
-    variables = rc2.compute()
-    b = time.time()
-
-    O = np.empty((n, m), dtype=np.int8)
-    numVar = 0
-    for i in range(n):
-        for j in range(m):
-            if matrix[i, j] == 0:
-                if variables[numVar] < 0:
-                    O[i, j] = 0
-                else:
-                    O[i, j] = 1
-            elif matrix[i, j] == 1:
-                if variables[numVar] < 0:
-                    O[i, j] = 0
-                else:
-                    O[i, j] = 1
-            elif matrix[i, j] == 2:
-                if variables[numVar] < 0:
-                    O[i, j] = 0
-                else:
-                    O[i, j] = 1
-            numVar += 1
-    
-    return O, count_flips(matrix, matrix.shape[1] * [0], O), b - a
-
 
 def rename(new_name):
     def decorator(f):
@@ -793,18 +579,6 @@ def rename(new_name):
 
     return decorator
 
-
-def get_k_partitioned_PhISCS(k):
-    @rename(f"partitionedPhISCS_{k}")
-    def partitioned_PhISCS(x):
-        ans = 0
-        for i in range(x.shape[1] // k):
-            ans += myPhISCS_I(x[:, i * k : (i + 1) * k])
-        if x.shape[1] % k >= 2:
-            ans += myPhISCS_I(x[:, ((x.shape[1] // k) * k) :])
-        return ans
-
-    return partitioned_PhISCS
 
 
 def from_interface_to_method(bounding_alg):
@@ -828,115 +602,28 @@ def upper_bound_2_sat_timed(matrix, time_limit):
         output = (None, (0,0,0,0), "time_limit", time_limit)
     return output
 
-def zero_or_na(vec, na_value = 2): # todo: a more pragmatic way to set na_value
+
+def zero_or_na(vec, na_value=-1):
+    assert is_na_set_correctly(vec, na_value)
     return np.logical_or(vec == 0, vec == na_value)
 
-def get_effective_matrix(I, delta01, delta21, change20 = False):
-    x = np.array(I + delta01, dtype = np.int8)
-    if delta21 is not None:
-        na_indices = delta21.nonzero()
-        x[na_indices] = 1# should have been (but does not accept): x[na_indices] = delta21[na_indices]
-    if change20:
-        x[ x==2 ] = 0
+
+def get_effective_matrix(I, delta01, delta_na_to_1, change_na_to_0=False):
+    x = np.array(I + delta01, dtype=np.int8)
+    if delta_na_to_1 is not None:
+        na_indices = delta_na_to_1.nonzero()
+        x[na_indices] = 1  # should have been (but does not accept): x[na_indices] = delta_na_to_1[na_indices]
+    if change_na_to_0:
+        x[np.logical_and(x != 0, x != 1)] = 0
     return x
 
-def make_2sat_model(matrix, threshold = 0, coloring = None, na_value = 2, eps = None ):
-    if eps is None:
-        eps = 1 / (matrix.shape[0] + matrix.shape[1])
-    hard_cnst_num = 0
-    soft_cnst_num = 0
-    rc2 = RC2(WCNF())
-    n, m = matrix.shape
 
-    #variables for each zero
-    F = - np.ones((n, m), dtype=np.int64)
-    num_var_F = 0
-    map_f2ij = {}
+def is_na_set_correctly(matrix, na_value):
+    return set(np.unique(matrix)).issubset([0, 1, na_value])
 
-    # variables for pair of columns
-    num_var_B = 0
-    map_b2pq = {}
-    B = - np.ones((m, m), dtype=np.int64)
-    #
-    # for i in range(n):
-    #     for j in range(m):
-    #         if matrix[i, j] == 0:
-    #             num_var_F += 1
-    #             map_f2ij[num_var_F] = (i, j)
-    #             F[i, j] = num_var_F
-    #             rc2.add_clause([-F[i,j]], weight = 1)
-    #             soft_cnst_num += 1
-    # if version == 1:
-    #
 
-    col_pair = None
-    pair_cost = 0
-    for p in range(m):
-        for q in range(p+1, m):
-            if np.any(np.logical_and(matrix[:, p] == 1, matrix[:, q] == 1)): # p and q has intersection
-                r01 = np.nonzero(np.logical_and(zero_or_na(matrix[:, p]), matrix[:, q] == 1))[0]
-                r10 = np.nonzero(np.logical_and(matrix[:, p] == 1, zero_or_na(matrix[:, q])))[0]
-                cost = min(len(r01), len(r10))
-                if cost > pair_cost: # keep best pair to return as auxiliary info
-                    col_pair = (p, q)
-                    pair_cost = cost
 
-                if coloring is not None and coloring[p] != coloring[q]:
-                    continue
-                direct_formulation_cost = len(r01) * len(r10)
-                indirect_formulation_cost = len(r01) + len(r10)
-                if  direct_formulation_cost * threshold <= indirect_formulation_cost: # use direct formulation
-                    for a, b in itertools.product(r01, r10):
-                        for x, y in [(a, p), (b, q)]: # make sure the variables for this are made
-                            if F[x, y] < 0:
-                                num_var_F += 1
-                                map_f2ij[num_var_F + num_var_B] = (x, y)
-                                F[x, y] = num_var_F + num_var_B
-                                if matrix[x, y] == 0: # do not add weight for na s
-                                    w = 1
-                                else:
-                                    w = eps
-                                if w > 0:
-                                    rc2.add_clause([-F[x,y]], weight = w)
-                                    soft_cnst_num += 1
-                        rc2.add_clause([F[a, p], F[b, q]]) # at least one of them should be flipped
-                        hard_cnst_num += 1
-                else:# use indirect formulation
-                    if cost > 0 :
-                        num_var_B += 1
-                        map_b2pq[num_var_F + num_var_B] = (p, q)
-                        B[p, q] = num_var_B + num_var_F
-                        queue = itertools.chain(
-                            itertools.product(r01, [1]),
-                            itertools.product(r10, [-1]),
-                        )
-                        for row, sign in queue:
-                            col = p if sign == 1 else q
-                            for x, y in [(row, col)]:  # make sure the variables for this are made
-                                if F[x, y] < 0:
-                                    num_var_F += 1
-                                    map_f2ij[num_var_F + num_var_B] = (x, y)
-                                    F[x, y] = num_var_F + num_var_B
-                                    if matrix[x, y] == 0:  # do not add weight for na s
-                                        w = 1
-                                    else:
-                                        w = eps
-                                    if w > 0:
-                                        rc2.add_clause([-F[x, y]], weight=w)
-                                        soft_cnst_num += 1
-                            rc2.add_clause([F[row, col], sign * B[p, q]])
-                            hard_cnst_num += 1
-                            # either the all the zeros in col1 should be fliped
-                            # OR this pair is already covered
-                # else:
-                #     raise Exception("version not implemented")
-                # exit(0)
-    # print(num_var_F, num_var_B, soft_cnst_num, hard_cnst_num, threshold, sep="\t")
-    # print(num_var_F, num_var_B, hard_cnst_num, sep = "\t", end="\t")
-
-    return rc2, col_pair, map_f2ij, map_b2pq
-
-def get_clustering(matrix, na_value = 2):
+def get_clustering(matrix, na_value=2):
     from sklearn.cluster import MiniBatchKMeans, KMeans
     from sklearn.metrics.pairwise import pairwise_distances_argmin
     X = matrix.T
@@ -954,54 +641,6 @@ def get_clustering(matrix, na_value = 2):
     # coloring = np.random.randint(2, size=coloring.shape)
     return coloring
 
-def upper_bound_2_sat(matrix, threshold, version):
-    """
-    This algorithm is based on iterative usage of weighted 2-sat solver.
-    It runs in polynomial time (TODO complexity) and is theoretically guaranteed to give an upper bound
-    :param threshold:
-    :param matrix:
-    :return:
-    """
-    # print("call ", version)
-    if version == 0:
-        coloring = None
-    elif version == 1:
-        coloring = get_clustering(matrix)
-    else:
-        raise NotImplementedError("version?")
-    rc2, col_pair, map_f2ij, map_b2pq = make_2sat_model(matrix, threshold = threshold, coloring = coloring)
-    icf = col_pair is None
-    # print(col_pair, num_var_F)
-    nf = 0
-    if icf:
-        return matrix.copy(), (0, 0, 0, 0), 0
-    else:
-        a = time.time()
-        variables = rc2.compute()
-        b = time.time()
-
-        # print(variables)
-        # exit(0)
-        O = matrix.copy()
-        O = O.astype(np.int8)
-        for var_ind in range(len(variables)):
-            if 0 < variables[var_ind] and variables[var_ind] in map_f2ij: # if 0 or 2 make it one
-            # if 0 < variables[var_ind] :
-                O[map_f2ij[variables[var_ind]]] = 1
-                nf += 1
-            if 0 > variables[var_ind] and matrix[map_f2ij[-variables[var_ind]]] == 2 : # if 2 make it one
-                O[map_f2ij[-variables[var_ind]]] = 0
-                nf += 1
-                # print("flip ", map_f2ij[variables[var_ind]])
-        cntflip = list(count_flips(matrix, matrix.shape[1] * [0], O)) # second argument means no columns has been removed
-
-
-        # *** Even if the first version was one I am changing it so that solve the matrix
-        Orec, cntfliprec, timerec = upper_bound_2_sat(O, threshold=threshold, version = 0)
-        for ind in range(len(cntflip)):
-            cntflip[ind] += cntfliprec[ind]
-        return Orec, tuple(cntflip), timerec + b - a
-
 
 def save_matrix_to_file(filename, numpy_input):
     n, m = numpy_input.shape
@@ -1012,10 +651,9 @@ def save_matrix_to_file(filename, numpy_input):
     dfout.to_csv(filename, sep='\t')
 
 
-def draw_tree_muts_in_edges(filename):
+def draw_tree_muts_in_edges(filename, add_cells=False):
     bulkfile=''
     addBulk=False
-    add_cells=False
 
     import numpy as np
     import pandas as pd
@@ -1029,7 +667,7 @@ def draw_tree_muts_in_edges(filename):
                 return False
         return True
 
-    df = pd.read_csv(filename, sep='\t').set_index('cellID/mutID')
+    df = pd.read_csv(filename, sep='\t', index_col=0)
     splitter_mut = '\n'
     matrix = df.values
     names_mut = list(df.columns)
@@ -1166,8 +804,8 @@ def draw_tree_muts_in_edges(filename):
 
 
 def draw_tree_muts_in_nodes(filename):
-    addBulk=False
-    bulkfile=''
+    addBulk = False
+    bulkfile = ''
     import numpy as np
     import pandas as pd
     import pygraphviz as pyg
@@ -1263,63 +901,20 @@ def draw_tree_muts_in_nodes(filename):
     graph.draw('{}.nodes.png'.format(outputpath))
 
 
-if __name__ == '__main__':
-    hash = 1151136
-    a = read_matrix_from_file(f"../../solution_{hash}_BnB_1_two_sat_-1_0_0.CFMatrix")
+def infer_na_value(x):
+    vals = set(np.unique(x))
+    all_vals = copy.copy(vals)
+    vals.remove(0)
+    vals.remove(1)
+    if len(vals) > 0:
+        assert len(vals) == 1, "Unable to infer na: There are more than three values:" + repr(all_vals)
+        return vals.pop()
+    return None
+
+
+def count_nf(solution, x):
+    nf = len(np.where(np.logical_and(solution != x, np.logical_or(x == 0, x == 1)))[0])
+    return nf
 
 
 
-    b = read_matrix_from_file(f"../../solution_{hash}_PhISCS_B_timed_.CFMatrix")
-    c = read_matrix_from_file(f"../../solution_{hash}_PhISCS_I_.CFMatrix")
-    print(a.shape)
-    # a = a[:, :]
-    # b = b[:, :]
-    # print(np.nonzero(np.sum(a!=b, axis = 0)))
-    print(np.sum(a!=b))
-    print(np.sum(b!=c))
-    print(np.sum(a!=c))
-    exit(0)
-
-    # n = 20
-    # m = 5
-    # x = np.random.randint(3, size=(n, m))
-    # x = np.array([
-    #     [0, 0, 1, 0, 1],
-    #     [1, 0, 1, 1, 1],
-    #     [1, 0, 1, 1, 1],
-    #     [0, 1, 0, 1, 0],
-    #     [0, 0, 1, 1, 1],
-    #     [0, 1, 1, 0, 0]
-    # ])
-
-    x = read_matrix_from_file("../noisy_simp/simNo_2-s_4-m_50-n_50-k_50.SC.noisy")
-
-    x = x[:50, :50]
-    for i in range(x.shape[0]):
-        x[i, np.random.randint(x.shape[1])] = 2
-    # print(repr(x))
-
-    result = PhISCS_B(x)
-    print(result[1:], end="\n\n")
-    #
-    # result = PhISCS_I(x, beta = 0.99)
-    # print(result[1:], end="\n\n")
-    #
-    # result = PhISCS_I(x, beta=0.90)
-    # print(result[1:], end="\n\n")
-    #
-    # result = PhISCS_I(x, beta = 0.99)
-    # print(result[1:], end="\n\n")
-
-    result = upper_bound_2_sat(x, threshold=0, version=0)
-    print(result[1:], end="\n\n")
-
-
-    # result = upper_bound_2_sat(x, threshold=1)
-    # print(result, end="\n\n")
-    #
-    # # result = PhISCS_B_2_sat_timed(x, time_limit=2)
-    # # print(result)
-    # #
-    # # result = PhISCS_B_timed(x, time_limit=2)
-    # # print(result)

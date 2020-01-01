@@ -1,10 +1,24 @@
-from Utils.const import *
-from Utils.interfaces import *
-from Utils.util import *
-from Boundings.LP import *
-from Boundings.two_sat import *
-from Boundings.LP_APX_b import *
-from Boundings.MWM import *
+# from boundings.LP import *
+from boundings.two_sat import *
+# from boundings.LP_APX_b import *
+# from boundings.MWM import *
+from utils.const import *
+from utils.interfaces import *
+from utils.util import *
+
+
+def bnb_solve(matrix, bounding_algorithm, time_limit=3600, na_value=None):
+    problem1 = BnB(matrix, bounding_algorithm, na_value=na_value)
+    solver = pybnb.solver.Solver()
+    results1 = solver.solve(problem1, queue_strategy="custom", log=None, time_limit=time_limit)
+    if results1.solution_status != "unknown":
+        returned_delta = results1.best_node.state[0]
+        returned_delta_na = results1.best_node.state[-1]
+        returned_matrix = get_effective_matrix(matrix, returned_delta, returned_delta_na, change_na_to_0=True)
+    else:
+        returned_matrix = np.zeros((1,1))
+    print("results1.nodes:  ", results1.nodes)
+    return returned_matrix, results1.termination_condition
 
 
 class BnB(pybnb.Problem):
@@ -14,15 +28,13 @@ class BnB(pybnb.Problem):
     - only delta is getting copied
     """
 
-    def __init__(self, I, boundingAlg: BoundingAlgAbstract, checkBounding=False, version=0):
+    def __init__(self, I, boundingAlg: BoundingAlgAbstract, na_value=None):
         """
         :param I:
         :param boundingAlg:
         :param checkBounding:
-        :param version: An integer 0: our normal alg in Nov 11th
-                                   1: change the zeros of the whole column at the same time.
         """
-        self.na_value = 2 # todo put this somewhere in config
+        self.na_value = na_value
         self.has_na = np.any(I == self.na_value)
         self.I = I
         self.delta = sp.lil_matrix(I.shape, dtype=np.int8)  # this can be coo_matrix too
@@ -34,13 +46,9 @@ class BnB(pybnb.Problem):
         self.icf, self.colPair = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(self.I)
         self.boundingAlg.reset(I)
         self.node_to_add = self.boundingAlg.get_init_node()
-        self.boundVal = self.boundingAlg.get_bound(self.delta)
-        self.checkBounding = checkBounding
-        self.version = version
+        self.bound_value = self.boundingAlg.get_bound(self.delta)
 
-    # def getNFlips(self):
-    #     return self.delta.count_nonzero()
-
+    # noinspection PyMethodMayBeStatic
     def sense(self):
         return pybnb.minimize
 
@@ -51,81 +59,37 @@ class BnB(pybnb.Problem):
             return pybnb.Problem.infeasible_objective(self)
 
     def bound(self):
-        if self.checkBounding:  # Debugging here
-            ll = myPhISCS_I(np.asarray(self.I + self.delta))
-            if ll + self.delta.count_nonzero() < self.boundVal:
-                print(ll, self.getNFlips(), self.boundVal)
-                print(" ============== ")
-                print(repr(self.I))
-                print(repr(self.delta.todense()))
-                print(" ============== ")
-                ss = SemiDynamicLPBounding()
-                ss.reset(self.I)
-                print(f"np.allclose(self.boundingAlg.matrix, self.I)={np.allclose(self.boundingAlg.matrix, self.I)}")
-                print(f"len(self.boundingAlg.model.getConstrs()) = {len(self.boundingAlg.model.getConstrs())}")
-                print(f"len(ss.model.getConstrs()) = {len(ss.model.getConstrs())}")
-                thisAnswer = ss.get_bound(self.delta)
-                print(f"np.allclose(self.boundingAlg.matrix, self.I)={np.allclose(self.boundingAlg.matrix, self.I)}")
-                print(f"len(self.boundingAlg.model.getConstrs()) = {len(self.boundingAlg.model.getConstrs())}")
-                print(f"len(ss.model.getConstrs()) = {len(ss.model.getConstrs())}")
-
-                print(f"{thisAnswer} vs {self.boundingAlg.get_bound(self.delta)} vs {self.boundVal}")
-                print(f"{thisAnswer} vs {self.boundingAlg.get_bound(self.delta)} vs {self.boundVal}")
-
-                exit(0)
-        return self.boundVal
+        # print(self.bound_value)
+        return self.bound_value
 
     def save_state(self, node):
-        node.state = (self.delta, self.icf, self.colPair, self.boundVal, self.boundingAlg.get_state(), self.delta_na)
+        node.state = (self.delta, self.icf, self.colPair, self.bound_value, self.boundingAlg.get_state(), self.delta_na)
 
     def load_state(self, node):
-        self.delta, self.icf, self.colPair, self.boundVal, boundingAlgState, self.delta_na = node.state
+        self.delta, self.icf, self.colPair, self.bound_value, boundingAlgState, self.delta_na = node.state
         self.boundingAlg.set_state(boundingAlgState)
 
-    def getCurrentMatrix(self):
+    def get_current_matrix(self):
         return get_effective_matrix(self.I, self.delta, self.delta_na)
 
     def branch(self):
-        if self.icf:  # by fliping more than here, the objective is not going to get better
+        # print_line()
+        if self.icf:  # Once a node is icf by flipping more than here, the objective is not going to get better
             return
+
+        need_for_new_nodes = True
         if self.node_to_add is not None:
             newnode = self.node_to_add
             self.node_to_add = None
+
+            if newnode.state[0].count_nonzero() == self.bound_value:  # current_obj == lb => no need to explore
+                need_for_new_nodes = False
+            assert newnode.queue_priority is not None, "Right before adding a node its priority in the queue is not set!"
             yield newnode
-        p, q = self.colPair
-        if self.version == 0:
-            assert not self.has_na, "This version does not support N/A yet"
-            p, q, oneone, zeroone, onezero = get_a_coflict(self.getCurrentMatrix(), p, q)
-            # nodes = []
-            nf = self.getNFlips() + 1
-            for a, b in [(onezero, q), (zeroone, p)]:
-                node = pybnb.Node()
-                nodedelta = copy.deepcopy(self.delta)
-                nodedelta[a, b] = 1
-
-                newBound = self.boundingAlg.get_bound(nodedelta)
-
-                nodeicf, nodecolPair = None, None
-                extraInfo = self.boundingAlg.get_extra_info()
-                if extraInfo is not None:
-                    if "icf" in extraInfo:
-                        nodeicf = extraInfo["icf"]
-                    if "one_pair_of_columns" in extraInfo:
-                        nodecolPair = extraInfo["one_pair_of_columns"]
-                if nodeicf is None:
-                    nodeicf, nodecolPair = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(self.I + nodedelta)
-
-                nodeboundVal = max(self.boundVal, newBound)
-                node.state = (nodedelta, nodeicf, nodecolPair, nodeboundVal, self.boundingAlg.get_state(), None)
-                node.queue_priority = self.boundingAlg.get_priority(
-                    till_here = nf - 1,
-                    this_step = 1,
-                    after_here = newBound - nf,
-                    icf = nodeicf)
-                yield node
-        elif self.version == 1:
+        if need_for_new_nodes:
+            p, q = self.colPair
             nf01 = None
-            current_matrix = self.getCurrentMatrix()
+            current_matrix = self.get_current_matrix()
             for col, colp in [(q, p), (p, q)]:
                 node = pybnb.Node()
                 nodedelta = copy.deepcopy(self.delta)
@@ -140,9 +104,9 @@ class BnB(pybnb.Problem):
                 nf01 = nodedelta.count_nonzero()
                 if self.has_na:
                     node_na_delta[rows21, col] = 1
-                    newBound = self.boundingAlg.get_bound(nodedelta, node_na_delta)
+                    new_bound = self.boundingAlg.get_bound(nodedelta, node_na_delta)
                 else:
-                    newBound = self.boundingAlg.get_bound(nodedelta)
+                    new_bound = self.boundingAlg.get_bound(nodedelta)
 
                 node_icf, nodecol_pair = None, None
                 extra_info = self.boundingAlg.get_extra_info()
@@ -156,13 +120,14 @@ class BnB(pybnb.Problem):
                     x = get_effective_matrix(self.I, nodedelta, node_na_delta)
                     node_icf, nodecol_pair = is_conflict_free_gusfield_and_get_two_columns_in_coflicts(x)
 
-                nodeboundVal = max(self.boundVal, newBound)
-                node.state = (nodedelta, node_icf, nodecol_pair, nodeboundVal, self.boundingAlg.get_state(), node_na_delta)
+                node_bound_value = max(self.bound_value, new_bound)
+                node.state = (nodedelta, node_icf, nodecol_pair, node_bound_value, self.boundingAlg.get_state(), node_na_delta)
                 node.queue_priority = self.boundingAlg.get_priority(
                     till_here = nf01 - len(rows01),
                     this_step = len(rows01),
-                    after_here = newBound - nf01,
+                    after_here = new_bound - nf01,
                     icf = node_icf)
+                assert node.queue_priority is not None, "Right before adding a node its priority in the queue is not set!"
                 yield node
 
     # def notify_new_best_node(self,
@@ -179,30 +144,43 @@ class BnB(pybnb.Problem):
 
 
 if __name__ == "__main__":
-    time_limit = 60
-    # n, m = 6, 6
-    # x = np.random.randint(2, size=(n, m))
-    x = read_matrix_from_file("../noisy_simp/simNo_2-s_4-m_50-n_50-k_50.SC.noisy")
-    x[0, 0] = 2
-    print(repr(x))
-    opt = myPhISCS_I(x)
-    print("opt_I=", opt)
-    opt = myPhISCS_B(x)
-    print("opt_B=", opt)
+    time_limit = 60000
+    # x = np.array([[0, 1, 0, 1, 0],
+    #    [0, 1, 0, 0, 0],
+    #    [0, 0, 0, 1, 0],
+    #    [0, 1, 0, 1, 0],
+    #    [1, 0, 1, 0, 1]])
 
+    n, m = 6, 6
+    x = np.random.randint(2, size=(n, m))
+    # filename = "../../../PhISCS_BnB/Data/real/Chi-Ping.SC"
+    # x = read_matrix_from_file(filename)
+    # x = x[:, :500]
+    print(x.shape)
+    # print(repr(x))
+    # opt = myPhISCS_I(x)
+    # print("opt_I=", opt)
+    # opt = myPhISCS_B(x)
+    # print("opt_B=", opt)
+
+    # setting = [False,]*5
     queue_strategy = "custom"
-    for i in range(1, 2):
-        bnd = two_sat(priority_version=1, formulation_version=0, formulation_threshold=0)
-        problem1 = BnB(x, bnd, False, i)
-        solver = pybnb.solver.Solver()
-        results1 = solver.solve(problem1, queue_strategy=queue_strategy, log=None, time_limit=time_limit)
-        print(results1)
-        delta = results1.best_node.state[0]
-        delta_na = results1.best_node.state[-1]
-        print("opt =", opt, results1.objective)
-        print("delta=", delta)
-        print("delta_na=", delta_na)
+    bnd = TwoSatBounding()
+    problem1 = BnB(x, bnd)
+    solver = pybnb.solver.Solver()
+    print("start solving...")
+    results1 = solver.solve(problem1, queue_strategy=queue_strategy, log=None, time_limit=time_limit)
+    print(results1)
+    delta = results1.best_node.state[0]
+    delta_na = results1.best_node.state[-1]
+    current_matrix = get_effective_matrix(x, delta, delta_na)
+    print("opt =", results1.objective)
+    print("delta=", np.sum(np.nonzero(delta)))
+    print("delta_na=", np.sum(np.nonzero(delta_na)))
+
     exit(0)
+
+
     optimTime_I = time.time()
     optim = myPhISCS_I(x)
     optimTime_I = time.time() - optimTime_I

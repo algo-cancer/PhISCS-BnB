@@ -1,4 +1,5 @@
-from Utils.util import *
+from utils.util import *
+
 
 class BoundingAlgAbstract:
     def __init__(self):

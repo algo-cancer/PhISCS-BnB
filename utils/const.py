@@ -5,7 +5,7 @@ import getpass  # For the username running the program
 import math
 import multiprocessing
 import matplotlib as mpl
-mpl.use("Agg")
+# mpl.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import networkx as nx
@@ -16,13 +16,17 @@ import pickle
 import platform  # For the name of host machine
 import pybnb
 import random
+import scipy.stats as st
 import scipy.sparse as sp
 import subprocess
 import sys
 import time
 import traceback
 
+from argparse import ArgumentParser
 from collections import defaultdict
+from functools import reduce
+from operator import add
 from ortools.linear_solver import pywraplp
 from pysat.formula import WCNF
 from tqdm import tqdm
@@ -57,12 +61,13 @@ print(f"Running on {user_name}@{platform_name}")
 if user_name == "esadeqia":
     openwbo_path = "/home/esadeqia/external/openwbo"
     ms_path = "/home/esadeqia/external/ms"
-    output_folder_path = "/home/esadeqia/PhISCS_BnB/reports/Erfan"
+    output_folder_path = "/home/esadeqia/PhISCS_BnB/Reports/Erfan"
+    solutions_folder_path = "/home/esadeqia/PhISCS_BnB/Solutions"
     data_folder_path = "/home/esadeqia/PhISCS_BnB/Data"
     if "Carbonate" in os.getcwd():
         openwbo_path = "/gpfs/home/e/s/esadeqia/Carbonate/external/openwbo"
         ms_path = "/gpfs/home/e/s/esadeqia/Carbonate/external/ms"
-        output_folder_path = "/gpfs/home/e/s/esadeqia/Carbonate/Phylogeny_BnB/reports/Erfan"
+        output_folder_path = "/gpfs/home/e/s/esadeqia/Carbonate/Phylogeny_BnB/Reports/Erfan"
         data_folder_path = "/gpfs/home/e/s/esadeqia/Carbonate/Phylogeny_BnB/Data"
 
     simulation_folder_path = data_folder_path + "/simulations/"
