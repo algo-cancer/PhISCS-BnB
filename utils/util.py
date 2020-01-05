@@ -10,7 +10,7 @@ def now():
 
 
 def printf(s):
-    print(f"[{now()}] ", end="")
+    print(f"{now()} ", end="")
     print(s, flush=True)
 
 

@@ -11,7 +11,7 @@ bounding_algs = [
         # TwoSatBounding(heuristic_setting=None, n_levels=1, compact_formulation=True),
         TwoSatBounding(heuristic_setting=None, n_levels=2, compact_formulation=True),
         # TwoSatBounding(heuristic_setting=[True, True, False, True, True], n_levels=2, compact_formulation=False),
-        TwoSatBounding(heuristic_setting=[True, True, False, True, True], n_levels=2, compact_formulation=True),
+        # TwoSatBounding(heuristic_setting=[True, True, False, True, True], n_levels=2, compact_formulation=True),
         # TwoSatBounding(heuristic_setting=[True, True, False, True, True], n_levels=1, compact_formulation=True),
     ]
 
@@ -74,7 +74,9 @@ if __name__ == "__main__":
     parser.add_argument("-n", dest="n", type=int, default=None, help="Number of cells to include")
     parser.add_argument("-m", dest="m", type=int, default=None, help="Number of mutations to include")
     parser.add_argument("-i", dest="i", type=str, default=None, help="Input filename")
-    parser.add_argument("-b", dest="b", type=int, default=None, help="")
+    parser.add_argument("-b", dest="b", action='store_true', help="BnB")
+    parser.add_argument("-c", dest="c", action='store_true', help="CSP")
+    parser.add_argument("-g", dest="g", action='store_true', help="ILP")
     parser.add_argument("-r", dest="r", type=float, default=0.8, help="An argument for Blocking")
     parser.add_argument("-o", dest="o", type=str, default=None, help="Output Folder")
     parser.add_argument("-t", dest="time_limit", type=int, default=0, help="Time limit for each algorithm")
@@ -86,7 +88,6 @@ if __name__ == "__main__":
     if args.m is not None:
         df_input = df_input[df_input.columns[:args.m]]
     input_matrix = df_input.values
-    # print("columns:", df_input.columns)
 
     df_output = pd.DataFrame()
     na_value = infer_na_value(input_matrix)
@@ -97,14 +98,17 @@ if __name__ == "__main__":
     printf(f"#NAs: {len(np.where(input_matrix == na_value)[0])}")
 
 
-    solve_by(twosat_solver, input_matrix, na_value)
-    bounding_algs_index = 0
-    solve_by(bnb_solve, input_matrix, na_value)
-    solve_by(PhISCS_B, input_matrix, na_value)
-    solve_by(PhISCS_I, input_matrix, na_value)
-
-    exit(0)
-    # For Erfan's use:
-    for bounding_algs_index in range(len(bounding_algs)):
-        print(bounding_algs[bounding_algs_index].get_name())
+    if args.b:
+        solve_by(twosat_solver, input_matrix, na_value)
+        bounding_algs_index = 0
         solve_by(bnb_solve, input_matrix, na_value)
+    if args.c:
+        solve_by(PhISCS_B, input_matrix, na_value)
+    if args.g:
+        solve_by(PhISCS_I, input_matrix, na_value)
+
+    # exit(0)
+    # For Erfan's use:
+    # for bounding_algs_index in range(len(bounding_algs)):
+    #     print(bounding_algs[bounding_algs_index].get_name())
+    #     solve_by(bnb_solve, input_matrix, na_value)
