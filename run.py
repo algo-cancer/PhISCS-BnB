@@ -58,6 +58,8 @@ def solve_by(func, input_matrix, na_value):
     printf(f"solve_time: {solve_time:.3f}")
 
     if args.o is not None:
+        if not os.path.exists(args.o):
+            os.makedirs(args.o)
         df_output = pd.DataFrame(matrix_output)
         df_output.columns = df_input.columns
         df_output.index = df_input.index
