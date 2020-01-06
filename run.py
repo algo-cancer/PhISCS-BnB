@@ -9,10 +9,10 @@ bounding_algs = [
         # TwoSatBounding(heuristic_setting=None, n_levels=1, compact_formulation=False),
         # TwoSatBounding(heuristic_setting=None, n_levels=2, compact_formulation=False),
         # TwoSatBounding(heuristic_setting=None, n_levels=1, compact_formulation=True),
-        TwoSatBounding(heuristic_setting=None, n_levels=2, compact_formulation=True),
+        TwoSatBounding(heuristic_setting=None, n_levels=2, compact_formulation=False), # Real Data
         # TwoSatBounding(heuristic_setting=[True, True, False, True, True], n_levels=2, compact_formulation=False),
         # TwoSatBounding(heuristic_setting=[True, True, False, True, True], n_levels=2, compact_formulation=True),
-        # TwoSatBounding(heuristic_setting=[True, True, False, True, True], n_levels=1, compact_formulation=True),
+        TwoSatBounding(heuristic_setting=[True, True, False, True, True], n_levels=1, compact_formulation=True), # Simulation
     ]
 
 
@@ -97,9 +97,8 @@ if __name__ == "__main__":
     printf(f"#Ones: {len(np.where(input_matrix == 1)[0])}")
     printf(f"#NAs: {len(np.where(input_matrix == na_value)[0])}")
 
-
     if args.b:
-        solve_by(twosat_solver, input_matrix, na_value)
+        # solve_by(twosat_solver, input_matrix, na_value)
         bounding_algs_index = 0
         solve_by(bnb_solve, input_matrix, na_value)
     if args.c:
