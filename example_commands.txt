@@ -13,3 +13,5 @@ time python -O cmp_algs.py -t 1 --source_type 2 --print_rows --print_results --p
 time python -O cmp_algs.py -t 5 --source_type 2 --print_results --instance_name list
 time python -O cmp_algs.py -t 5 --source_type 2 --print_results --instance_name list --input_config timed  --save_results
 time python -O run.py -i "Data/real/Chi-Ping.SC" -m 100 -o "Solutions"
+time python -O cmp_algs.py -t 86400  --source_type 2 --print_rows --print_results  --save_results --save_solutions --input_config bnb
+

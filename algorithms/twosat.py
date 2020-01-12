@@ -1,5 +1,7 @@
 from utils.const import *
 from utils.util import *
+from algorithms.PhISCS import PhISCS_B
+rec_num = 0
 
 
 def twosat_solver(matrix, cluster_rows=False, cluster_cols=False, only_descendant_rows=False,
@@ -12,26 +14,38 @@ def twosat_solver(matrix, cluster_rows=False, cluster_cols=False, only_descendan
     :param matrix:
     :return:
     """
+    global rec_num
+    rec_num += 1
+    print(rec_num)
     assert is_na_set_correctly(matrix, na_value)
     assert not cluster_rows, "Not implemented yet"
     assert not cluster_cols, "Not implemented yet"
     assert not only_descendant_rows, "Not implemented yet"
-
+    # next(plg)
     model_time = 0
     opt_time = 0
     start_time = time.time()
     # print_line()
+    # next(plg)
+
     return_value = make_constraints_np_matrix(matrix, n_levels=n_levels, na_value=na_value,
                                               compact_formulation=compact_formulation)
+    # next(plg)
     # print_line()
     model_time += time.time() - start_time
     # for i in range(len(return_value.hard_constraints)):
     #     print(len(return_value.hard_constraints[i]))
     # print_line()
 
+    # next(plg)
     F, map_f2ij, zero_vars, na_vars, hard_constraints, col_pair = \
         return_value.F, return_value.map_f2ij, return_value.zero_vars, return_value.na_vars,\
         return_value.hard_constraints, return_value.col_pair
+
+    zeroed_matrix = matrix.copy()
+    zeroed_matrix[zeroed_matrix == na_value] = 0
+    # exit(0)
+    # next(plg)
     if col_pair is not None:
         icf = False
     elif return_value.complete_version:
@@ -45,14 +59,17 @@ def twosat_solver(matrix, cluster_rows=False, cluster_cols=False, only_descendan
         final_output, total_time = matrix.copy(), 0
     else:
         start_time = time.time()
+        # next(plg)
         rc2 = make_twosat_model_from_np(hard_constraints, F, zero_vars, na_vars, eps, heuristic_setting,
                                         compact_formulation=compact_formulation)
         model_time += time.time() - start_time
+        # next(plg)
 
-
+        print(now())
         a = time.time()
         variables = rc2.compute()
         b = time.time()
+        # next(plg)
         opt_time += b - a
         output_matrix = matrix.copy()
         output_matrix = output_matrix.astype(np.int8)
@@ -72,6 +89,7 @@ def twosat_solver(matrix, cluster_rows=False, cluster_cols=False, only_descendan
         Orec, rec_model_time, rec_opt_time = twosat_solver(output_matrix, na_value=na_value,
                                       heuristic_setting=None, n_levels=n_levels, leave_nas_if_zero=True,
                                       compact_formulation=compact_formulation)
+        # next(plg)
         model_time += rec_model_time
         opt_time += rec_opt_time
 
@@ -315,7 +333,7 @@ def make_twosat_model_from_np(constraints, F, zero_vars, na_vars,  eps=None,
     if heuristic_setting is None:
         rc2 = RC2(WCNF())
     else:
-        assert heuristic_setting.shape == (5,)
+        assert len(heuristic_setting) == 5
         rc2 = RC2(WCNF(),
                   adapt=heuristic_setting[0],
                   exhaust=heuristic_setting[1],
@@ -461,6 +479,7 @@ def make_constraints_np_matrix(matrix, constraints=None, n_levels=2, na_value=No
                 r10 = np.nonzero(np.logical_and(matrix[:, p] == 1, zero_or_na(matrix[:, q], na_value=na_value)))[0]
                 cost = min(len(r01), len(r10))
                 if cost > pair_cost:  # keep best pair to return as auxiliary info
+                    # print("------------", cost, (p, q), len(r01), len(r10), column_intersection[p, q])
                     col_pair = (p, q)
                     pair_cost = cost
                 if cost > 0:  # don't do anything if one of r01 or r10 is empty
@@ -593,16 +612,54 @@ if __name__ == '__main__':
     #                [1, 0, 1],
     #                [1, 0, 1],
     #                [1, 1, 0]])
-    next(plg)
+    # next(plg)
     folderpath = "Data/real"
-    filename = "Chi-Ping.SC"
+    filename = "SCTrioSeq_cancer_genes_LN.SC"
+    filename = "SCTrioSeq_cancer_genes.SC"
     im = read_matrix_from_file(file_name=filename, folder_path=folderpath)
-    # im = im[:, :500]
+    im = im[:40, :40]
+
+    # c1 = calculate_column_intersections(im, for_loop=True)
+    # c2 = calculate_column_intersections(im, row_by_row=True)
+    # co = c1 != c2
+    # print(c1)
+    # print(c2)
+    # print(np.sum(co))
+    # print(c1[5, 9])
+    # print(im[:, [5, 9]])
+    # exit(0)
+
+    # im = im[:, :80]
+    im[im == 3] = 0
     # print(im)
     # print(repr(im))
     print(im.shape)
-    result = timed_run(twosat_solver, args={"matrix": im}, time_limit=1)
-    print(result)
+    na_value = 3
+    args = {
+        "matrix": im,
+        "leave_nas_if_zero" : False,
+        "return_lb": True,
+        "heuristic_setting": [True, True, False, True, True],
+        # "heuristic_setting": None,
+        "n_levels": 2,
+        "eps": 0,
+        "compact_formulation": True,
+        "na_value": na_value,
+        "alpha": 0.0001,
+        "beta": 0.9,
+    }
+    # result = timed_run(PhISCS_B, args=args, time_limit=1200)
+    result = timed_run(twosat_solver, args=args, time_limit=600)
+    print(result["input"])
+    output_matrix = result["output"][0]
+    nf = count_flips(im, sol_K=[0] * im.shape[1], sol_Y=output_matrix, na_value=na_value)
+    print("nf=", nf)
+    print(result["output"][1:])
+    print(f"NA value: {na_value}")
+    print(f"#Zeros: {len(np.where(im == 0)[0])}")
+    print(f"#Ones: {len(np.where(im == 1)[0])}")
+    print(f"#NAs: {len(np.where(im == na_value)[0])}")
+    print("rec#=", rec_num)
     # def make_constraints_np_matrix(matrix, constraints=None, n_levels=2, na_value=None,
     #                                row_coloring=None, col_coloring=None,
     #                                probability_threshold=None, fn_rate=None,
@@ -617,7 +674,7 @@ if __name__ == '__main__':
     # print(len(rt.hard_constraints))
     # print(len(rt.hard_constraints[0]))
     # print(len(rt.hard_constraints[1]))
-    next(plg)
+    # next(plg)
     exit(0)
     # def twosat_solver(matrix, threshold=0, cluster_rows=False, cluster_cols=False, only_descendant_rows=False,
     #                   na_value=None, leave_nas_if_zero=False, return_lb=False, heuristic_setting=None, level=0, eps=0):
