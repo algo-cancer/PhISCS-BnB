@@ -1,26 +1,37 @@
-from Utils.const import *
-from Utils.interfaces import *
-from Utils.util import *
+from utils.const import *
+from utils.interfaces import *
+from utils.instances import *
 
 
 class RandomPartitioning(BoundingAlgAbstract):
-    def __init__(self, ratio=None, ascending_order=False):
+    def __init__(self, ascending_order=False, na_value=None):
         """
         :param ratio:
         :param ascending_order: if True the column pair with max weight is chosen in extra info
         """
         super().__init__()
         self.ascending_order = ascending_order
-        self.ratio = ratio
-        self.dist = None
+        self.na_value = na_value
+        self.dist = None # todo: what is this?
+
 
     def get_name(self):
-        return type(self).__name__ + f"_{self.ratio}_{self.ascending_order}"
+        params = [type(self).__name__,
+                  self.ascending_order,
+                  self.na_value
+                  ]
+        params_str = map(str, params)
+        return "_".join(params_str)
 
     def get_extra_info(self):
-        return self._extra_info
+        return None  # todo: give info
+        # return self._extra_info
 
     def reset(self, matrix):
+        # print(self.na_value)
+        # print(self.na_value is None)
+        # print(self.na_value is not None)
+        assert self.na_value is None, "N/A is not implemented yet"
         self.matrix = matrix
         self.dist = np.zeros(tuple([matrix.shape[1]] * 2), dtype=np.int)
         for i in range(self.dist.shape[0]):
@@ -239,13 +250,13 @@ if __name__ == "__main__":
     #         [0, 0, 0, 0, 0, 0]], dtype=np.int8)
 
     algs = [
-        StaticMWMBounding(),
-        DynamicMWMBounding(ascending_order=False),
-        DynamicMWMBounding(ascending_order=True),
+        # StaticMWMBounding(),
+        # DynamicMWMBounding(ascending_order=False),
+        # DynamicMWMBounding(ascending_order=True),
         RandomPartitioning(ascending_order=False),
         RandomPartitioning(ascending_order=True),
     ]
-    print("optimal:", myPhISCS_B(np.array(x + delta)))
+    # print("optimal:", myPhISCS_B(np.array(x + delta)))
     for algo in algs:
         resetTime = time.time()
         algo.reset(x)

@@ -26,6 +26,7 @@ import traceback
 from argparse import ArgumentParser
 from collections import defaultdict
 from functools import reduce
+from mpi4py import MPI
 from operator import add
 from ortools.linear_solver import pywraplp
 from pysat.formula import WCNF
@@ -54,9 +55,10 @@ except GurobiError:
 # For users and platforms
 user_name = getpass.getuser()
 platform_name = platform.node()
+comm = MPI.COMM_WORLD
 # End of all users
 
-print(f"Running on {user_name}@{platform_name}")
+print(f"Running on {user_name}@{platform_name}, rank = {comm.Get_rank()} of {comm.Get_size()}")
 
 if user_name == "esadeqia":
     openwbo_path = "/home/esadeqia/external/openwbo"
