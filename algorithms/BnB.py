@@ -1,7 +1,7 @@
 # from boundings.LP import *
 from boundings.two_sat import *
 # from boundings.LP_APX_b import *
-# from boundings.MWM import *
+from boundings.MWM import *
 from utils.const import *
 from utils.interfaces import *
 from utils.util import *
@@ -145,14 +145,14 @@ class BnB(pybnb.Problem):
 
 if __name__ == "__main__":
     time_limit = 60000
-    # x = np.array([[0, 1, 0, 1, 0],
-    #    [0, 1, 0, 0, 0],
-    #    [0, 0, 0, 1, 0],
-    #    [0, 1, 0, 1, 0],
-    #    [1, 0, 1, 0, 1]])
+    x = np.array([[0, 1, 0, 1, 0],
+       [0, 1, 0, 0, 0],
+       [0, 0, 0, 1, 0],
+       [0, 1, 0, 1, 0],
+       [1, 0, 1, 0, 1]])
 
-    n, m = 6, 6
-    x = np.random.randint(2, size=(n, m))
+    # n, m = 6, 6
+    # x = np.random.randint(2, size=(n, m))
     # filename = "../../../PhISCS_BnB/Data/real/Chi-Ping.SC"
     # x = read_matrix_from_file(filename)
     # x = x[:, :500]
@@ -165,7 +165,11 @@ if __name__ == "__main__":
 
     # setting = [False,]*5
     queue_strategy = "custom"
-    bnd = TwoSatBounding()
+    # bnd = TwoSatBounding()
+    bnd = DynamicMWMBounding(ascending_order=False)
+    # bnd = DynamicMWMBounding(ascending_order=True)
+    # bnd = RandomPartitioning(ascending_order=False)
+    # bnd = RandomPartitioning(ascending_order=True)
     problem1 = BnB(x, bnd)
     solver = pybnb.solver.Solver()
     print("start solving...")
@@ -175,8 +179,8 @@ if __name__ == "__main__":
     delta_na = results1.best_node.state[-1]
     current_matrix = get_effective_matrix(x, delta, delta_na)
     print("opt =", results1.objective)
-    print("delta=", np.sum(np.nonzero(delta)))
-    print("delta_na=", np.sum(np.nonzero(delta_na)))
+    print("delta=", np.sum(delta))
+    print("delta_na=", np.sum(delta_na))
 
     exit(0)
 

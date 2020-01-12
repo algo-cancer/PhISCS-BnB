@@ -87,7 +87,7 @@ class RandomPartitioning(BoundingAlgAbstract):
 
 
 class DynamicMWMBounding(BoundingAlgAbstract):
-    def __init__(self, ratio=None, ascending_order=False):
+    def __init__(self, ascending_order=False, na_value=None):
         """
         :param ratio:
         :param ascending_order: if True the column pair with max weight is chosen in extra info
@@ -97,10 +97,15 @@ class DynamicMWMBounding(BoundingAlgAbstract):
         self.G = None
         self._extra_info = {}
         self.ascending_order = ascending_order
-        self.ratio = ratio
+        self.na_value = na_value
 
     def get_name(self):
-        return type(self).__name__ + f"_{self.ratio}_{self.ascending_order}"
+        params = [type(self).__name__,
+                  self.ascending_order,
+                  self.na_value
+                  ]
+        params_str = map(str, params)
+        return "_".join(params_str)
 
     def reset(self, matrix):
         self.matrix = matrix
@@ -109,8 +114,10 @@ class DynamicMWMBounding(BoundingAlgAbstract):
             for q in range(p + 1, self.matrix.shape[1]):
                 self.calc_min0110_for_one_pair_of_columns(p, q, self.matrix)
 
+
     def get_extra_info(self):
-        return self._extra_info
+        return None  # todo: give info
+        # return self._extra_info
 
     def calc_min0110_for_one_pair_of_columns(self, p, q, current_matrix):
         found_one_one = False
@@ -159,72 +166,72 @@ class DynamicMWMBounding(BoundingAlgAbstract):
         return lb + flips_mat.shape[0]
 
 
-class StaticMWMBounding(BoundingAlgAbstract):
-    def __init__(self, ratio=None, ascending_order=False):
-        """
-        :param ratio:
-        :param ascending_order: if True the column pair with max weight is chosen in extra info
-        """
-        super().__init__()
-        self.ratio = ratio
-        self.matrix = None
-        self.ascending_order = ascending_order
-        self._extra_info = {}
-        self.G = None
-
-    def get_name(self):
-        return type(self).__name__ + f"_{self.ratio}_{self.ascending_order}"
-
-    def reset(self, matrix):
-        self.matrix = matrix
-
-    def get_extra_info(self):
-        return self._extra_info
-
-    def get_bound(self, delta):
-        self._extra_info = None
-        n_flips = delta.count_nonzero()
-        current_matrix = self.matrix + delta
-        self.G = nx.Graph()
-        for p in range(current_matrix.shape[1]):
-            for q in range(p + 1, current_matrix.shape[1]):
-                self.calc_min0110_for_one_pair_of_columns(p, q, current_matrix)
-        best_pairing = nx.max_weight_matching(self.G)
-
-        sign = 1 if self.ascending_order else -1
-
-        opt_pair_value = delta.shape[0] * delta.shape[1] * (-sign)  # either + inf or - inf
-        opt_pair = None
-        lb = 0
-        for a, b in best_pairing:
-            lb += self.G[a][b]["weight"]
-            if self.G[a][b]["weight"] * sign > opt_pair_value * sign and self.G[a][b]["weight"] > 0:
-                opt_pair_value = self.G[a][b]["weight"]
-                opt_pair = (a, b)
-
-        self._extra_info = {"icf": (lb == 0), "one_pair_of_columns": opt_pair if lb > 0 else None}
-
-        if self.ratio is None:
-            return_value = lb + n_flips
-        else:
-            return_value = np.int(np.ceil(self.ratio * lb)) + n_flips
-        return return_value
-
-    def calc_min0110_for_one_pair_of_columns(self, p, q, current_matrix):
-        found_one_one = False
-        number_of_zero_one = 0
-        number_of_one_zero = 0
-        for r in range(current_matrix.shape[0]):
-            if current_matrix[r, p] == 1 and current_matrix[r, q] == 1:
-                found_one_one = True
-            if current_matrix[r, p] == 0 and current_matrix[r, q] == 1:
-                number_of_zero_one += 1
-            if current_matrix[r, p] == 1 and current_matrix[r, q] == 0:
-                number_of_one_zero += 1
-        if self.G.has_edge(p, q):
-            self.G.remove_edge(p, q)
-        if found_one_one:
-            self.G.add_edge(p, q, weight=min(number_of_zero_one, number_of_one_zero))
+# class StaticMWMBounding(BoundingAlgAbstract):
+#     def __init__(self, ratio=None, ascending_order=False):
+#         """
+#         :param ratio:
+#         :param ascending_order: if True the column pair with max weight is chosen in extra info
+#         """
+#         super().__init__()
+#         self.ratio = ratio
+#         self.matrix = None
+#         self.ascending_order = ascending_order
+#         self._extra_info = {}
+#         self.G = None
+#
+#     def get_name(self):
+#         return type(self).__name__ + f"_{self.ratio}_{self.ascending_order}"
+#
+#     def reset(self, matrix):
+#         self.matrix = matrix
+#
+#     def get_extra_info(self):
+#         return self._extra_info
+#
+#     def get_bound(self, delta):
+#         self._extra_info = None
+#         n_flips = delta.count_nonzero()
+#         current_matrix = self.matrix + delta
+#         self.G = nx.Graph()
+#         for p in range(current_matrix.shape[1]):
+#             for q in range(p + 1, current_matrix.shape[1]):
+#                 self.calc_min0110_for_one_pair_of_columns(p, q, current_matrix)
+#         best_pairing = nx.max_weight_matching(self.G)
+#
+#         sign = 1 if self.ascending_order else -1
+#
+#         opt_pair_value = delta.shape[0] * delta.shape[1] * (-sign)  # either + inf or - inf
+#         opt_pair = None
+#         lb = 0
+#         for a, b in best_pairing:
+#             lb += self.G[a][b]["weight"]
+#             if self.G[a][b]["weight"] * sign > opt_pair_value * sign and self.G[a][b]["weight"] > 0:
+#                 opt_pair_value = self.G[a][b]["weight"]
+#                 opt_pair = (a, b)
+#
+#         self._extra_info = {"icf": (lb == 0), "one_pair_of_columns": opt_pair if lb > 0 else None}
+#
+#         if self.ratio is None:
+#             return_value = lb + n_flips
+#         else:
+#             return_value = np.int(np.ceil(self.ratio * lb)) + n_flips
+#         return return_value
+#
+#     def calc_min0110_for_one_pair_of_columns(self, p, q, current_matrix):
+#         found_one_one = False
+#         number_of_zero_one = 0
+#         number_of_one_zero = 0
+#         for r in range(current_matrix.shape[0]):
+#             if current_matrix[r, p] == 1 and current_matrix[r, q] == 1:
+#                 found_one_one = True
+#             if current_matrix[r, p] == 0 and current_matrix[r, q] == 1:
+#                 number_of_zero_one += 1
+#             if current_matrix[r, p] == 1 and current_matrix[r, q] == 0:
+#                 number_of_one_zero += 1
+#         if self.G.has_edge(p, q):
+#             self.G.remove_edge(p, q)
+#         if found_one_one:
+#             self.G.add_edge(p, q, weight=min(number_of_zero_one, number_of_one_zero))
 
 
 if __name__ == "__main__":
@@ -251,8 +258,8 @@ if __name__ == "__main__":
 
     algs = [
         # StaticMWMBounding(),
-        # DynamicMWMBounding(ascending_order=False),
-        # DynamicMWMBounding(ascending_order=True),
+        DynamicMWMBounding(ascending_order=False),
+        DynamicMWMBounding(ascending_order=True),
         RandomPartitioning(ascending_order=False),
         RandomPartitioning(ascending_order=True),
     ]
