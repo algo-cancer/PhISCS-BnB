@@ -150,13 +150,24 @@ if __name__ == "__main__":
        [0, 0, 0, 1, 0],
        [0, 1, 0, 1, 0],
        [1, 0, 1, 0, 1]])
+    x = np.array([[1, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+       [0, 0, 1, 1, 0, 1, 1, 0, 0, 0],
+       [0, 1, 1, 1, 0, 1, 0, 1, 0, 1],
+       [1, 0, 1, 0, 1, 1, 0, 1, 1, 1],
+       [1, 0, 0, 1, 0, 1, 1, 0, 1, 1],
+       [0, 1, 1, 1, 1, 1, 1, 1, 0, 1],
+       [1, 0, 0, 1, 1, 0, 1, 0, 0, 1],
+       [1, 0, 0, 1, 1, 1, 0, 0, 0, 1],
+       [0, 0, 1, 1, 1, 0, 1, 1, 1, 0],
+       [0, 1, 1, 1, 1, 1, 1, 0, 0, 0]])
 
-    # n, m = 6, 6
+    x = x[:6, :6]
+    # n, m = 10, 10
     # x = np.random.randint(2, size=(n, m))
     # filename = "../../../PhISCS_BnB/Data/real/Chi-Ping.SC"
     # x = read_matrix_from_file(filename)
     # x = x[:, :500]
-    print(x.shape)
+    # print(x.shape)
     # print(repr(x))
     # opt = myPhISCS_I(x)
     # print("opt_I=", opt)
@@ -166,14 +177,19 @@ if __name__ == "__main__":
     # setting = [False,]*5
     queue_strategy = "custom"
     # bnd = TwoSatBounding()
-    bnd = DynamicMWMBounding(ascending_order=False)
+    bnd = DynamicMWMBounding(ascending_order=False, priority_version=-2, pass_info=False, make_ub=False)
+    # bnd = DynamicMWMBounding(ascending_order=True, priority_version=-2)
+
     # bnd = DynamicMWMBounding(ascending_order=True)
     # bnd = RandomPartitioning(ascending_order=False)
     # bnd = RandomPartitioning(ascending_order=True)
+    print(bnd.get_name())
     problem1 = BnB(x, bnd)
     solver = pybnb.solver.Solver()
     print("start solving...")
-    results1 = solver.solve(problem1, queue_strategy=queue_strategy, log=None, time_limit=time_limit)
+    results1 = solver.solve(problem1, queue_strategy=queue_strategy,
+                            log=None,
+                            time_limit=time_limit)
     print(results1)
     delta = results1.best_node.state[0]
     delta_na = results1.best_node.state[-1]

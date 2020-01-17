@@ -16,7 +16,7 @@ def twosat_solver(matrix, cluster_rows=False, cluster_cols=False, only_descendan
     """
     global rec_num
     rec_num += 1
-    print(rec_num)
+    # print(rec_num)
     assert is_na_set_correctly(matrix, na_value)
     assert not cluster_rows, "Not implemented yet"
     assert not cluster_cols, "Not implemented yet"
@@ -65,7 +65,7 @@ def twosat_solver(matrix, cluster_rows=False, cluster_cols=False, only_descendan
         model_time += time.time() - start_time
         # next(plg)
 
-        print(now())
+        # print(now())
         a = time.time()
         variables = rc2.compute()
         b = time.time()

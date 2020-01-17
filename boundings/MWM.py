@@ -1,10 +1,10 @@
 from utils.const import *
 from utils.interfaces import *
 from utils.instances import *
-
+from algorithms.simple import simple_alg
 
 class RandomPartitioning(BoundingAlgAbstract):
-    def __init__(self, ascending_order=False, na_value=None):
+    def __init__(self, ascending_order=False, na_value=None, priority_version=-1, pass_info=False, make_ub=False):
         """
         :param ratio:
         :param ascending_order: if True the column pair with max weight is chosen in extra info
@@ -12,7 +12,10 @@ class RandomPartitioning(BoundingAlgAbstract):
         super().__init__()
         self.ascending_order = ascending_order
         self.na_value = na_value
-        self.dist = None # todo: what is this?
+        self.dist = None  # an m x m matrix d_ij = cost of i,j column pair
+        self.priority_version = priority_version
+        self.pass_info = pass_info
+        self.make_ub=False
 
 
     def get_name(self):
@@ -24,13 +27,10 @@ class RandomPartitioning(BoundingAlgAbstract):
         return "_".join(params_str)
 
     def get_extra_info(self):
-        return None  # todo: give info
+        return None
         # return self._extra_info
 
     def reset(self, matrix):
-        # print(self.na_value)
-        # print(self.na_value is None)
-        # print(self.na_value is not None)
         assert self.na_value is None, "N/A is not implemented yet"
         self.matrix = matrix
         self.dist = np.zeros(tuple([matrix.shape[1]] * 2), dtype=np.int)
@@ -38,6 +38,19 @@ class RandomPartitioning(BoundingAlgAbstract):
             for j in range(i):
                 self.dist[i, j] = self.cost_of_col_pair(i, j, self.matrix)
                 self.dist[j, i] = self.dist[i, j]
+        self._times = {"model_preparation_time": 0, "optimization_time": 0}
+
+
+    def get_init_node(self):
+        return None
+        node = pybnb.Node()
+        icf, solution = simple_alg(self.matrix, mx_iter = 500)
+
+        nodedelta = sp.lil_matrix(np.logical_and(solution == 1, self.matrix == 0))
+        node_na_delta = sp.lil_matrix(np.logical_and(solution == 1, self.matrix == self.na_value))
+        node.state = (nodedelta, icf, None, nodedelta.count_nonzero(), self.get_state(), node_na_delta)
+        node.queue_priority = 100000
+        return node
 
     def get_bound(self, delta):
         self._extra_info = None
@@ -87,7 +100,7 @@ class RandomPartitioning(BoundingAlgAbstract):
 
 
 class DynamicMWMBounding(BoundingAlgAbstract):
-    def __init__(self, ascending_order=False, na_value=None):
+    def __init__(self, ascending_order=False, na_value=None, priority_version=-1, pass_info=False, make_ub=False):
         """
         :param ratio:
         :param ascending_order: if True the column pair with max weight is chosen in extra info
@@ -98,6 +111,9 @@ class DynamicMWMBounding(BoundingAlgAbstract):
         self._extra_info = {}
         self.ascending_order = ascending_order
         self.na_value = na_value
+        self.priority_version = priority_version
+        self.pass_info = pass_info
+        self.make_ub=False
 
     def get_name(self):
         params = [type(self).__name__,
@@ -113,11 +129,26 @@ class DynamicMWMBounding(BoundingAlgAbstract):
         for p in range(self.matrix.shape[1]):
             for q in range(p + 1, self.matrix.shape[1]):
                 self.calc_min0110_for_one_pair_of_columns(p, q, self.matrix)
+        self._times = {"model_preparation_time": 0, "optimization_time": 0}
 
+    def get_init_node(self):
+        if not self.make_ub:
+            return None
+        node = pybnb.Node()
+        icf, solution = simple_alg(self.matrix, mx_iter = 500)
+
+        nodedelta = sp.lil_matrix(np.logical_and(solution == 1, self.matrix == 0))
+        node_na_delta = sp.lil_matrix(np.logical_and(solution == 1, self.matrix == self.na_value))
+        node.state = (nodedelta, icf, None, nodedelta.count_nonzero(), self.get_state(), node_na_delta)
+        print("-----------", nodedelta.count_nonzero())
+        node.queue_priority = 100000
+        return node
 
     def get_extra_info(self):
-        return None  # todo: give info
-        # return self._extra_info
+        if self.pass_info:
+            return self._extra_info
+        else:
+            return None
 
     def calc_min0110_for_one_pair_of_columns(self, p, q, current_matrix):
         found_one_one = False
@@ -165,6 +196,29 @@ class DynamicMWMBounding(BoundingAlgAbstract):
         self._extra_info = {"icf": (lb == 0), "one_pair_of_columns": opt_pair if lb > 0 else None}
         return lb + flips_mat.shape[0]
 
+    def get_priority(self, till_here, this_step, after_here, icf=False):
+        if icf:
+            return self.matrix.shape[0] * self.matrix.shape[1] + 10
+        else:
+            sgn = np.sign(self.priority_version)
+            pv_abs = self.priority_version * sgn
+            if pv_abs == 1:
+                return sgn * (till_here + this_step + after_here)
+            elif pv_abs == 2:
+                return sgn * (this_step + after_here)
+            elif pv_abs == 3:
+                return sgn * (after_here)
+            elif pv_abs == 4:
+                return sgn * (till_here + after_here)
+            elif pv_abs == 5:
+                return sgn * (till_here)
+            elif pv_abs == 6:
+                return sgn * (till_here + this_step)
+            elif pv_abs == 7:
+                return 0
+        assert False, "get_priority did not return anything!"
+
+# todo remove these in a few weeks if not needed
 
 # class StaticMWMBounding(BoundingAlgAbstract):
 #     def __init__(self, ratio=None, ascending_order=False):

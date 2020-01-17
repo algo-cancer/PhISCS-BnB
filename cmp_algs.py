@@ -154,8 +154,6 @@ def solve_with(name, secondary_algorithm, input_matrix):
             ret_dict["internal_time"] = returned_output["runtime"]
         ret_dict["n_flips"] = len(
             np.where(np.logical_and(input_matrix != na_value, returned_matrix != input_matrix))[0])
-
-
     elif callable(name):
         args_to_pass = prepare_func_args(name)
 
@@ -256,7 +254,9 @@ if __name__ == "__main__":
         method_name = method if isinstance(method, str) else method.__name__
         try:
             # print("solving", method, bounding)
+            # print_line()
             ans, info = solve_with(method, bounding, x)
+            # print_line()
             bounding_name = None
             if bounding is None:
                 bounding_name = ""
