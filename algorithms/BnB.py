@@ -153,11 +153,7 @@ if __name__ == "__main__":
     # n, m = 4, 20
     # n, m = 500, 3
     # x = np.random.randint(2, size=(n, m))
-    x = np.empty((180, 10), dtype = np.int)
-    pattern = np.array([[0, 1], [1, 0], [1, 1]])
-    for i in range(x.shape[1]//2):
-        for j in range(x.shape[0]):
-            x[j, (2 * i): (2 * i + 2)] = pattern[j % 3]
+    x = simple_noisy_matrix(600, 6)
     # print(x)
     # filename = "../../../PhISCS_BnB/Data/real/Chi-Ping.SC"
     # x = read_matrix_from_file(filename)
@@ -218,11 +214,13 @@ if __name__ == "__main__":
               for setting in itertools.product([False, True], repeat=3)]
 
     boundings = [
-        TwoSatBounding(),
-        TwoSatBounding(),
-        DynamicMWMBounding(ascending_order=False, priority_version=-1, pass_info=False, make_ub=False),
-        DynamicMWMBounding(ascending_order=False, priority_version=1, pass_info=False, make_ub=False),
-        # DynamicMWMBounding(ascending_order=True, priority_version=-2),
+                    TwoSatBounding(heuristic_setting=None, n_levels=1, compact_formulation=False),
+                    TwoSatBounding(heuristic_setting=None, n_levels=1, compact_formulation=True),
+                    TwoSatBounding(heuristic_setting=[True, True, False, True, True], n_levels=1,
+                                           compact_formulation=False),
+                    TwoSatBounding(heuristic_setting=[True, True, False, True, True], n_levels=1,
+                                           compact_formulation=True),
+                    # DynamicMWMBounding(ascending_order=True, priority_version=-2),
         #
         # DynamicMWMBounding(ascending_order=True),
         # RandomPartitioning(ascending_order=False),
