@@ -130,40 +130,35 @@ class BnB(pybnb.Problem):
                 assert node.queue_priority is not None, "Right before adding a node its priority in the queue is not set!"
                 yield node
 
-    # def notify_new_best_node(self,
-    #                          node,
-    #                          current):
-    #     print("-----------------------------------")
-    #     next(plg)
-    #     print(node)
-    #     print("changing version")
-    #     print("-----------------------------------")
-    #     # self.version = 1
-
-
-
 
 if __name__ == "__main__":
     time_limit = 60000
-    x = np.array([[0, 1, 0, 1, 0],
-       [0, 1, 0, 0, 0],
-       [0, 0, 0, 1, 0],
-       [0, 1, 0, 1, 0],
-       [1, 0, 1, 0, 1]])
-    x = np.array([[1, 0, 0, 0, 1, 0, 0, 0, 0, 0],
-       [0, 0, 1, 1, 0, 1, 1, 0, 0, 0],
-       [0, 1, 1, 1, 0, 1, 0, 1, 0, 1],
-       [1, 0, 1, 0, 1, 1, 0, 1, 1, 1],
-       [1, 0, 0, 1, 0, 1, 1, 0, 1, 1],
-       [0, 1, 1, 1, 1, 1, 1, 1, 0, 1],
-       [1, 0, 0, 1, 1, 0, 1, 0, 0, 1],
-       [1, 0, 0, 1, 1, 1, 0, 0, 0, 1],
-       [0, 0, 1, 1, 1, 0, 1, 1, 1, 0],
-       [0, 1, 1, 1, 1, 1, 1, 0, 0, 0]])
-
-    x = x[:6, :6]
-    # n, m = 10, 10
+    # x = np.array([[0, 1, 0, 1, 0],
+    #    [0, 1, 0, 0, 0],
+    #    [0, 0, 0, 1, 0],
+    #    [0, 1, 0, 1, 0],
+    #    [1, 0, 1, 0, 1]])
+    # x = np.array([[1, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+    #    [0, 0, 1, 1, 0, 1, 1, 0, 0, 0],
+    #    [0, 1, 1, 1, 0, 1, 0, 1, 0, 1],
+    #    [1, 0, 1, 0, 1, 1, 0, 1, 1, 1],
+    #    [1, 0, 0, 1, 0, 1, 1, 0, 1, 1],
+    #    [0, 1, 1, 1, 1, 1, 1, 1, 0, 1],
+    #    [1, 0, 0, 1, 1, 0, 1, 0, 0, 1],
+    #    [1, 0, 0, 1, 1, 1, 0, 0, 0, 1],
+    #    [0, 0, 1, 1, 1, 0, 1, 1, 1, 0],
+    #    [0, 1, 1, 1, 1, 1, 1, 0, 0, 0]])
+    #
+    # x = x[:6, :6]
+    # n, m = 4, 20
+    # n, m = 500, 3
     # x = np.random.randint(2, size=(n, m))
+    x = np.empty((180, 10), dtype = np.int)
+    pattern = np.array([[0, 1], [1, 0], [1, 1]])
+    for i in range(x.shape[1]//2):
+        for j in range(x.shape[0]):
+            x[j, (2 * i): (2 * i + 2)] = pattern[j % 3]
+    # print(x)
     # filename = "../../../PhISCS_BnB/Data/real/Chi-Ping.SC"
     # x = read_matrix_from_file(filename)
     # x = x[:, :500]
@@ -177,45 +172,62 @@ if __name__ == "__main__":
     # setting = [False,]*5
     queue_strategy = "custom"
     # bnd = TwoSatBounding()
-    bnd = DynamicMWMBounding(ascending_order=False, priority_version=-2, pass_info=False, make_ub=False)
+    # bnd = DynamicMWMBounding(ascending_order=False, priority_version=-2, pass_info=False, make_ub=False)
     # bnd = DynamicMWMBounding(ascending_order=True, priority_version=-2)
 
     # bnd = DynamicMWMBounding(ascending_order=True)
     # bnd = RandomPartitioning(ascending_order=False)
     # bnd = RandomPartitioning(ascending_order=True)
-    print(bnd.get_name())
-    problem1 = BnB(x, bnd)
-    solver = pybnb.solver.Solver()
-    print("start solving...")
-    results1 = solver.solve(problem1, queue_strategy=queue_strategy,
-                            log=None,
-                            time_limit=time_limit)
-    print(results1)
-    delta = results1.best_node.state[0]
-    delta_na = results1.best_node.state[-1]
-    current_matrix = get_effective_matrix(x, delta, delta_na)
-    print("opt =", results1.objective)
-    print("delta=", np.sum(delta))
-    print("delta_na=", np.sum(delta_na))
+    # print(bnd.get_name())
+    # problem1 = BnB(x, bnd)
+    # solver = pybnb.solver.Solver()
+    # print("start solving...")
+    # results1 = solver.solve(problem1, queue_strategy=queue_strategy,
+    #                         log=None,
+    #                         time_limit=time_limit)
+    # print(results1)
+    # delta = results1.best_node.state[0]
+    # delta_na = results1.best_node.state[-1]
+    # current_matrix = get_effective_matrix(x, delta, delta_na)
+    # print("opt =", results1.objective)
+    # print("delta=", np.sum(delta))
+    # print("delta_na=", np.sum(delta_na))
+    #
+    # exit(0)
+    #
+    #
+    # optimTime_I = time.time()
+    # optim = myPhISCS_I(x)
+    # optimTime_I = time.time() - optimTime_I
+    # print("Optimal answer (I):", optim)
+    # print("Optimal time   (I):", optimTime_I)
+    # optimTime_B = time.time()
+    # optim = myPhISCS_B(x)
+    # optimTime_B = time.time() - optimTime_B
+    # print("Optimal answer (B):", optim)
+    # print("Optimal time   (B):", optimTime_B)
+    #
+    # if optim > 25:
+    #     exit(0)
+    dmwm = [DynamicMWMBounding(ascending_order=setting[0], priority_version=-2, pass_info=setting[1],
+                                       make_ub=setting[2])
+            for setting in itertools.product([False, True], repeat=3)]
 
-    exit(0)
-
-
-    optimTime_I = time.time()
-    optim = myPhISCS_I(x)
-    optimTime_I = time.time() - optimTime_I
-    print("Optimal answer (I):", optim)
-    print("Optimal time   (I):", optimTime_I)
-    optimTime_B = time.time()
-    optim = myPhISCS_B(x)
-    optimTime_B = time.time() - optimTime_B
-    print("Optimal answer (B):", optim)
-    print("Optimal time   (B):", optimTime_B)
-
-    if optim > 25:
-        exit(0)
+    ranpar = [RandomPartitioning(ascending_order=setting[0], priority_version=-2, pass_info=setting[1],
+                                         make_ub=setting[2])
+              for setting in itertools.product([False, True], repeat=3)]
 
     boundings = [
+        TwoSatBounding(),
+        TwoSatBounding(),
+        DynamicMWMBounding(ascending_order=False, priority_version=-1, pass_info=False, make_ub=False),
+        DynamicMWMBounding(ascending_order=False, priority_version=1, pass_info=False, make_ub=False),
+        # DynamicMWMBounding(ascending_order=True, priority_version=-2),
+        #
+        # DynamicMWMBounding(ascending_order=True),
+        # RandomPartitioning(ascending_order=False),
+        # RandomPartitioning(ascending_order=True),
+
         # EmptyBoundingAlg(),
         # (NaiveBounding(), 'fifo'), # The time measures of First one is not trusted for cache issues
         # (NaiveBounding(), 'depth'),
@@ -228,14 +240,14 @@ if __name__ == "__main__":
         # (SemiDynamicLPBounding(), 'custom'),
         # (SemiDynamicLPBounding(), 'custom'),
         # (SemiDynamicLPBounding(), 'custom'),
-        (SemiDynamicLPBounding(ratio=None, continuous=True), "custom"),
+        # (SemiDynamicLPBounding(ratio=None, continuous=True), "custom"),
         # (SemiDynamicLPBounding(ratio=None, continuous = False), 'custom'),
         # (StaticLPBounding(), 'fifo'),
         # (StaticLPBounding(), 'custom'),
         # (StaticLPBounding(), 'custom'),
         # (StaticLPBounding(), 'custom'),
         # (StaticLPBounding(), 'depth'),
-        (DynamicMWMBounding(), "custom"),
+        # (DynamicMWMBounding(), "custom"),
         # (DynamicMWMBounding(), 'custom'),
         # (DynamicMWMBounding(), 'custom'),
         # (DynamicMWMBounding(), 'fifo'),
@@ -245,16 +257,15 @@ if __name__ == "__main__":
         # (StaticMWMBounding(), 'custom'),
         # (StaticMWMBounding(), 'custom'),
         # (StaticMWMBounding(), 'depth')
-    ]
-
-    for boundFunc, queue_strategy in boundings:
+    ] + dmwm + ranpar
+    print(x.shape)
+    for boundFunc in boundings:
         time1 = time.time()
         problem1 = BnB(x, boundFunc, False)
         solver = pybnb.solver.Solver()
-        results1 = solver.solve(problem1, queue_strategy=queue_strategy, log=None, time_limit=timeLimit)
-        # results1 = solver.solve(problem1,  queue_strategy = queue_strategy,)
+        results1 = solver.solve(problem1, queue_strategy=queue_strategy, log=None, time_limit=time_limit)
         time1 = time.time() - time1
         delta = results1.best_node.state[0]
         nf1 = delta.count_nonzero()
-        print(nf1, str(time1)[:5], results1.nodes, boundFunc.get_name(), queue_strategy, flush=True)
+        print(nf1, str(time1)[:5], results1.nodes, boundFunc.get_name(), flush=True)
 

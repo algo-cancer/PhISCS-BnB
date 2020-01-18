@@ -917,4 +917,10 @@ def count_nf(solution, x):
     return nf
 
 
-
+def simple_noisy_matrix(n=180, m=10):
+    x = np.empty((n, m), dtype=np.int)
+    pattern = np.array([[0, 1], [1, 0], [1, 1]])
+    for i in range(x.shape[1] // 2):
+        for j in range(x.shape[0]):
+            x[j, (2 * i): (2 * i + 2)] = pattern[j % 3]
+    return x

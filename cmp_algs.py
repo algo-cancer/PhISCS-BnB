@@ -5,8 +5,6 @@ from boundings.two_sat import TwoSatBounding
 from utils.util import *
 from utils.instances import *
 
-
-
 assert __name__ == "__main__"
 try:
     from input import *
@@ -108,7 +106,6 @@ def solve_with(name, secondary_algorithm, input_matrix):
             elif arg == "na_value":
                 args_to_pass[arg] = na_value
         return args_to_pass
-
 
     returned_matrix = copy.copy(input_matrix)
     ret_dict = dict()
@@ -223,7 +220,6 @@ if __name__ == "__main__":
                         x = read_matrix_from_file(file_names_list[i], folder_path=folder_name_for_files_list)
                         # x = make_noisy_by_fn(x, fn = 0, fp = 0, na = 0.01)
 
-
             elif source_type == "SALEM":
                 file_name = f"simNo_{i+1}-s_{args.s}-m_{m}-n_{n}.SC.ground"
                 file = simulation_folder_path + file_name
@@ -255,6 +251,7 @@ if __name__ == "__main__":
         try:
             # print("solving", method, bounding)
             # print_line()
+            # print(method, bounding, x.shape)
             ans, info = solve_with(method, bounding, x)
             # print_line()
             bounding_name = None
@@ -310,6 +307,7 @@ if __name__ == "__main__":
             print(repr(x))
             print(method_name)
             print("}}}}}}}}}} Error **********")
+    printf("Experiments finished!")
     df["cf"] = df["cf"].astype(np.bool)
     if args.print_results:
         summary_columns = [

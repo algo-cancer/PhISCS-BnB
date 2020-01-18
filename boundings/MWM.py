@@ -4,7 +4,7 @@ from utils.instances import *
 from algorithms.simple import simple_alg
 
 class RandomPartitioning(BoundingAlgAbstract):
-    def __init__(self, ascending_order=False, na_value=None, priority_version=-1, pass_info=False, make_ub=False):
+    def __init__(self, ascending_order=False, na_value=None, priority_version=-2, pass_info=False, make_ub=False):
         """
         :param ratio:
         :param ascending_order: if True the column pair with max weight is chosen in extra info
@@ -21,7 +21,10 @@ class RandomPartitioning(BoundingAlgAbstract):
     def get_name(self):
         params = [type(self).__name__,
                   self.ascending_order,
-                  self.na_value
+                  self.na_value,
+                  self.priority_version,
+                  self.pass_info,
+                  self.make_ub
                   ]
         params_str = map(str, params)
         return "_".join(params_str)
@@ -52,7 +55,7 @@ class RandomPartitioning(BoundingAlgAbstract):
         node.queue_priority = 100000
         return node
 
-    def get_bound(self, delta):
+    def get_bound(self, delta, na_delta=None):
         self._extra_info = None
 
         current_matrix = self.matrix + delta
@@ -100,7 +103,7 @@ class RandomPartitioning(BoundingAlgAbstract):
 
 
 class DynamicMWMBounding(BoundingAlgAbstract):
-    def __init__(self, ascending_order=False, na_value=None, priority_version=-1, pass_info=False, make_ub=False):
+    def __init__(self, ascending_order=False, na_value=None, priority_version=-2, pass_info=False, make_ub=False):
         """
         :param ratio:
         :param ascending_order: if True the column pair with max weight is chosen in extra info
@@ -118,7 +121,10 @@ class DynamicMWMBounding(BoundingAlgAbstract):
     def get_name(self):
         params = [type(self).__name__,
                   self.ascending_order,
-                  self.na_value
+                  self.na_value,
+                  self.priority_version,
+                  self.pass_info,
+                  self.make_ub
                   ]
         params_str = map(str, params)
         return "_".join(params_str)
@@ -166,7 +172,7 @@ class DynamicMWMBounding(BoundingAlgAbstract):
         if found_one_one:
             self.G.add_edge(p, q, weight=min(number_of_zero_one, number_of_one_zero))
 
-    def get_bound(self, delta):
+    def get_bound(self, delta, na_delta=None):
         self_extraInfo = None
 
         current_matrix = self.matrix + delta
