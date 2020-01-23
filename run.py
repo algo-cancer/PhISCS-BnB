@@ -1,11 +1,13 @@
 from algorithms.PhISCS import PhISCS_B, PhISCS_I
 from algorithms.BnB import bnb_solve
 from boundings.two_sat import TwoSatBounding
+from boundings.MWM import *
 from algorithms.twosat import twosat_solver
 from utils.util import *
 
 bounding_algs_index = 0
 bounding_algs = [
+        # DynamicMWMBounding(ascending_order=False),
         # TwoSatBounding(heuristic_setting=None, n_levels=1, compact_formulation=False),
         # TwoSatBounding(heuristic_setting=None, n_levels=2, compact_formulation=False),
         # TwoSatBounding(heuristic_setting=None, n_levels=1, compact_formulation=True),
