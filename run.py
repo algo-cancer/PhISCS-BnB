@@ -6,17 +6,6 @@ from algorithms.twosat import twosat_solver
 from utils.util import *
 
 bounding_algs_index = 0
-bounding_algs = [
-        # DynamicMWMBounding(ascending_order=False),
-        # TwoSatBounding(heuristic_setting=None, n_levels=1, compact_formulation=False),
-        # TwoSatBounding(heuristic_setting=None, n_levels=2, compact_formulation=False),
-        # TwoSatBounding(heuristic_setting=None, n_levels=1, compact_formulation=True),
-        TwoSatBounding(heuristic_setting=None, n_levels=2, compact_formulation=False), # Real Data
-        # TwoSatBounding(heuristic_setting=[True, True, False, True, True], n_levels=2, compact_formulation=False),
-        # TwoSatBounding(heuristic_setting=[True, True, False, True, True], n_levels=2, compact_formulation=True),
-        TwoSatBounding(heuristic_setting=[True, True, False, True, True], n_levels=1, compact_formulation=True), # Simulation
-    ]
-
 
 def solve_by(func, input_matrix, na_value):
     global bounding_algs_index
@@ -100,6 +89,17 @@ if __name__ == "__main__":
     printf(f"#Zeros: {len(np.where(input_matrix == 0)[0])}")
     printf(f"#Ones: {len(np.where(input_matrix == 1)[0])}")
     printf(f"#NAs: {len(np.where(input_matrix == na_value)[0])}")
+
+    bounding_algs = [
+        # DynamicMWMBounding(ascending_order=False, na_value=na_value),
+        # TwoSatBounding(heuristic_setting=None, n_levels=1, compact_formulation=False, na_value=na_value),
+        # TwoSatBounding(heuristic_setting=None, n_levels=2, compact_formulation=False, na_value=na_value),
+        # TwoSatBounding(heuristic_setting=None, n_levels=1, compact_formulation=True, na_value=na_value),
+        TwoSatBounding(heuristic_setting=None, n_levels=2, compact_formulation=False, na_value=na_value), # Real Data
+        # TwoSatBounding(heuristic_setting=[True, True, False, True, True], n_levels=2, compact_formulation=False, na_value=na_value),
+        # TwoSatBounding(heuristic_setting=[True, True, False, True, True], n_levels=2, compact_formulation=True, na_value=na_value),
+        TwoSatBounding(heuristic_setting=[True, True, False, True, True], n_levels=1, compact_formulation=True, na_value=na_value), # Simulation
+    ]
 
     if args.b:
         # solve_by(twosat_solver, input_matrix, na_value)
