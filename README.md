@@ -4,10 +4,6 @@ PhISCS-BnB is a tool
 
 ## Contents
   1. [Installation](#installation)
-     * [PhISCS-I](#installationilp)
-       * [Prerequisite: ILP solver](#prerequisiteilp)
-     * [PhISCS-B](#installationcsp)
-       * [Prerequisite: CSP solver](#prerequisitecsp)
   2. [Running](#running)
      * [Input](#input)
      * [Output](#output)
@@ -19,39 +15,13 @@ PhISCS-BnB is a tool
 
 <a name="installation"></a>
 ## Installation
-PhISCS is written in Python and C. It supports both Python 2.7 and 3. Currently it is intended to be run on POSIX-based systems (only Linux and macOS have been tested).
+PhISCS-BnB is written in Python. It supports Python 3. Currently it is intended to be run on POSIX-based systems (only Linux and macOS have been tested).  
 
-> **RECOMENDATION**:  At the moment, in cases when both, single-cell and bulk data are used as input, we recommend the use of PhISCS-I over PhISCS-B (due to more thorough tests and software validation that we have performed for PhISCS-I). However, when single-cell data is the only input, we have extensively tested both implementations and, since PhISCS-B can have potential running time advantage in this case, we recommend its use over PhISCS-I.   
-
-<a name="installationilp"></a>
-### PhISCS-I
 ```
-git clone --recursive https://github.com/sfu-compbio/PhISCS.git
+git clone https://github.com/algo-cancer/PhISCS-BnB.git
 cd PhISCS
 python PhISCS-I --help
 ```
-
-<a name="prerequisiteilp"></a>
-#### Prerequisite: ILP solver
-
-In order to run PhISCS-I, the main requirement is the installation of Gurobi solver. [Gurobi](http://www.gurobi.com) a commercial solver which is free for academic purposes. After installing it, installation of `gurobipy` package is necessary prior to being able to successfully run PhISCS-I (below we provide some examples of the input and commands used to run the tool).
-
-
-<a name="installationcsp"></a>
-### PhISCS-B
-
-```
-git clone --recursive https://github.com/sfu-compbio/PhISCS.git
-cd PhISCS
-./PhISCS-B-configure
-python PhISCS-B --help
-```
-
-<a name="prerequisitecsp"></a>
-#### Prerequisite: CSP solver
-
-Some of CSP solver have been already included in the PhISCS package. There is an option to add a new CSP solver to PhISCS-B by provinding a path to the exe file of the desired CSP solver.
-
 
 <a name="running"></a>
 ## Running
@@ -101,14 +71,6 @@ input file: data/ALL2.SC
 | Parameter  | Description                                                                                | Default  | Mandatory      |
 |------------|--------------------------------------------------------------------------------------------|----------|----------------|
 | -SCFile    | Path to single-cell data matrix file                                                       | -        | :radio_button: |
-| -fn        | Probablity of false negative                                                               | -        | :radio_button: |
-| -fp        | Probablity of false positive                                                               | -        | :radio_button: |
-| -o         | Output directory                                                                           | current  | :white_circle: |
-| -kmax      | Max number of mutations to be eliminated                                                   | 0        | :white_circle: |
-| -threads   | Number of threads (supported by PhISCS-I)                                                  | 1        | :white_circle: |
-| -bulkFile  | Path to bulk data file                                                                     | -        | :white_circle: |
-| -delta     | Delta parameter accounting for VAF variance                                                | 0.20     | :white_circle: |
-| -time      | Max time (in seconds) allowed for the computation                                          | 24 hours | :white_circle: |
 | --drawTree | Draw output tree with Graphviz                                                             | -        | :white_circle: |
 
 <a name="example"></a>
