@@ -1,6 +1,6 @@
 # PhISCS-BnB
 
-PhISCS-BnB is a tool 
+PhISCS-BnB is a fast tool for reconstructing the Perfect Tumor Phylogeny using single-cell data.
 
 ## Contents
   1. [Installation](#installation)
@@ -19,8 +19,8 @@ PhISCS-BnB is written in Python. It supports Python 3. Currently it is intended 
 
 ```
 git clone https://github.com/algo-cancer/PhISCS-BnB.git
-cd PhISCS
-python PhISCS-I --help
+cd PhISCS-BnB
+python PhISCS-BnB --help
 ```
 
 <a name="running"></a>
@@ -60,7 +60,7 @@ output file: OUT_DIR/ALL2.CFMatrix
 
 <a name="logfile"></a>
 #### 2. Log File
-Log file contains various information about the particular run of PhISCS (e.g. eliminated mutations or likelihood value). The interpretation of the relevant reported entries in this file is self-evident. Suppose the input file is **INPUT_MATRIX.ext**, the log will be stored in file **OUT_DIR/INPUT_MATRIX.log**. For example:
+Log file contains various information about the particular run of PhISCS-BnB (e.g. eliminated mutations or likelihood value). The interpretation of the relevant reported entries in this file is self-evident. Suppose the input file is **INPUT_MATRIX.ext**, the log will be stored in file **OUT_DIR/INPUT_MATRIX.log**. For example:
 ```
 input file: data/ALL2.SC
   log file: OUT_DIR/ALL2.log
@@ -76,24 +76,8 @@ input file: data/ALL2.SC
 <a name="example"></a>
 ## Example
 
-For running PhISCS without VAFs information and without ISA violations:
 ```
-python PhISCS-I -SCFile example/input.SC -fn 0.2 -fp 0.0001 -o result/
-```
-
-For running PhISCS without VAFs information but with ISA violations:
-```
-python PhISCS-I -SCFile example/input.SC -fn 0.2 -fp 0.0001 -o result/ -kmax 1
-```
-
-For running PhISCS with both VAFs information and ISA violations (with time limit of 24 hours):
-```
-python PhISCS-I -SCFile example/input.SC -fn 0.2 -fp 0.0001 -o result/ -kmax 1 -bulkFile example/input.bulk -time 86400
-```
-
-For running PhISCS with VAFs information but no ISA violations (with drawing the output tree):
-```
-python PhISCS-I -SCFile example/input.SC -fn 0.2 -fp 0.0001 -o result/ -bulkFile example/input.bulk --drawTree
+python PhISCS-BnB -SCFile example/input.SC -fn 0.2 -fp 0.0001 -o result/
 ```
 
 <a name="contact"></a>
