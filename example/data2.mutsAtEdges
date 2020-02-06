@@ -1,0 +1,7 @@
+[7]->[6]: mut0 mut2 mut3 mut4 mut5 mut6 mut7 mut8 mut10 mut11 mut12 mut13 mut14 mut16 mut17 mut18 mut19
+[6]->[5]: mut1 mut9
+[5]->[4]: mut15
+[4]->[3]: mut20 mut21 mut22 mut24 mut25 mut26 mut27 mut28 mut29 mut30 mut31 mut32 mut33 mut35
+[3]->[2]: mut23 mut34
+[2]->[1]: mut36 mut37 mut38 mut39 mut40 mut41 mut42 mut43 mut45 mut46 mut47 mut49
+[1]->[0]: mut44 mut48

@@ -1,0 +1,8 @@
+tqdm
+scipy
+numpy
+pandas
+networkx
+pybnb
+python-sat
+pygraphviz
