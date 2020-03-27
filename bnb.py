@@ -837,10 +837,10 @@ class BnB(pybnb.Problem):
                 yield node
 
 
-def bnb_solve(matrix, bounding_algorithm, time_limit=3600, na_value=None):
+def bnb_solve(matrix, bounding_algorithm, na_value=None):
     problem1 = BnB(matrix, bounding_algorithm, na_value=na_value)
     solver = pybnb.solver.Solver()
-    results1 = solver.solve(problem1, queue_strategy="custom", log=None, time_limit=time_limit)
+    results1 = solver.solve(problem1, queue_strategy="custom", log=None)
     if results1.solution_status != "unknown":
         returned_delta = results1.best_node.state[0]
         returned_delta_na = results1.best_node.state[-1]
