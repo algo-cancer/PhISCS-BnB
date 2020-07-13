@@ -2,6 +2,23 @@
 
 PhISCS-BnB is a fast tool for reconstructing the perfect tumor phylogeny using single-cell data via branch and bound.
 
+PhISCS-BnB has been published in **Bioinformatics (Proceedings of ISMB 2020)** [(doi:10.1093/bioinformatics/btaa464)](https://doi.org/10.1093/bioinformatics/btaa464). If you find this code useful in your research, please consider citing.
+```
+@article{azer2020phiscs,
+  doi           = {10.1093/bioinformatics/btaa464},
+  url           = {https://doi.org/10.1093/bioinformatics/btaa464},
+  year          = 2020,
+  month         = jul,
+  publisher     = {Oxford University Press ({OUP})},
+  volume        = {36},
+  number        = {Supplement{\_}1},
+  pages         = {i169--i176},
+  author        = {Erfan {Sadeqi Azer} and Farid {Rashidi Mehrabadi} and Salem Maliki{\'{c}} and Xuan Cindy Li and Osnat Bartok and Kevin Litchfield and Ronen Levy and Yardena Samuels and Alejandro A Sch\"{a}ffer and E Michael Gertz and Chi-Ping Day and Eva P{\'{e}}rez-Guijarro and Kerrie Marie and Maxwell P Lee and Glenn Merlino and Funda Ergun and S Cenk Sahinalp},
+  title         = {{{PhISCS}-{BnB}: a fast branch and bound algorithm for the perfect tumor phylogeny reconstruction problem}},
+  journal       = {Bioinformatics}
+}
+```
+
 ## Contents
   1. [Installation](#installation)
   2. [Running](#running)
