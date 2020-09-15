@@ -228,7 +228,7 @@ def draw_tree(filename):
     header = ""
     temp = df.columns[(df == 0).all(axis=0)]
     if len(temp) > 0:
-        header += f"Became Germline: {len(temp)}<br/>" + +""
+        header += f"Became Germline: {len(temp)}<br/>"
 
     H = nx.relabel_nodes(G, clusters)
     html = """<{}>""".format(header)
